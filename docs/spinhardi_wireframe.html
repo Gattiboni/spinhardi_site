@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spinhardi Turismo — Wireframe de Aprovação</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* ─── TOKENS ──────────────────────────────────────────── */
+:root {
+  --navy:   #1A2B4A;
+  --gold:   #AD8330;
+  --green:  #4DBF72;
+  --dark:   #1E1E2E;
+  --white:  #FFFFFF;
+  --muted:  rgba(255,255,255,0.55);
+  --divider: rgba(255,255,255,0.12);
+  --divider-dark: rgba(30,30,46,0.12);
+  --radius: 4px;
+  --ease-smooth: cubic-bezier(0.42, 0, 0, 1);
+}
+
+/* ─── RESET ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+}
+a { text-decoration: none; color: inherit; }
+img { display: block; width: 100%; }
+
+/* ─── TYPOGRAPHY ──────────────────────────────────────── */
+/* TT Fors Display simulado via @font-face do Google Fonts não disponível,
+   usamos Montserrat com letter-spacing e peso como proxy */
+.display {
+  font-family: 'Montserrat', serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.0;
+}
+
+/* ─── APPROVAL BANNER ─────────────────────────────────── */
+.approval-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--gold);
+  color: var(--white);
+  text-align: center;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.approval-banner span { opacity: 0.8; font-weight: 400; }
+
+/* ─── PAGE LABELS ─────────────────────────────────────── */
+.page-label {
+  position: fixed;
+  top: 80px; right: 0;
+  background: rgba(173,131,48,0.15);
+  border-left: 3px solid var(--gold);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+/* ─── NAV ─────────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 53px;
+  z-index: 500;
+  transition: background 0.4s var(--ease-smooth);
+}
+nav.scrolled {
+  background: rgba(26,43,74,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--divider);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-logo-icon {
+  width: 36px;
+  height: 28px;
+}
+.nav-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.nav-logo-text .brand { font-size: 15px; font-weight: 500; letter-spacing: 0.12em; color: var(--gold); }
+.nav-logo-text .sub   { font-size: 8px;  font-weight: 400; letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-links a {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.2s;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+}
+.nav-links a:hover {
+  color: var(--white);
+  border-bottom-color: var(--gold);
+}
+.nav-links a.active { color: var(--white); }
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--navy);
+  background: var(--gold);
+  padding: 9px 20px;
+  border-radius: 2px;
+  transition: opacity 0.2s;
+}
+.nav-cta:hover { opacity: 0.88; }
+
+/* ─── IMAGES (placeholder system) ────────────────────── */
+.img-wrapper {
+  overflow: hidden;
+  position: relative;
+  background: rgba(255,255,255,0.04);
+}
+.img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.75s var(--ease-smooth), filter 0.4s var(--ease-smooth);
+  transform: scale(1.0);
+  filter: brightness(0.92);
+}
+.img-wrapper:hover img {
+  transform: scale(1.04);
+  filter: brightness(1.0);
+}
+.img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(26,43,74,0.8) 0%, rgba(26,43,74,0.4) 100%);
+  border: 1px dashed rgba(173,131,48,0.3);
+  position: absolute;
+  inset: 0;
+  transition: transform 0.75s var(--ease-smooth);
+}
+.img-wrapper:hover .img-placeholder { transform: scale(1.03); }
+.img-placeholder svg { opacity: 0.3; }
+.img-placeholder span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.7;
+}
+.img-wrapper--overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, rgba(26,43,74,0.7));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── SECTION SYSTEM ──────────────────────────────────── */
+.section {
+  padding: 96px 53px;
+}
+.section--tight { padding: 64px 53px; }
+.section--white {
+  background: var(--white);
+  color: var(--dark);
+}
+.section--navy { background: var(--navy); }
+.section--cream {
+  background: #F7F4F0;
+  color: var(--dark);
+}
+.page-header-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.page-header-title {
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.0;
+  max-width: 18ch;
+  color: var(--white);
+}
+.page-header-title.dark { color: var(--dark); }
+.page-header-sub {
+  margin-top: 20px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 520px;
+}
+.page-header-sub.dark { color: rgba(30,30,46,0.6); }
+
+/* ─── DIVIDER ─────────────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--divider);
+  margin: 0;
+}
+hr.dark { border-top-color: var(--divider-dark); }
+
+/* ─── PAGE SYSTEM ─────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── PAGE NAV ────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────── */
+/* HOME PAGE */
+/* ─────────────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 53px 96px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-bg .img-placeholder {
+  border: none;
+  background: linear-gradient(160deg, #0d1a2e 0%, #1A2B4A 50%, #0f2240 100%);
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(26,43,74,0.9) 0%, rgba(26,43,74,0.2) 60%, transparent 100%);
+  z-index: 1;
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 700px;
+}
+.hero-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--gold);
+}
+.hero-title {
+  font-size: clamp(42px, 6vw, 80px);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+.hero-title em {
+  font-style: normal;
+  color: var(--gold);
+}
+.hero-sub {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 480px;
+  margin-bottom: 40px;
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--navy);
+  background: var(--gold);
+  padding: 14px 28px;
+  border-radius: 2px;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 14px 28px;
+  border-radius: 2px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.btn-ghost:hover { border-color: var(--white); background: rgba(255,255,255,0.06); }
+.hero-ctas { display: flex; gap: 16px; align-items: center; }
+.hero-scroll {
+  position: absolute;
+  bottom: 40px; right: 53px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.hero-scroll span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  writing-mode: vertical-rl;
+}
+.scroll-line {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.4; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(0.6); transform-origin: top; }
+}
+
+/* Home — Posicionamento */
+.home-positioning {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.positioning-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+.positioning-title {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+.positioning-text {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--muted);
+  margin-bottom: 32px;
+}
+.values-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+.value-item {}
+.value-item strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.value-item p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* Home — Serviços lista numerada */
+.services-list {
+  border-top: 1px solid var(--divider);
+}
+.services-item {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+  transition: all 0.3s var(--ease-smooth);
+  position: relative;
+}
+.services-item:hover { padding-left: 12px; }
+.services-item__number {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+  min-width: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.services-item__name {
+  font-size: clamp(22px, 3vw, 38px);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  transition: color 0.3s;
+  flex: 1;
+}
+.services-item:hover .services-item__name { color: var(--gold); }
+.services-item__arrow {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.3s var(--ease-smooth);
+  color: var(--gold);
+}
+.services-item:hover .services-item__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+.services-item__sub {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Home — História */
+.history-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.history-year {
+  font-size: 96px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: rgba(173,131,48,0.15);
+  line-height: 1;
+  margin-bottom: -24px;
+}
+.history-title {
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 300;
+  color: var(--white);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.history-text {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.history-img {
+  aspect-ratio: 4/5;
+  border-radius: 2px;
+}
+.history-quote {
+  border-left: 2px solid var(--gold);
+  padding-left: 20px;
+  margin-top: 32px;
+  font-size: 15px;
+  font-style: italic;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+}
+
+/* Home — Depoimentos */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  margin-top: 48px;
+}
+.testimonial {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--divider);
+  padding: 36px 32px;
+  transition: background 0.3s;
+}
+.testimonial:hover { background: rgba(255,255,255,0.06); }
+.testimonial-quote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 24px;
+  font-style: italic;
+}
+.testimonial-quote::before { content: '"'; color: var(--gold); font-size: 20px; }
+.testimonial-author strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.04em;
+}
+.testimonial-author span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Home — CTA Final */
+.cta-final {
+  text-align: center;
+  padding: 120px 53px;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+.cta-final::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(173,131,48,0.06) 0%, transparent 70%);
+}
+.cta-final-content { position: relative; z-index: 1; }
+.cta-final-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.cta-final-title {
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+.cta-final-sub {
+  font-size: 15px;
+  color: var(--muted);
+  margin-bottom: 40px;
+}
+.cta-final-actions { display: flex; gap: 16px; justify-content: center; align-items: center; }
+
+/* Footer */
+footer {
+  background: #1a1818;
+  color: var(--white);
+  padding: 64px 53px 32px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 48px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 32px;
+}
+.footer-brand .brand-name {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.footer-brand .brand-sub {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 16px;
+}
+.footer-brand p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.45);
+  max-width: 240px;
+}
+.footer-col h4 {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 16px;
+}
+.footer-col a {
+  display: block;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 10px;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+.footer-col a:hover { color: var(--white); }
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* SOBRE PAGE */
+/* ─────────────────────────────────────────────────────── */
+.about-hero {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 53px 64px;
+  position: relative;
+}
+.about-timeline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+  margin-top: 0;
+}
+.timeline-item {
+  padding: 32px 0;
+  border-top: 1px solid var(--divider);
+}
+.timeline-year {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.timeline-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+.timeline-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.about-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  margin-top: 48px;
+}
+.about-value {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--divider);
+  padding: 40px 32px;
+}
+.about-value .v-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 20px;
+  color: var(--gold);
+}
+.about-value strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 10px;
+  letter-spacing: 0.04em;
+}
+.about-value p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.about-team-img {
+  aspect-ratio: 16/7;
+  margin-top: 64px;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* VIAGENS PAGE */
+/* ─────────────────────────────────────────────────────── */
+.viagens-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-top: 64px;
+}
+.viagem-card {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+.viagem-card-img {
+  aspect-ratio: 4/5;
+}
+.viagem-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(26,43,74,0.92) 0%, rgba(26,43,74,0.1) 60%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 36px;
+  z-index: 2;
+  transition: background 0.4s;
+}
+.viagem-card:hover .viagem-card-overlay {
+  background: linear-gradient(to top, rgba(26,43,74,0.96) 0%, rgba(26,43,74,0.4) 70%);
+}
+.viagem-card-number { font-size: 10px; font-weight: 700; color: var(--gold); letter-spacing: 0.14em; margin-bottom: 8px; }
+.viagem-card-title { font-size: 28px; font-weight: 300; color: var(--white); margin-bottom: 8px; letter-spacing: -0.01em; }
+.viagem-card-desc { font-size: 13px; color: var(--muted); line-height: 1.55; max-width: 280px; margin-bottom: 20px; }
+.viagem-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.3s var(--ease-smooth);
+}
+.viagem-card:hover .viagem-card-cta { opacity: 1; transform: translateY(0); }
+
+/* Viagens — detalhe page (sub) */
+.viagem-detail-hero {
+  padding-top: 120px;
+  min-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 64px;
+  position: relative;
+}
+.viagem-detail-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 96px;
+  margin-top: 0;
+}
+.process-steps { margin-top: 40px; }
+.process-step {
+  display: flex;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.step-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 24px;
+  padding-top: 2px;
+}
+.step-body strong { display: block; font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+.step-body p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ─────────────────────────────────────────────────────── */
+/* BLOG PAGE */
+/* ─────────────────────────────────────────────────────── */
+.blog-filters {
+  display: flex;
+  gap: 24px;
+  margin-top: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--divider-dark);
+}
+.blog-filter-btn {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(30,30,46,0.4);
+  cursor: pointer;
+  padding-bottom: 4px;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+}
+.blog-filter-btn:hover,
+.blog-filter-btn.active {
+  color: var(--dark);
+  border-bottom-color: var(--gold);
+}
+.blog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5rem 2rem;
+  margin-top: 48px;
+}
+.blog-card { display: flex; flex-direction: column; gap: 14px; cursor: pointer; }
+.blog-card-img { aspect-ratio: 16/9; border-radius: 2px; }
+.blog-card-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.blog-card-title {
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--dark);
+  transition: color 0.2s;
+}
+.blog-card:hover .blog-card-title { color: #AD8330; }
+.blog-card-date { font-size: 11px; color: rgba(30,30,46,0.4); }
+.blog-card-excerpt { font-size: 13px; line-height: 1.65; color: rgba(30,30,46,0.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ─────────────────────────────────────────────────────── */
+/* CONTATO PAGE */
+/* ─────────────────────────────────────────────────────── */
+.contato-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 96px;
+  margin-top: 64px;
+}
+.contato-info .contact-item {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.contato-info .contact-item:first-child { border-top: 1px solid var(--divider); }
+.contact-item-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.contact-item-value {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--white);
+}
+.contact-item-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.form-group { margin-bottom: 20px; }
+.form-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2px;
+  padding: 14px 16px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  color: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus { border-color: var(--gold); }
+.form-select { appearance: none; cursor: pointer; }
+.form-select option { background: var(--navy); }
+.form-textarea { resize: none; height: 120px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ─── SECTION TITLES ──────────────────────────────────── */
+.section-header { margin-bottom: 56px; }
+.section-title {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--white);
+}
+.section-title.dark { color: var(--dark); }
+.section-sub {
+  margin-top: 16px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 520px;
+}
+.section-sub.dark { color: rgba(30,30,46,0.55); }
+
+/* ─── ANIMATIONS ──────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.6s var(--ease-smooth) both; }
+.fade-up-1 { animation-delay: 0.1s; }
+.fade-up-2 { animation-delay: 0.2s; }
+.fade-up-3 { animation-delay: 0.3s; }
+.fade-up-4 { animation-delay: 0.4s; }
+
+/* ─── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  .section { padding: 64px 24px; }
+  .hero { padding: 0 24px 64px; }
+  .home-positioning, .history-grid, .about-timeline,
+  .viagem-detail-content, .contato-grid, .footer-grid { grid-template-columns: 1fr; gap: 40px; }
+  .testimonials-grid, .about-values { grid-template-columns: 1fr; }
+  .viagens-grid { grid-template-columns: 1fr; }
+  .blog-grid { grid-template-columns: 1fr 1fr; }
+  .hero-scroll { display: none; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ─── APPROVAL BANNER ──────────────────────────────── -->
+<div class="approval-banner">
+  <span>Wireframe de Aprovação — Spinhardi Turismo</span>
+  Navegue pelas páginas abaixo e valide estrutura, hierarquia e fluxo
+  <span>Copies e imagens reais serão inseridos após aprovação</span>
+</div>
+
+<!-- ─── NAV ──────────────────────────────────────────── -->
+<nav id="main-nav">
+  <div class="nav-logo">
+    <svg class="nav-logo-icon" viewBox="0 0 44 34" fill="none">
+      <path d="M4 28 L16 8 Q22 2 28 8 L22 20 Q28 14 34 20 L40 28" stroke="#AD8330" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M28 8 Q34 4 38 10 L34 18" stroke="#AD8330" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+    </svg>
+    <div class="nav-logo-text">
+      <span class="brand">SPINHARDI</span>
+      <span class="sub">Turismo</span>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#" onclick="showPage('sobre'); return false;">Sobre</a>
+    <a href="#" onclick="showPage('viagens'); return false;">Viagens</a>
+    <a href="#" onclick="showPage('blog'); return false;">Blog</a>
+    <a href="#" onclick="showPage('contato'); return false;">Contato</a>
+  </div>
+  <a class="nav-cta" href="#" onclick="showPage('contato'); return false;">
+    Fale com a gente
+  </a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     HOME
+═══════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="img-placeholder" style="background:linear-gradient(160deg,#0a1624 0%,#1A2B4A 55%,#0d2038 100%)">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        <span>Imagem hero — Itália, Serra Negra ou equipe</span>
+      </div>
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow fade-up">Desde 1987 · Serra Negra, SP</div>
+      <h1 class="hero-title fade-up fade-up-1">
+        Cada viagem,<br>uma só vez.<br><em>Feita para você.</em>
+      </h1>
+      <p class="hero-sub fade-up fade-up-2">
+        Quase quarenta anos cuidando de quem viaja. Atendimento próximo, roteiros pensados nos detalhes e alguém real do outro lado — antes, durante e depois.
+      </p>
+      <div class="hero-ctas fade-up fade-up-3">
+        <a class="btn-primary" href="#" onclick="showPage('contato');return false;">Me conta sua viagem</a>
+        <a class="btn-ghost" href="#" onclick="showPage('sobre');return false;">Nossa história</a>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <div class="scroll-line"></div>
+      <span>Rolar</span>
+    </div>
+  </section>
+
+  <!-- Posicionamento -->
+  <section class="section section--navy">
+    <div class="home-positioning">
+      <div>
+        <div class="positioning-label">Quem somos</div>
+        <h2 class="positioning-title">Uma agência que cresceu por indicação. Por quase quatro décadas.</h2>
+        <p class="positioning-text">A Spinhardi não vende pacote. Vende a certeza de que tem alguém cuidando — do primeiro contato ao dia em que a mala volta para o armário. Atendemos desde o viajante que quer uma passagem até quem quer delegar uma viagem inteira.</p>
+        <a class="btn-ghost" href="#" onclick="showPage('sobre');return false;" style="margin-top:8px">Conheça a história</a>
+        <div class="values-grid">
+          <div class="value-item">
+            <strong>Presença real</strong>
+            <p>Você fala com quem vai resolver. Antes, durante e depois da viagem.</p>
+          </div>
+          <div class="value-item">
+            <strong>Cuidado com o detalhe</strong>
+            <p>Cada roteiro tem uma mão humana por trás. Nada sai de template.</p>
+          </div>
+          <div class="value-item">
+            <strong>Transparência</strong>
+            <p>Modelo financeiro explicado. Comissões declaradas. Sem surpresas.</p>
+          </div>
+          <div class="value-item">
+            <strong>História e confiança</strong>
+            <p>Quase quatro décadas construídas nome a nome, viagem a viagem.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="img-wrapper history-img" style="height:420px">
+          <div class="img-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+            <span>Foto da equipe ou destino</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- Serviços -->
+  <section class="section section--navy">
+    <div class="section-header">
+      <div class="page-header-label">O que oferecemos</div>
+      <h2 class="section-title">Como podemos ajudar na sua próxima viagem</h2>
+      <p class="section-sub">Do bilhete avulso ao roteiro completamente sob medida. Para cada perfil, um nível de atenção.</p>
+    </div>
+    <div class="services-list">
+      <div class="services-item" onclick="showPage('viagens-pacotes')">
+        <span class="services-item__number">01</span>
+        <div style="flex:1">
+          <div class="services-item__name">Pacotes e Roteiros</div>
+          <p class="services-item__sub" style="color:var(--muted);font-size:13px;margin-top:4px">Cruzeiros, circuitos e pacotes completos para os principais destinos. Coordenamos tudo para você.</p>
+        </div>
+        <div class="services-item__arrow">→</div>
+      </div>
+      <div class="services-item" onclick="showPage('viagens-sob-medida')">
+        <span class="services-item__number">02</span>
+        <div style="flex:1">
+          <div class="services-item__name">Viagem Sob Medida</div>
+          <p class="services-item__sub" style="color:var(--muted);font-size:13px;margin-top:4px">Curadoria completa desenhada do zero com você. Briefing, proposta e acompanhamento total.</p>
+        </div>
+        <div class="services-item__arrow">→</div>
+      </div>
+      <div class="services-item" onclick="showPage('contato')">
+        <span class="services-item__number">03</span>
+        <div style="flex:1">
+          <div class="services-item__name">Passagens e Serviços Avulsos</div>
+          <p class="services-item__sub" style="color:var(--muted);font-size:13px;margin-top:4px">Passagens aéreas, seguro viagem, hospedagem e transfers para quem já sabe o que quer.</p>
+        </div>
+        <div class="services-item__arrow">→</div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- História / Legado -->
+  <section class="section section--navy">
+    <div class="history-grid">
+      <div>
+        <div class="img-wrapper history-img" style="height:480px">
+          <div class="img-placeholder img-wrapper--overlay">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+            <span>Foto histórica da família / equipe</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="history-year">1987</div>
+        <h2 class="history-title">Uma viagem com 40 pessoas deu início a tudo isso.</h2>
+        <p class="history-text">Em 1987, o que seria uma viagem à Itália se tornou o começo de uma agência. Lilian e Dudu construíram a Spinhardi em Serra Negra com dedicação, atenção aos detalhes e cuidado com cada cliente — por quase trinta anos.</p>
+        <p class="history-text">Quando Nina assumiu esse sonho, não foi um recomeço. Foi uma continuidade. A mesma essência, com novas ferramentas e uma visão clara do que a Spinhardi pode se tornar.</p>
+        <blockquote class="history-quote">
+          Cada viagem que criamos carrega um pouco da nossa história — e muito da história de quem confia em nós.
+        </blockquote>
+        <a class="btn-ghost" href="#" onclick="showPage('sobre');return false;" style="margin-top:32px">Ver história completa</a>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- Depoimentos -->
+  <section class="section section--navy">
+    <div class="section-header">
+      <div class="page-header-label">O que dizem nossos clientes</div>
+      <h2 class="section-title">Quase quarenta anos de indicações. Não por acaso.</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <p class="testimonial-quote">A Spinhardi fez tudo por nós. Desde a passagem até o roteiro dia a dia. Voltamos com a sensação de que alguém realmente pensou em cada detalhe.</p>
+        <div class="testimonial-author">
+          <strong>[ Nome do cliente ]</strong>
+          <span>[ Destino ] · [ Ano ]</span>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-quote">A Nina me respondeu às 23h quando o voo atrasou e todo o roteiro precisou ser remontado. Isso não tem preço. É por isso que indiquei pra família toda.</p>
+        <div class="testimonial-author">
+          <strong>[ Nome do cliente ]</strong>
+          <span>[ Destino ] · [ Ano ]</span>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-quote">Vim pela indicação de uma amiga. Já voltei três vezes. Em nenhuma delas precisei me preocupar com nada — só com aproveitar.</p>
+        <div class="testimonial-author">
+          <strong>[ Nome do cliente ]</strong>
+          <span>[ Destino ] · [ Ano ]</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Final -->
+  <div class="cta-final">
+    <div class="cta-final-content">
+      <div class="cta-final-label">Pronto para planejar?</div>
+      <h2 class="cta-final-title">Quando quiser conversar,<br>a gente está aqui.</h2>
+      <p class="cta-final-sub">Sem compromisso. Sem pressão. Conta o que você quer viver e a gente pensa junto.</p>
+      <div class="cta-final-actions">
+        <a class="btn-primary" href="#" onclick="showPage('contato');return false;">Me conta sua viagem</a>
+        <a class="btn-ghost" href="#" onclick="showPage('blog');return false;">Ver nosso blog</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="brand-name">SPINHARDI</div>
+        <div class="brand-sub">Turismo</div>
+        <p>Quase quarenta anos cuidando de quem viaja. Serra Negra, SP.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Páginas</h4>
+        <a onclick="showPage('sobre')">Sobre</a>
+        <a onclick="showPage('viagens')">Viagens</a>
+        <a onclick="showPage('blog')">Blog</a>
+        <a onclick="showPage('contato')">Contato</a>
+      </div>
+      <div class="footer-col">
+        <h4>Serviços</h4>
+        <a onclick="showPage('viagens-pacotes')">Pacotes e Roteiros</a>
+        <a onclick="showPage('viagens-sob-medida')">Viagem Sob Medida</a>
+        <a onclick="showPage('contato')">Passagens Avulsas</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contato</h4>
+        <a>WhatsApp</a>
+        <a>Instagram</a>
+        <a>Serra Negra, SP</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Spinhardi Turismo — Todos os direitos reservados</span>
+      <span>Política de privacidade</span>
+    </div>
+  </footer>
+
+</div><!-- /page-home -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     SOBRE
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-sobre">
+
+  <section class="about-hero section section--navy" style="padding-top:140px">
+    <div class="page-header-label">Nossa história</div>
+    <h1 class="page-header-title">Uma agência construída<br>à mão. Por quase<br>quatro décadas.</h1>
+    <p class="page-header-sub">Começamos com uma viagem à Itália em 1987. Crescemos por indicação, nome a nome, viagem a viagem. Esta é a nossa história.</p>
+  </section>
+
+  <section class="section section--navy" style="padding-top:0">
+    <div class="about-team-img">
+      <div class="img-wrapper" style="height:380px">
+        <div class="img-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span>Foto da equipe / espaço da agência</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--navy">
+    <div class="page-header-label">Linha do tempo</div>
+    <div class="about-timeline">
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-year">1987</div>
+          <div class="timeline-title">O começo</div>
+          <p class="timeline-text">Uma viagem à Itália com 40 pessoas. Foi aí que tudo começou. O que seria um grupo de amigos se tornou o primeiro projeto de uma agência que nunca mais parou de crescer.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">1987 – 2012</div>
+          <div class="timeline-title">Lilian e Dudu</div>
+          <p class="timeline-text">Por quase trinta anos, a Spinhardi foi construída com dedicação, atenção aos detalhes e cuidado com cada cliente. Uma reputação construída por indicação, em Serra Negra e além.</p>
+        </div>
+      </div>
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-year">2012</div>
+          <div class="timeline-title">Nina assume o sonho</div>
+          <p class="timeline-text">Nina assumiu a Spinhardi não para reinventá-la, mas para dar continuidade. A mesma essência, os mesmos valores — com novas ferramentas, novos destinos e uma visão clara do futuro.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">Hoje</div>
+          <div class="timeline-title">Uma virada deliberada</div>
+          <p class="timeline-text">A Spinhardi está estruturando sua presença digital para comunicar externamente o que já acontece internamente há décadas. A agência que cresceu no boca a boca agora aparece para quem ainda não a conhece.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="section section--navy">
+    <div class="section-header">
+      <div class="page-header-label">Como trabalhamos</div>
+      <h2 class="section-title">Os valores que não<br>mudam, nunca.</h2>
+    </div>
+    <div class="about-values">
+      <div class="about-value">
+        <svg class="v-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <strong>Presença Real</strong>
+        <p>Você fala com quem vai resolver. Não com um atendente, não com um bot. Com quem conhece cada detalhe do que foi combinado.</p>
+      </div>
+      <div class="about-value">
+        <svg class="v-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <strong>Cuidado com o Detalhe</strong>
+        <p>Cada viagem tem uma mão humana por trás. Do seguro avulso à curadoria completa, o cuidado com o cliente não muda.</p>
+      </div>
+      <div class="about-value">
+        <svg class="v-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <strong>Transparência</strong>
+        <p>Modelo financeiro explicado. Comissões declaradas. A confiança do cliente é preservada porque não escondemos o que não precisa ser escondido.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-final">
+    <div class="cta-final-content">
+      <h2 class="cta-final-title">Quer conhecer pessoalmente?</h2>
+      <p class="cta-final-sub">A conversa não compromete nada. Me conta o que você tem em mente.</p>
+      <div class="cta-final-actions">
+        <a class="btn-primary" onclick="showPage('contato')">Fale com a gente</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="brand-name">SPINHARDI</div>
+        <div class="brand-sub">Turismo</div>
+        <p>Quase quarenta anos cuidando de quem viaja.</p>
+      </div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('viagens')">Viagens</a><a onclick="showPage('blog')">Blog</a><a onclick="showPage('contato')">Contato</a></div>
+      <div class="footer-col"><h4>Serviços</h4><a onclick="showPage('viagens-pacotes')">Pacotes</a><a onclick="showPage('viagens-sob-medida')">Sob Medida</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a><a>Instagram</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span><span>Política de privacidade</span></div>
+  </footer>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     VIAGENS (hub)
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-viagens">
+  <section class="section section--navy" style="padding-top:140px">
+    <div class="page-header-label">Viagens</div>
+    <h1 class="page-header-title">Como podemos<br>ajudar na sua<br>próxima viagem.</h1>
+    <p class="page-header-sub">Atendemos do viajante que quer uma passagem ao cliente que quer delegar uma viagem inteira. Escolha o que faz mais sentido para você.</p>
+  </section>
+
+  <section class="section section--navy" style="padding-top:0">
+    <div class="viagens-grid">
+      <div class="viagem-card" onclick="showPage('viagens-pacotes')">
+        <div class="viagem-card-img img-wrapper" style="height:500px">
+          <div class="img-placeholder img-wrapper--overlay">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <span>Foto de destino — pacotes</span>
+          </div>
+        </div>
+        <div class="viagem-card-overlay">
+          <div class="viagem-card-number">01</div>
+          <div class="viagem-card-title">Pacotes e Roteiros</div>
+          <div class="viagem-card-desc">Cruzeiros, circuitos e pacotes completos. Coordenamos tudo para quem quer viajar com segurança e sem complicação.</div>
+          <div class="viagem-card-cta">Ver mais →</div>
+        </div>
+      </div>
+      <div class="viagem-card" onclick="showPage('viagens-sob-medida')">
+        <div class="viagem-card-img img-wrapper" style="height:500px">
+          <div class="img-placeholder img-wrapper--overlay">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            <span>Foto de curadoria — sob medida</span>
+          </div>
+        </div>
+        <div class="viagem-card-overlay">
+          <div class="viagem-card-number">02</div>
+          <div class="viagem-card-title">Viagem Sob Medida</div>
+          <div class="viagem-card-desc">Curadoria completa desenhada do zero. Briefing, proposta personalizada e acompanhamento em cada etapa.</div>
+          <div class="viagem-card-cta">Ver mais →</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-final">
+    <div class="cta-final-content">
+      <h2 class="cta-final-title">Não sabe por onde começar?</h2>
+      <p class="cta-final-sub">Me conta o que você tem em mente. A conversa não compromete nada.</p>
+      <div class="cta-final-actions">
+        <a class="btn-primary" onclick="showPage('contato')">Fale com a gente</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand"><div class="brand-name">SPINHARDI</div><div class="brand-sub">Turismo</div><p>Quase quarenta anos cuidando de quem viaja.</p></div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('sobre')">Sobre</a><a onclick="showPage('blog')">Blog</a><a onclick="showPage('contato')">Contato</a></div>
+      <div class="footer-col"><h4>Serviços</h4><a onclick="showPage('viagens-pacotes')">Pacotes</a><a onclick="showPage('viagens-sob-medida')">Sob Medida</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a><a>Instagram</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span></div>
+  </footer>
+</div>
+
+
+<!-- VIAGENS — PACOTES -->
+<div class="page" id="page-viagens-pacotes">
+  <section class="section section--navy" style="padding-top:140px">
+    <div class="page-header-label">Viagens / Pacotes e Roteiros</div>
+    <h1 class="page-header-title">Pacotes pensados<br>para quem quer<br>viajar bem.</h1>
+    <p class="page-header-sub">Cruzeiros, circuitos e pacotes completos para os principais destinos. Cuidamos de toda a logística para que você só precise aproveitar.</p>
+  </section>
+
+  <section class="section section--navy" style="padding-top:0">
+    <div class="viagem-detail-content">
+      <div>
+        <div class="page-header-label">O que está incluído</div>
+        <div class="process-steps">
+          <div class="process-step"><div class="step-num">01</div><div class="step-body"><strong>Passagem aérea</strong><p>Monitoramos tarifas e escolhemos o melhor momento para emitir. Com as melhores conexões para o seu destino.</p></div></div>
+          <div class="process-step"><div class="step-num">02</div><div class="step-body"><strong>Hospedagem</strong><p>Hotéis selecionados de acordo com o seu perfil e orçamento. Confirmação garantida antes da viagem.</p></div></div>
+          <div class="process-step"><div class="step-num">03</div><div class="step-body"><strong>Transfers e traslados</strong><p>Chegada e saída sem complicação. Coordenamos do aeroporto ao hotel e de volta.</p></div></div>
+          <div class="process-step"><div class="step-num">04</div><div class="step-body"><strong>Seguro viagem</strong><p>Cobertura adequada para cada destino. Explicamos o que está incluso e o que não está.</p></div></div>
+          <div class="process-step"><div class="step-num">05</div><div class="step-body"><strong>Suporte durante a viagem</strong><p>Estamos disponíveis se algo precisar ser ajustado no caminho.</p></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="img-wrapper" style="height:480px;border-radius:2px">
+          <div class="img-placeholder img-wrapper--overlay">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <span>Foto de destino — pacote</span>
+          </div>
+        </div>
+        <div style="margin-top:32px;background:rgba(255,255,255,0.04);border:1px solid var(--divider);padding:32px;border-radius:2px">
+          <div class="page-header-label" style="margin-bottom:12px">Próximos destinos disponíveis</div>
+          <p style="color:var(--muted);font-size:14px;line-height:1.7">[ Placeholder: lista dos destinos disponíveis no período. Inserir após aprovação do wireframe. ]</p>
+          <a class="btn-primary" onclick="showPage('contato')" style="margin-top:24px;display:inline-flex">Me interessa, quero saber mais</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand"><div class="brand-name">SPINHARDI</div><div class="brand-sub">Turismo</div></div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('viagens')">Viagens</a><a onclick="showPage('contato')">Contato</a></div>
+      <div class="footer-col"><h4>Serviços</h4><a onclick="showPage('viagens-pacotes')">Pacotes</a><a onclick="showPage('viagens-sob-medida')">Sob Medida</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span></div>
+  </footer>
+</div>
+
+
+<!-- VIAGENS — SOB MEDIDA -->
+<div class="page" id="page-viagens-sob-medida">
+  <section class="section section--navy" style="padding-top:140px">
+    <div class="page-header-label">Viagens / Viagem Sob Medida</div>
+    <h1 class="page-header-title">Cada detalhe começa<br>de você. Não de<br>um catálogo.</h1>
+    <p class="page-header-sub">Curadoria completa desenhada do zero. Para quem quer delegar e receber de volta uma viagem que não existe em lugar nenhum.</p>
+  </section>
+
+  <section class="section section--navy" style="padding-top:0">
+    <div class="viagem-detail-content">
+      <div>
+        <div class="page-header-label">Como funciona</div>
+        <div class="process-steps">
+          <div class="process-step"><div class="step-num">01</div><div class="step-body"><strong>Conversa inicial</strong><p>Me conta o que você quer viver. Não o destino — a experiência. A partir daí a gente começa a desenhar.</p></div></div>
+          <div class="process-step"><div class="step-num">02</div><div class="step-body"><strong>Briefing e sinal</strong><p>Formalizamos o que foi conversado. Um sinal de orçamento garante que vamos dedicar atenção total ao seu roteiro.</p></div></div>
+          <div class="process-step"><div class="step-num">03</div><div class="step-body"><strong>Proposta personalizada</strong><p>Roteiro dia a dia, com acomodações, experiências e logística. Até três entregas inclusas.</p></div></div>
+          <div class="process-step"><div class="step-num">04</div><div class="step-body"><strong>Aprovação e emissão</strong><p>Você aprova, a gente emite. Tudo documentado e confirmado antes da viagem.</p></div></div>
+          <div class="process-step"><div class="step-num">05</div><div class="step-body"><strong>Suporte ativo</strong><p>Durante a viagem, estamos disponíveis. Guia completo entregue 45 dias antes com tudo que você precisa saber.</p></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="img-wrapper" style="height:480px;border-radius:2px">
+          <div class="img-placeholder img-wrapper--overlay">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <span>Foto — destino sob medida</span>
+          </div>
+        </div>
+        <div style="margin-top:32px;background:rgba(173,131,48,0.08);border:1px solid rgba(173,131,48,0.2);padding:32px;border-radius:2px">
+          <div class="page-header-label" style="margin-bottom:12px">Para quem é</div>
+          <p style="color:var(--muted);font-size:14px;line-height:1.75">Para quem tem um orçamento em mente e quer ajuda para montar tudo do zero. Para quem quer delegar e receber de volta uma viagem pensada especificamente para si. Para quem já foi à Europa e quer algo diferente desta vez.</p>
+          <a class="btn-primary" onclick="showPage('contato')" style="margin-top:24px;display:inline-flex">Quero começar minha curadoria</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand"><div class="brand-name">SPINHARDI</div><div class="brand-sub">Turismo</div></div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('viagens')">Viagens</a><a onclick="showPage('contato')">Contato</a></div>
+      <div class="footer-col"><h4>Serviços</h4><a onclick="showPage('viagens-pacotes')">Pacotes</a><a onclick="showPage('viagens-sob-medida')">Sob Medida</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span></div>
+  </footer>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     BLOG
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-blog">
+  <section class="section section--cream" style="padding-top:140px">
+    <div class="page-header-label" style="color:var(--gold)">Blog</div>
+    <h1 class="page-header-title dark">Histórias, destinos<br>e bastidores de<br>quem viaja de verdade.</h1>
+    <p class="page-header-sub dark">Conteúdo que só a Spinhardi poderia contar. Dicas reais, experiências de clientes e bastidores do nosso trabalho.</p>
+    <div class="blog-filters">
+      <div class="blog-filter-btn active">Todos</div>
+      <div class="blog-filter-btn">Destinos</div>
+      <div class="blog-filter-btn">Bastidores</div>
+      <div class="blog-filter-btn">Dicas de Viagem</div>
+      <div class="blog-filter-btn">História da Agência</div>
+    </div>
+  </section>
+
+  <section class="section section--cream" style="padding-top:0">
+    <div class="blog-grid">
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">História da Agência</div>
+        <div class="blog-card-title">Em 1987, uma viagem com 40 pessoas deu início a tudo isso.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">A história de como a Spinhardi começou e o que nos trouxe até aqui. Três gerações, uma cidade, e uma agência construída por indicação.</div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">Destinos</div>
+        <div class="blog-card-title">5 lugares em Florença que os turistas normais não conhecem — e a gente conhece.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">Florença vai muito além dos museus e das filas. Tem uma cidade inteira acontecendo nos bastidores para quem sabe onde procurar.</div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">Bastidores</div>
+        <div class="blog-card-title">O que acontece quando o voo atrasa e o roteiro inteiro precisa ser refeito.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">Um relato de bastidor sobre o que significa ter alguém do outro lado quando tudo sai do planejado.</div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">Dicas de Viagem</div>
+        <div class="blog-card-title">Seguro viagem: o que está incluído de verdade e o que você precisa saber antes de contratar.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">O seguro viagem é um dos produtos mais mal compreendidos do mercado. Aqui está o que você precisa saber antes de decidir.</div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">Destinos</div>
+        <div class="blog-card-title">Viajar vai muito além de passagens e hotéis. O que a gente entrega quando monta um roteiro.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">Uma explicação honesta sobre o que é montar uma viagem sob medida e por que ela é diferente de simplesmente comprar um pacote.</div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-card-img img-wrapper"><div class="img-placeholder" style="background:#e8e4df;border:1px dashed rgba(173,131,48,0.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AD8330" stroke-width="1"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 4v4h-7V8z"/></svg><span>Foto do post</span></div></div>
+        <div class="blog-card-tag">Bastidores</div>
+        <div class="blog-card-title">Como escolhemos os parceiros locais que entram nos nossos roteiros.</div>
+        <div class="blog-card-date">[ Data ]</div>
+        <div class="blog-card-excerpt">A curadoria começa muito antes do briefing. Tem anos de relacionamento, visitas e conversas por trás de cada indicação que fazemos.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer style="background:#1a1818">
+    <div class="footer-grid">
+      <div class="footer-brand"><div class="brand-name">SPINHARDI</div><div class="brand-sub">Turismo</div></div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('sobre')">Sobre</a><a onclick="showPage('viagens')">Viagens</a><a onclick="showPage('contato')">Contato</a></div>
+      <div class="footer-col"><h4>Categorias</h4><a>Destinos</a><a>Bastidores</a><a>Dicas de Viagem</a><a>História</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a><a>Instagram</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span></div>
+  </footer>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     CONTATO
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-contato">
+  <section class="section section--navy" style="padding-top:140px;padding-bottom:0">
+    <div class="page-header-label">Contato</div>
+    <h1 class="page-header-title">Quando quiser conversar,<br>a gente está aqui.</h1>
+    <p class="page-header-sub">Sem compromisso. Sem pressão. Me conta o que você tem em mente e a gente pensa junto.</p>
+  </section>
+
+  <section class="section section--navy">
+    <div class="contato-grid">
+      <div class="contato-info">
+        <div class="contact-item">
+          <div class="contact-item-label">WhatsApp</div>
+          <div class="contact-item-value">[ Número da Spinhardi ]</div>
+          <div class="contact-item-sub">Respondemos em até algumas horas em horário comercial.</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-label">Instagram</div>
+          <div class="contact-item-value">@spinharditurismo</div>
+          <div class="contact-item-sub">Conteúdo, bastidores e destinos.</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-label">Localização</div>
+          <div class="contact-item-value">Serra Negra, SP</div>
+          <div class="contact-item-sub">Atendemos presencialmente e online.</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-label">Horário</div>
+          <div class="contact-item-value">[ Horário de atendimento ]</div>
+          <div class="contact-item-sub">[ Dias da semana ]</div>
+        </div>
+      </div>
+      <div>
+        <form onsubmit="return false;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Nome</label>
+              <input class="form-input" type="text" placeholder="Seu nome">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WhatsApp</label>
+              <input class="form-input" type="tel" placeholder="(00) 00000-0000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destino de interesse</label>
+            <select class="form-select form-input">
+              <option value="">Selecione um destino</option>
+              <option>Itália</option>
+              <option>Europa em geral</option>
+              <option>Cruzeiro</option>
+              <option>América do Sul</option>
+              <option>Outro destino</option>
+              <option>Ainda não sei — quero ajuda</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">O que você tem em mente?</label>
+            <textarea class="form-textarea" placeholder="Me conta um pouco sobre a viagem que você está pensando. Período, quem vai, se tem alguma preferência. Sem compromisso — é só para a gente entender melhor."></textarea>
+          </div>
+          <a class="btn-primary" style="width:100%;justify-content:center;margin-top:8px">Enviar mensagem</a>
+          <p style="font-size:11px;color:var(--muted);margin-top:14px;text-align:center">Também pode chamar direto no WhatsApp. A resposta costuma ser mais rápida por lá.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand"><div class="brand-name">SPINHARDI</div><div class="brand-sub">Turismo</div></div>
+      <div class="footer-col"><h4>Páginas</h4><a onclick="showPage('home')">Home</a><a onclick="showPage('sobre')">Sobre</a><a onclick="showPage('viagens')">Viagens</a><a onclick="showPage('blog')">Blog</a></div>
+      <div class="footer-col"><h4>Serviços</h4><a onclick="showPage('viagens-pacotes')">Pacotes</a><a onclick="showPage('viagens-sob-medida')">Sob Medida</a></div>
+      <div class="footer-col"><h4>Contato</h4><a>WhatsApp</a><a>Instagram</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Spinhardi Turismo</span></div>
+  </footer>
+</div>
+
+
+<script>
+// ─── PAGE ROUTER ──────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + id);
+  if (el) {
+    el.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  // Update nav active state
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  const map = { home: 0, sobre: 0, viagens: 1, 'viagens-pacotes': 1, 'viagens-sob-medida': 1, blog: 2, contato: 3 };
+  const links = document.querySelectorAll('.nav-links a');
+  if (map[id] !== undefined && links[map[id]]) links[map[id]].classList.add('active');
+}
+
+// ─── NAV SCROLL ───────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('main-nav');
+  if (window.scrollY > 40) nav.classList.add('scrolled');
+  else nav.classList.remove('scrolled');
+}, { passive: true });
+
+// ─── BLOG FILTERS ─────────────────────────────────────────
+document.querySelectorAll('.blog-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.blog-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
