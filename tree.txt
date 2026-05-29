@@ -1,0 +1,30 @@
+spinhardi_site/
+├── .git/
+├── docs/
+│   ├── arquitetura_v1.md
+│   ├── CHANGELOG.md
+│   ├── custos_publicacao.docx
+│   ├── DECISION_LOG.md
+│   ├── identidade_visual.md
+│   ├── mapa_de_copies_spinhardi_v1_ready.docx
+│   ├── mapa_de_imagens_spinhardi_v1.docx
+│   ├── plano_de_desenvolvimento_site_v1
+│   ├── plano_de_desenvolvimento_site_v1.md
+│   ├── plano_de_infraestrutura_spinhardi_v1.docx
+│   ├── pos_lancamento.docx
+│   ├── refs/
+│   │   ├── blog_leitura_organizacao.json
+│   │   ├── landing_efeitos_das_imagens.json
+│   │   ├── landing_rolagem_layout.json
+│   │   ├── produtos_header.json
+│   │   └── referencias_design.md
+│   ├── spinhardi_wireframe.html
+│   └── validacao_wireframe.docx
+├── logos/
+│   ├── 1.png
+│   ├── 2.png
+│   ├── 3.png
+│   └── 4.png
+├── logo antiga.jpg
+├── README.md
+└── tree.txt
