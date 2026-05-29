@@ -1,6 +1,11 @@
 spinhardi_site/
-├── .git/
 ├── docs/
+│   ├── refs/
+│   │   ├── blog_leitura_organizacao.json
+│   │   ├── landing_efeitos_das_imagens.json
+│   │   ├── landing_rolagem_layout.json
+│   │   ├── produtos_header.json
+│   │   └── referencias_design.md
 │   ├── arquitetura_v1.md
 │   ├── CHANGELOG.md
 │   ├── custos_publicacao.docx
@@ -8,16 +13,9 @@ spinhardi_site/
 │   ├── identidade_visual.md
 │   ├── mapa_de_copies_spinhardi_v1_ready.docx
 │   ├── mapa_de_imagens_spinhardi_v1.docx
-│   ├── plano_de_desenvolvimento_site_v1
-│   ├── plano_de_desenvolvimento_site_v1.md
+│   ├── plano_de_desenvolvimento_site_v2.md
 │   ├── plano_de_infraestrutura_spinhardi_v1.docx
 │   ├── pos_lancamento.docx
-│   ├── refs/
-│   │   ├── blog_leitura_organizacao.json
-│   │   ├── landing_efeitos_das_imagens.json
-│   │   ├── landing_rolagem_layout.json
-│   │   ├── produtos_header.json
-│   │   └── referencias_design.md
 │   ├── spinhardi_wireframe.html
 │   └── validacao_wireframe.docx
 ├── logos/
@@ -25,6 +23,28 @@ spinhardi_site/
 │   ├── 2.png
 │   ├── 3.png
 │   └── 4.png
-├── logo antiga.jpg
+├── public/
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── src/
+│   └── app/
+│       ├── favicon.ico
+│       ├── globals.css
+│       ├── layout.tsx
+│       └── page.tsx
+├── .env.example
+├── .gitignore
+├── AGENTS.md
+├── CLAUDE.md
 ├── README.md
-└── tree.txt
+├── eslint.config.mjs
+├── logo antiga.jpg
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── tree.txt
+└── tsconfig.json

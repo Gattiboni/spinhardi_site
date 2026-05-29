@@ -1,0 +1,41 @@
+﻿# Dependencies
+node_modules
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Coverage
+coverage
+
+# Minified
+*.min.js
+*.min.css
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Backups (sessão de setup inicial)
+*.backup
+_temp_premove
+
+# Sanity (Fase 3+)
+.sanity
+
+# Documentação (arquivos manuais, formatação intencional)
+docs/**/*.md
+docs/**/*.html
+docs/**/*.json
+
+# Markdown de raiz (escritos manualmente)
+AGENTS.md
+CLAUDE.md
+README.md
+*.md
+
+# Outros
+.DS_Store

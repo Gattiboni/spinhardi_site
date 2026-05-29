@@ -1,19 +1,24 @@
 # Spinhardi Turismo — Site
 
-Site oficial da Spinhardi Turismo, desenvolvido como parte do projeto de Presença Digital.
+Site oficial da Spinhardi Turismo, desenvolvido como parte do projeto de
+Presença Digital.
 
-**Stack:** Next.js 14+ · TypeScript · Tailwind CSS · Vercel  
-**Repositório:** https://github.com/Gattiboni/spinhardi_site  
-**Deploy:** https://spinhardi.com.br _(domínio a confirmar)_
+**Stack:** Next.js 14+ · TypeScript · Tailwind CSS · Vercel · Supabase · Sanity
+**Repositório:** https://github.com/Gattiboni/spinhardi_site **Deploy:**
+https://spinharditurismo.com.br _(produção a partir da Fase 3)_
 
 ---
 
 ## Princípios do projeto
 
-- **Incrementalidade** — cada entrega é funcional. Nenhuma etapa cria dependência que trave a próxima.
-- **Escalabilidade** — código estruturado para crescer sem reescrever.
-- **Zero dívida técnica** — sem workaround, sem gambiarra, sem "depois a gente resolve".
-- **Documentação sempre atualizada** — se mudou, documentou. Se decidiu, registrou.
+- **Incrementalidade** — nenhuma decisão pode ser um impedimento óbvio para a
+  próxima.
+- **Modularidade** — preservar a liberdade da arquitetura pra plugar e desplugar
+  qualquer coisa que seja pertinente.
+- **Zero dívida técnica** — sem workaround, sem gambiarra, sem "depois a gente
+  resolve".
+- **Documentação sempre atualizada** — se mudou, documentou. Se decidiu,
+  registrou.
 
 ---
 
@@ -21,26 +26,33 @@ Site oficial da Spinhardi Turismo, desenvolvido como parte do projeto de Presen�
 
 ```
 spinhardi_site/
-├── app/                    # Rotas e páginas (Next.js App Router)
-│   ├── page.tsx            # Home /
-│   ├── sobre/              # /sobre
-│   ├── viagens/            # /viagens e subpáginas
-│   ├── blog/               # /blog e /blog/[slug]
-│   └── contato/            # /contato
-├── components/             # Componentes reutilizáveis
-├── content/                # Posts do blog em MDX
-├── lib/                    # Utilitários, integrações e camada de IA
-│   ├── ai/                 # Abstração sobre provider (Anthropic)
-│   └── integrations/       # IDAS, ClickMassa, Make
+├── src/                    # Código-fonte da aplicação
+│   ├── app/                # Rotas e páginas (Next.js App Router)
+│   │   ├── page.tsx        # Home /
+│   │   ├── sobre/          # /sobre
+│   │   ├── viagens/        # /viagens e subpáginas
+│   │   ├── blog/           # /blog e /blog/[slug]
+│   │   └── contato/        # /contato
+│   ├── components/         # Componentes reutilizáveis
+│   │   └── ui/             # Componentes base (Button, Card, Section, etc)
+│   └── lib/                # Utilitários, integrações e abstrações
+│       ├── ai/             # Camada de IA (abstração sobre provider)
+│       ├── blog/           # Acesso a posts (mock na Fase 1, Sanity na Fase 3)
+│       ├── email/          # E-mail transacional (mock na Fase 1, Resend na Fase 3)
+│       ├── integrations/   # IDAS, ClickMassa, Make (abstrações preparadas)
+│       ├── sanity/         # Cliente Sanity (Fase 3)
+│       └── supabase/       # Cliente Supabase
 ├── public/                 # Assets estáticos
 └── docs/                   # Documentação do projeto
-    ├── ARCHITECTURE.md
     ├── CHANGELOG.md
     ├── DECISION_LOG.md
-    ├── DESIGN_SYSTEM.md
     ├── identidade_visual.md
     ├── arquitetura_v1.md
-    ├── plano_de_desenvolvimento_site_v1.md
+    ├── plano_de_desenvolvimento_site_v2.md
+    ├── plano_de_infraestrutura_spinhardi_v1.docx
+    ├── mapa_de_copies_spinhardi_v1_ready.docx
+    ├── mapa_de_imagens_spinhardi_v1.docx
+    ├── spinhardi_wireframe.html
     └── refs/               # Referências de design capturadas
 ```
 
@@ -58,7 +70,7 @@ npm install
 
 # Configurar variáveis de ambiente
 cp .env.example .env.local
-# Preencher as variáveis em .env.local
+# Preencher as variáveis em .env.local (ver seção abaixo)
 
 # Rodar em desenvolvimento
 npm run dev
@@ -70,12 +82,36 @@ Abre em [http://localhost:3000](http://localhost:3000).
 
 ## Variáveis de ambiente
 
-Copiar `.env.example` para `.env.local` e preencher:
+Copiar `.env.example` para `.env.local` e preencher conforme as fases do
+projeto.
+
+### Fase 1 (Fundação local) — variáveis necessárias
 
 ```
-# Anthropic
-ANTHROPIC_API_KEY=
+# Supabase (banco de dados — já provisionado)
+NEXT_PUBLIC_SUPABASE_URL=https://grjkqljucszoaujmhgpi.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_*
+SUPABASE_SERVICE_ROLE_KEY=*  # nunca expor no frontend
+```
 
+### Fase 3 (Produção) — variáveis adicionais
+
+```
+# Sanity (CMS do blog)
+NEXT_PUBLIC_SANITY_PROJECT_ID=
+NEXT_PUBLIC_SANITY_DATASET=production
+SANITY_API_TOKEN=
+
+# Resend (e-mail transacional do formulário)
+RESEND_API_KEY=
+
+# Anthropic (camada de IA)
+ANTHROPIC_API_KEY=
+```
+
+### Fase 4 (Pós-launch) — variáveis adicionais
+
+```
 # IDAS (reservas)
 IDAS_API_URL=
 IDAS_API_KEY=
@@ -88,66 +124,64 @@ CLICKMASSA_API_KEY=
 MAKE_WEBHOOK_URL=
 ```
 
-Nunca commitar `.env.local`. O `.gitignore` já cobre isso.
+**Nunca commitar `.env.local`.** O `.gitignore` já cobre isso.
 
 ---
 
 ## Deploy
 
-Deploy automático via Vercel. Cada push para `main` gera um deploy de produção. Cada PR gera um preview com URL única.
+Deploy automático via Vercel. Cada push para `main` gera um deploy. Cada PR gera
+um preview com URL única.
 
 ```
-main       → produção (spinhardi.com.br)
+main       → produção (spinharditurismo.com.br)
 staging    → homologação
 feature/*  → preview automático no PR
 ```
+
+**Tier da Vercel:** Hobby (free) durante Fases 1 e 2 (uso não-comercial:
+desenvolvimento e preview). Pro a partir da Fase 3 (uso comercial em produção).
+Detalhes em `docs/DECISION_LOG.md` (D008).
 
 ---
 
 ## Blog — como publicar um post
 
-Ver `docs/COMO_PUBLICAR_POST.md` para o fluxo completo.
+Na Fase 3 em diante, posts são publicados pela Amanda via Sanity Studio.
 
-Resumo: criar arquivo `.mdx` em `/content/blog/` com frontmatter preenchido:
+Ver `docs/COMO_PUBLICAR_POST.md` para o fluxo completo (criado durante a Fase
+3).
 
-```mdx
----
-slug: "nome-do-post"
-title: "Título do post"
-date: "2026-05-01"
-category: "Destinos"
-excerpt: "Resumo curto para listagem e SEO."
-thumbnail: "/images/blog/nome-do-post.jpg"
-author: "Nina Spinhardi"
-seoTitle: "Título SEO — Spinhardi Turismo"
-seoDescription: "Descrição para Google, até 160 caracteres."
-ogImage: "/images/blog/nome-do-post-og.jpg"
----
-
-Conteúdo do post em Markdown...
-```
+Durante a Fase 1, posts ficam mockados em `lib/blog/mock-posts.ts` apenas para
+fins de desenvolvimento.
 
 ---
 
 ## Documentação
 
-| Arquivo | Descrição |
-|---|---|
-| `docs/CHANGELOG.md` | Histórico de eventos e entregas |
-| `docs/DECISION_LOG.md` | Decisões estratégicas e técnicas registradas |
-| `docs/ARCHITECTURE.md` | Decisões de arquitetura e stack |
-| `docs/identidade_visual.md` | Paleta, tipografia, logo, tokens Tailwind |
-| `docs/arquitetura_v1.md` | Árvore de páginas e justificativa por rota |
-| `docs/referencias_design.md` | Referências visuais com CSS extraído dos sites de origem |
-| `docs/plano_de_desenvolvimento_site_v1.md` | Roadmap de desenvolvimento |
+| Arquivo                                          | Descrição                                        |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `docs/CHANGELOG.md`                              | Histórico cronológico de eventos e entregas      |
+| `docs/DECISION_LOG.md`                           | Decisões estratégicas e técnicas com racional    |
+| `docs/identidade_visual.md`                      | Paleta, tipografia, logo, tokens Tailwind        |
+| `docs/arquitetura_v1.md`                         | Árvore de páginas e justificativa por rota       |
+| `docs/refs/referencias_design.md`                | Referências visuais com CSS extraído             |
+| `docs/plano_de_desenvolvimento_site_v2.md`       | Roadmap atualizado de desenvolvimento em 4 fases |
+| `docs/plano_de_infraestrutura_spinhardi_v1.docx` | Decisões de stack, custos, propriedade           |
+| `docs/mapa_de_copies_spinhardi_v1_ready.docx`    | Conteúdo textual aprovado pela Amanda            |
+| `docs/mapa_de_imagens_spinhardi_v1.docx`         | Specs técnicas e papel de cada imagem            |
+| `docs/spinhardi_wireframe.html`                  | Estrutura visual aprovada por Nina e Julia       |
 
 ---
 
 ## Contexto do projeto
 
-O site faz parte de um engagement maior de consultoria entre a **Gattiboni Enterprises** e a **Spinhardi Turismo**. O escopo inclui Branding Book Lite, desenvolvimento do site, integrações com IDAS e ClickMassa, analytics e gestão mensal de estratégia digital.
+O site faz parte de um engagement maior de consultoria entre a **Gattiboni
+Enterprises** e a **Spinhardi Turismo**. O escopo inclui Branding Book Lite,
+desenvolvimento do site, integrações com IDAS e ClickMassa, analytics e gestão
+mensal de estratégia digital.
 
-Mais contexto em `docs/ARCHITECTURE.md`.
+Mais contexto em `docs/plano_de_desenvolvimento_site_v2.md`.
 
 ---
 
