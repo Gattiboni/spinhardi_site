@@ -80,6 +80,28 @@ Abre em [http://localhost:3000](http://localhost:3000).
 
 ---
 
+---
+
+## Scripts disponíveis
+
+Comandos que você roda na raiz do projeto.
+
+| Comando                | O que faz                                                              |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`          | Sobe servidor de desenvolvimento em http://localhost:3000 (Turbopack)  |
+| `npm run build`        | Build de produção (também com Turbopack como default no Next 16)       |
+| `npm run start`        | Sobe servidor de produção (precisa rodar `build` antes)                |
+| `npm run lint`         | Roda ESLint em todo o projeto e reporta problemas sem corrigir         |
+| `npm run lint:fix`     | Roda ESLint e corrige automaticamente o que dá pra corrigir            |
+| `npm run format`       | Roda Prettier e formata todos os arquivos (modifica disco)             |
+| `npm run format:check` | Roda Prettier em modo verificação (só lista o que está fora do padrão) |
+
+**Recomendado antes de cada commit:** rodar `npm run format` seguido de
+`npm run lint:fix`. Garante código formatado e sem erros de lint sem precisar de
+Husky/lint-staged (ver decisão D013).
+
+---
+
 ## Variáveis de ambiente
 
 Copiar `.env.example` para `.env.local` e preencher conforme as fases do
