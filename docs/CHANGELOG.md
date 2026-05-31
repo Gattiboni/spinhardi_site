@@ -13,6 +13,41 @@ Ordem: mais recente no topo.
 
 ## 2026
 
+### [2026-05-31] SITE — Bloco 2 da Fase 1.2 concluído: componentes atômicos
+
+Criados 3 componentes atômicos do Design System em `src/components/ui/`:
+
+- `Container.tsx`: max-w-7xl centralizado, padding horizontal responsivo, prop
+  `as` (div/section/article/main) pra flexibilidade semântica
+- `Section.tsx`: espaçamento vertical padronizado, prop `spacing` (sm = py-12,
+  md = py-20, lg = py-32)
+- `Divider.tsx`: linha divisória sutil, prop `tone` (light = sobre fundo escuro,
+  dark = sobre fundo claro)
+
+Criada página de validação visual em `src/app/dev/components/page.tsx` (rota
+`/dev/components`) com demonstração interativa, bordas dashed marcando limites
+dos componentes, e exemplos de código pra referência.
+
+`src/app/page.tsx` refatorado: home base agora consome `<Section>` e
+`<Container>` do Design System em vez de classes hardcoded. Mudança visual
+aceita por princípio de modularidade (ver D015) — Container do DS define largura
+e centralização; a página `/` é provisória.
+
+Todos os componentes em TypeScript estrito, Server Components puros (sem
+`"use client"`), sem dependências novas. `npm run lint` e `npm run format:check`
+rodando sem erros.
+
+---
+
+### [2026-05-31] DECISÃO — D015 registrada: Container como esqueleto puro
+
+Decisão D015 registrada. Container do Design System tem responsabilidade única
+(largura máxima, centralização, padding horizontal). Decisões de alinhamento e
+composição ficam nos componentes consumidores. Ver DECISION_LOG para racional
+completo.
+
+---
+
 ### [2026-05-31] SITE — Bloco 1 da Fase 1.2 concluído: tokens, fontes e layout base
 
 `src/app/globals.css` reescrito com tokens de design via `@theme inline` (padrão

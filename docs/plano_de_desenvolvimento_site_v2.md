@@ -146,12 +146,12 @@ Refletir `docs/identidade_visual.md` no código.
   - Montserrat: pesos 300, 400, 500, 600 → CSS variable `--font-montserrat` →
     token `--font-body` no `@theme`
   - Ambas com `display: "swap"` e `subsets: ["latin"]`
-- [ ] Criar componentes base em `components/ui/`:
-  - `Button` (variantes: primary, secondary, ghost)
-  - `Container` (max-width responsivo)
-  - `Section` (padding vertical padrão)
-  - `Card` (variantes para serviços, depoimentos, blog)
-  - `Divider`
+- [ ] Criar componentes base em `src/components/ui/`:
+  - [ ] `Button` (variantes: primary, secondary, ghost)
+  - [x] `Container` (max-width responsivo, prop `as` pra semântica — ver D015)
+  - [x] `Section` (padding vertical padrão, prop `spacing` sm/md/lg)
+  - [ ] `Card` (variantes para serviços, depoimentos, blog)
+  - [x] `Divider` (prop `tone` light/dark)
 - [ ] Criar componente `Logo` com variações (escura, clara, ícone)
 - [ ] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
 - [ ] Criar `Header` e `Footer` (conforme wireframe aprovado)
@@ -160,6 +160,10 @@ Refletir `docs/identidade_visual.md` no código.
 
 **Checkpoint 1.2:** Storybook não, mas uma página `/dev/components` lista todos
 os componentes pra inspeção visual.
+
+**Página de validação:** `/dev/components` em
+http://localhost:3000/dev/components — referência viva do design system,
+atualizada conforme novos componentes entram.
 
 ---
 

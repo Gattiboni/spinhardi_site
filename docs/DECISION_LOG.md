@@ -28,6 +28,52 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D015 — Container como esqueleto puro, decisões de composição ficam nos consumidores
+
+**Contexto:** Ao criar o componente `Container` no Bloco 2 da Fase 1.2, houve
+tensão entre dois caminhos: (a) o Container ditar alinhamento e largura conforme
+cada caso de uso (centro, esquerda, larguras variáveis), ou (b) o Container ter
+responsabilidade única e mínima, deixando composições específicas pros
+componentes que o consomem.
+
+**Alternativas consideradas:**
+
+- Container com props de alinhamento (`align="left" | "center"`) e múltiplas
+  larguras (`size="sm" | "md" | "lg"`): mais flexível na chamada, mas infla a
+  API e cria variantes mágicas
+- Container minimalista (`max-w-7xl mx-auto` + padding horizontal responsivo,
+  prop `as` pra semântica): API enxuta, comportamento previsível, composição
+  feita nos children
+- Vários componentes de container (`HeroContainer`, `BlogContainer`, etc):
+  granular demais, duplicação inútil
+
+**Decisão:** Container minimalista. Responsabilidades únicas:
+
+1. Aplicar `max-w-7xl` (largura máxima do conteúdo institucional)
+2. Aplicar `mx-auto` (centralização horizontal do bloco)
+3. Aplicar padding horizontal responsivo (`px-4` mobile, `lg:px-12` desktop)
+4. Permitir mudar a tag HTML via prop `as` (semântica)
+5. Permitir extensão pontual via prop `className`
+
+Decisões de alinhamento interno (texto à esquerda, grid, flex), cor de fundo,
+max-width customizado e composições específicas são responsabilidade do
+componente consumidor (Hero, Footer, BlogGrid, etc), não do Container.
+
+**Racional:** Container puro é reusável em qualquer contexto sem cláusulas
+especiais. Quando Hero, Footer e outras estruturas vierem nos próximos blocos,
+eles vão **compor** com Container (envolvendo) e aplicar as decisões específicas
+via classes adicionais ou wrappers internos. Princípio "modularidade": cada
+componente faz uma coisa bem feita, sem inventar responsabilidades extras.
+
+**Implicação prática:** A página `/` (validação de tokens) sofreu mudança visual
+ao adotar o Container — antes era `max-w-5xl` alinhado à esquerda, agora é
+`max-w-7xl` centralizado. Aceitável porque a página `/` é provisória e será
+reescrita quando Hero entrar na Fase 1.2.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [2026-05-31] D014 — Fontes display e body: Fraunces + Montserrat (Google Fonts)
 
 **Contexto:** O Branding Book Lite v2 e o `docs/identidade_visual.md`
