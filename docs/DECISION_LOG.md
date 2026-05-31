@@ -28,6 +28,59 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D016 — Tokens de duração precisam de @utility explícito no Tailwind v4
+
+**Contexto:** Durante o Bloco 3 da Fase 1.2 (Button + Cards), os componentes
+começaram a usar as classes `duration-medium` e `duration-long` definidas como
+tokens no `@theme inline` do `globals.css` (registradas no Bloco 1). Inspeção do
+CSS gerado revelou que essas classes **não estavam sendo criadas** — caíam no
+fallback de 150ms do Tailwind em vez dos 400ms / 750ms pretendidos.
+
+**Causa raiz:** o Tailwind v4 só gera utility classes automaticamente a partir
+de tokens em namespaces específicos (`--color-*`, `--font-*`, `--spacing-*`,
+`--breakpoint-*`, `--ease-*`). Tokens em namespaces customizados — como o nosso
+`--duration-*` — exigem registro explícito via diretiva `@utility`.
+
+**Alternativas consideradas:**
+
+- Manter o fallback de 150ms: descartado — esvazia o sistema de transições
+  baseado nas referências (especialmente `franshalsmuseum.nl`, que prevê
+  400-750ms pra efeitos de imagem)
+- Usar arbitrary values inline (`duration-[400ms]`): descartado — espalha
+  valores mágicos pelo código, viola modularidade, alteração futura exige mexer
+  em N componentes em vez de 1 token
+- Registrar `@utility` explícito no `globals.css`: escolhido — mantém os tokens
+  como fonte de verdade, semântica preservada nos componentes (`duration-medium`
+  em vez de `duration-[400ms]`), zero dívida técnica
+
+**Decisão:** Adicionados 3 `@utility` ao `globals.css` logo após o bloco
+`@theme inline`, registrando `duration-short`, `duration-medium` e
+`duration-long` como classes funcionais que leem os tokens correspondentes.
+
+```css
+@utility duration-short {
+  transition-duration: var(--duration-short);
+}
+@utility duration-medium {
+  transition-duration: var(--duration-medium);
+}
+@utility duration-long {
+  transition-duration: var(--duration-long);
+}
+```
+
+**Racional e aprendizado operacional:** o Tailwind v4 oferece geração automática
+de utilities para os namespaces "padrão", mas qualquer token customizado fora
+deles precisa de `@utility` explícito. **Regra do projeto a partir daqui:** ao
+definir um token novo no `@theme`, validar que ele gera utility ou registrar
+`@utility` correspondente antes de declarar o bloco fechado. Tokens decorativos
+(sem utility) são dívida técnica silenciosa.
+
+**Responsável:** Alan Gattiboni (aprovação) · Codinho (detecção e implementação)
+**Status:** Ativa
+
+---
+
 ### [2026-05-31] D015 — Container como esqueleto puro, decisões de composição ficam nos consumidores
 
 **Contexto:** Ao criar o componente `Container` no Bloco 2 da Fase 1.2, houve

@@ -30,6 +30,27 @@
 }
 
 /* =========================================================================
+   Utilitários customizados — tokens de duração
+
+   Razão: o namespace --duration-* do @theme não gera utility classes
+   automaticamente no Tailwind v4 (apenas color, font, spacing, breakpoint
+   e ease têm geração automática). Estes @utility declaram explicitamente
+   as classes duration-short, duration-medium e duration-long.
+
+   Ver DECISION_LOG D016.
+   ========================================================================= */
+
+@utility duration-short {
+  transition-duration: var(--duration-short);
+}
+@utility duration-medium {
+  transition-duration: var(--duration-medium);
+}
+@utility duration-long {
+  transition-duration: var(--duration-long);
+}
+
+/* =========================================================================
    Base styles globais
    ========================================================================= */
 

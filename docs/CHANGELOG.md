@@ -13,6 +13,45 @@ Ordem: mais recente no topo.
 
 ## 2026
 
+### [2026-05-31] SITE — Bloco 3 da Fase 1.2 concluído: Button e Cards
+
+Criados 4 componentes em `src/components/ui/`:
+
+- `Button.tsx`: 3 variantes (primary, secondary, ghost), 3 sizes (sm, md, lg),
+  estado disabled, focus visível com ring gold, ghost ignora padding das sizes
+  mantendo só text-size
+- `ServiceCard.tsx`: card numerado pra lista de serviços/viagens (estilo
+  buchwalder-linder, ver `referencias_design.md` seção 4), com `<Link>` do Next,
+  hover satura número e gradua título pra gold via group-hover
+- `TestimonialCard.tsx`: `<blockquote>` com border-l gold, aspas decorativas em
+  Fraunces opacas, quote italic, autor e contexto
+- `BlogCard.tsx`: `<article>` com imagem 16:9 (next/image com fill ou
+  placeholder), hover scale na imagem, tag de categoria em uppercase gold,
+  título Fraunces, excerpt com line-clamp-2
+
+Atualizada `src/app/dev/components/page.tsx` com 4 novas seções de validação
+(Button, ServiceCard, TestimonialCard, BlogCard), mantendo padrão de bordas
+dashed e exemplos de código.
+
+`globals.css` ajustado com 3 `@utility` explícitos pra tokens de duração (ver
+D016) — correção de gap detectado pelo Codinho durante implementação.
+
+Validação visual aprovada por Alan. `npm run lint` e `npm run format:check`
+rodando sem erros.
+
+---
+
+### [2026-05-31] DECISÃO — D016 registrada: tokens customizados exigem @utility explícito no Tailwind v4
+
+Decisão D016 registrada. Tokens de duração (`--duration-short`,
+`--duration-medium`, `--duration-long`) não geravam utility classes
+automaticamente — apenas namespaces padrão do Tailwind v4 (color, font, spacing,
+breakpoint, ease) têm geração automática. Adicionados `@utility` explícitos no
+`globals.css`. Regra operacional registrada: validar geração de utility ao
+definir token novo no `@theme`. Ver DECISION_LOG para racional completo.
+
+---
+
 ### [2026-05-31] SITE — Bloco 2 da Fase 1.2 concluído: componentes atômicos
 
 Criados 3 componentes atômicos do Design System em `src/components/ui/`:

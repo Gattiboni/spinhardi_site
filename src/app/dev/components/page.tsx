@@ -1,6 +1,10 @@
 import Container from "@/components/ui/Container";
 import Section from "@/components/ui/Section";
 import Divider from "@/components/ui/Divider";
+import Button from "@/components/ui/Button";
+import ServiceCard from "@/components/ui/ServiceCard";
+import TestimonialCard from "@/components/ui/TestimonialCard";
+import BlogCard from "@/components/ui/BlogCard";
 
 /**
  * Página privada de validação visual do design system.
@@ -23,6 +27,33 @@ const sectionExample = `<Section spacing="lg">
 const dividerExample = `<Divider tone="light" />
 <Divider tone="dark" className="my-8" />`;
 
+const buttonExample = `<Button variant="primary" size="md">Fale com a gente</Button>
+<Button variant="secondary">Ver viagens</Button>
+<Button variant="ghost">Saiba mais</Button>
+<Button disabled>Indisponível</Button>`;
+
+const serviceCardExample = `<ServiceCard
+  number="01"
+  title="Itália sob medida"
+  description="Roteiros desenhados nota a nota."
+  href="/viagens/sob-medida"
+/>`;
+
+const testimonialCardExample = `<TestimonialCard
+  quote="Spinhardi não vendeu uma viagem..."
+  author="Maria Helena"
+  context="Cliente Itália · Mar/2026"
+/>`;
+
+const blogCardExample = `<BlogCard
+  slug="curadoria-de-roteiros"
+  title="O que é, de fato, uma viagem sob medida"
+  category="Bastidores"
+  date="12 Jan 2026"
+  excerpt="Por que cada roteiro começa de uma página em branco."
+  thumbnail=""
+/>`;
+
 function CodeBlock({ code }: { code: string }) {
   return (
     <pre className="mt-6 overflow-x-auto rounded bg-dark px-4 py-3 text-sm leading-relaxed text-white/90">
@@ -37,6 +68,16 @@ function BlockHeader({ title, description }: { title: string; description: strin
       <h2 className="font-display text-3xl text-dark">{title}</h2>
       <p className="mt-1 font-body text-sm text-dark/60">{description}</p>
     </header>
+  );
+}
+
+/** Rótulo curto abaixo de um exemplo isolado, só para esta página de validação. */
+function DemoItem({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {children}
+      <span className="font-mono text-xs text-dark/50">{label}</span>
+    </div>
   );
 }
 
@@ -146,6 +187,182 @@ export default function DevComponentsPage() {
           </div>
 
           <CodeBlock code={dividerExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 4. Button */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="4. Button (primary · secondary · ghost)"
+            description="3 variantes, 3 tamanhos e estado disabled. Hover, active e focus-visible são CSS. Interaja para validar (Tab para focar, hover para a cor)."
+          />
+
+          <div className="space-y-8 border-2 border-dashed border-navy/40 p-6">
+            {/* Variantes */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Variantes (size md)
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label='variant="primary"'>
+                  <Button variant="primary">Fale com a gente</Button>
+                </DemoItem>
+                <DemoItem label='variant="secondary"'>
+                  <Button variant="secondary">Ver viagens</Button>
+                </DemoItem>
+                <DemoItem label='variant="ghost"'>
+                  <Button variant="ghost">Saiba mais</Button>
+                </DemoItem>
+              </div>
+            </div>
+
+            {/* Tamanhos */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Tamanhos (variant primary)
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label='size="sm"'>
+                  <Button size="sm">Botão sm</Button>
+                </DemoItem>
+                <DemoItem label='size="md"'>
+                  <Button size="md">Botão md</Button>
+                </DemoItem>
+                <DemoItem label='size="lg"'>
+                  <Button size="lg">Botão lg</Button>
+                </DemoItem>
+              </div>
+            </div>
+
+            {/* Disabled */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Estado disabled
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label="primary · disabled">
+                  <Button variant="primary" disabled>
+                    Indisponível
+                  </Button>
+                </DemoItem>
+                <DemoItem label="secondary · disabled">
+                  <Button variant="secondary" disabled>
+                    Indisponível
+                  </Button>
+                </DemoItem>
+              </div>
+            </div>
+          </div>
+
+          <CodeBlock code={buttonExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 5. ServiceCard */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="5. ServiceCard"
+            description="Item de lista numerada de viagens (seção 4 das referências). Empilhados formam a grade de serviços. Hover satura o número e leva o título para gold."
+          />
+
+          <div className="border-2 border-dashed border-navy/40 px-6">
+            <ServiceCard
+              number="01"
+              title="Itália sob medida"
+              description="Roteiros desenhados nota a nota, do norte ao sul."
+              href="#"
+            />
+            <ServiceCard
+              number="02"
+              title="Pacotes e roteiros"
+              description="Seleção curada de experiências prontas para partir."
+              href="#"
+            />
+            <ServiceCard number="03" title="Viagem sob medida" href="#" />
+          </div>
+
+          <CodeBlock code={serviceCardExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 6. TestimonialCard */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="6. TestimonialCard"
+            description="Depoimento em <blockquote>, border-left gold, aspas decorativas e quote em Fraunces italic. O fundo escuro abaixo é só para destacar o card branco."
+          />
+
+          {/* Fundo de apoio só para destacar o bg-white do card nesta página. */}
+          <div className="rounded border-2 border-dashed border-navy/40 bg-dark/5 p-8">
+            <TestimonialCard
+              quote="Spinhardi não vendeu uma viagem. Eles desenharam um momento que ainda hoje, três anos depois, eu lembro com saudade."
+              author="Maria Helena"
+              context="Cliente Itália · Mar/2026"
+              className="max-w-2xl"
+            />
+          </div>
+
+          <CodeBlock code={testimonialCardExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 7. BlogCard */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="7. BlogCard"
+            description="Card de listagem do blog (seção 6 das referências). Grid de 3 colunas no desktop, 1 no mobile. Sem imagem real ainda — placeholders bg-dark/10 com hover scale."
+          />
+
+          <div className="border-2 border-dashed border-navy/40 p-6">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3">
+              <BlogCard
+                slug="curadoria-de-roteiros"
+                title="O que é, de fato, uma viagem sob medida"
+                category="Bastidores"
+                date="12 Jan 2026"
+                excerpt="Por que cada roteiro Spinhardi começa de uma página em branco, e não de um catálogo."
+                thumbnail=""
+              />
+              <BlogCard
+                slug="cinco-cidades-italianas"
+                title="Cinco cidades italianas fora do óbvio"
+                category="Destinos"
+                date="28 Fev 2026"
+                excerpt="Para além de Roma e Veneza: lugares que cabem melhor em uma viagem sem pressa."
+                thumbnail=""
+              />
+              <BlogCard
+                slug="historia-spinhardi"
+                title="1987: como tudo começou em Serra Negra"
+                category="Bastidores"
+                date="15 Mar 2026"
+                excerpt="A história de uma agência boutique que cresceu por indicação, uma viagem de cada vez."
+                thumbnail=""
+              />
+            </div>
+          </div>
+
+          <CodeBlock code={blogCardExample} />
         </Container>
       </Section>
     </main>

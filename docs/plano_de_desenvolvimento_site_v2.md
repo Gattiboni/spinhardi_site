@@ -146,11 +146,16 @@ Refletir `docs/identidade_visual.md` no código.
   - Montserrat: pesos 300, 400, 500, 600 → CSS variable `--font-montserrat` →
     token `--font-body` no `@theme`
   - Ambas com `display: "swap"` e `subsets: ["latin"]`
-- [ ] Criar componentes base em `src/components/ui/`:
-  - [ ] `Button` (variantes: primary, secondary, ghost)
+- [x] Criar componentes base em `src/components/ui/`:
+  - [x] `Button` (variantes: primary, secondary, ghost; sizes sm/md/lg; estado
+        disabled e focus visível)
   - [x] `Container` (max-width responsivo, prop `as` pra semântica — ver D015)
   - [x] `Section` (padding vertical padrão, prop `spacing` sm/md/lg)
-  - [ ] `Card` (variantes para serviços, depoimentos, blog)
+  - [x] Cards — implementados como 3 componentes irmãos (ver decisão de design):
+    - [x] `ServiceCard` (número + título + descrição + link, hover via group)
+    - [x] `TestimonialCard` (blockquote com border-l gold e aspas decorativas)
+    - [x] `BlogCard` (imagem 16:9 + tag + título + data + excerpt com
+          line-clamp)
   - [x] `Divider` (prop `tone` light/dark)
 - [ ] Criar componente `Logo` com variações (escura, clara, ícone)
 - [ ] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
