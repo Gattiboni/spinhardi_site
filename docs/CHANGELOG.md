@@ -13,6 +13,30 @@ Ordem: mais recente no topo.
 
 ## 2026
 
+### [2026-05-31] SITE — Bloco 1 da Fase 1.2 concluído: tokens, fontes e layout base
+
+`src/app/globals.css` reescrito com tokens de design via `@theme inline` (padrão
+Tailwind v4 CSS-first, sem `tailwind.config.ts`). Cores (`navy`, `gold`,
+`green`, `dark`, `white`), tipografia (`--font-display`, `--font-body`), easings
+e durações registrados como CSS variables. `src/app/layout.tsx` reescrito
+carregando Fraunces (display) e Montserrat (body) via `next/font/google`, com
+metadata real da Spinhardi e `lang="pt-BR"`. `src/app/page.tsx` substituído por
+página de validação visual dos tokens — não é a home final, só prova de
+fundação. Validação visual aprovada por Alan: cores aplicadas, fontes
+carregando, hierarquia tipográfica funcional. `npm run dev`, `npm run lint` e
+`npm run format:check` rodando sem erro.
+
+---
+
+### [2026-05-31] DECISÃO — D014 registrada: Fraunces + Montserrat via Google Fonts
+
+Decisão D014 registrada. Fraunces adotada como fonte de display em lugar de TT
+Fors Display (fonte comercial do Branding Book). Montserrat mantida como fonte
+de body. Ambas via `next/font/google` com pesos selecionados. Ver DECISION_LOG
+para racional completo.
+
+---
+
 ### [2026-05-29] SITE — Fase 1.1 (Fundação local) concluída
 
 Projeto Next.js 16 inicializado e configurado. Versões: Next 16.2.6, React

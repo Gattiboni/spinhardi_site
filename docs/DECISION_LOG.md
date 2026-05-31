@@ -28,6 +28,44 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D014 — Fontes display e body: Fraunces + Montserrat (Google Fonts)
+
+**Contexto:** O Branding Book Lite v2 e o `docs/identidade_visual.md`
+especificam **TT Fors Display** como fonte de títulos e **Montserrat** como
+fonte de corpo. TT Fors Display é fonte comercial paga (TypeType), sem
+disponibilidade no Google Fonts. Necessário decidir antes de configurar tokens
+de tipografia.
+
+**Alternativas consideradas:**
+
+- TT Fors Display licenciada: fonte exata do Branding Book, mas exige licença
+  web (~$190+) imediatamente e setup de self-hosting de fontes
+- Fraunces (Google Fonts): serif contemporâneo, geométrico, com múltiplos pesos
+  via `next/font/google`, gratuita, integração nativa com Next.js
+- DM Serif Display: serif mais clássico, menos flexível em pesos
+- Cormorant Garamond: serif elegante mas mais tradicional
+
+**Decisão:** **Fraunces** como fonte de display e **Montserrat** como fonte de
+body, ambas via `next/font/google`. Carregamento automático com `display: swap`,
+sem dependência externa, sem custo de licenciamento na Fase 1.
+
+Pesos carregados:
+
+- Fraunces: 400, 500, 600
+- Montserrat: 300, 400, 500, 600
+
+**Racional:** Fraunces preserva o espírito editorial e contemporâneo do TT Fors
+Display sem tentar imitá-la literalmente. Não é decisão "provisória" como o D006
+(verde) — é decisão funcional com horizonte de longo prazo. A aquisição de TT
+Fors Display continua sendo possível no futuro, mas não está no radar imediato.
+Trocar fonte depois é mexer em 2 linhas do `layout.tsx` — zero dívida técnica
+gerada por essa escolha.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa (reversível se houver decisão
+futura de licenciar TT Fors Display)
+
+---
+
 ### [2026-05-29] D013 — Tooling de desenvolvimento: ESLint 9 + Prettier sem Husky/lint-staged
 
 **Contexto:** Plano de Desenvolvimento v2 previa configuração de "ESLint +

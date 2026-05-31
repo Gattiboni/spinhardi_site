@@ -126,12 +126,26 @@ style!".
 
 Refletir `docs/identidade_visual.md` no código.
 
-- [ ] Configurar tokens em `tailwind.config.ts`:
+- [x] Configurar tokens de design em `src/app/globals.css` (Tailwind v4
+      CSS-first):
   - Cores: `navy #1A2B4A`, `gold #AD8330`, `green #4DBF72` (provisório, ver
-    D006), `text #1E1E2E`, `white #FFFFFF`
-  - Tipografia: TT Fors Display (títulos), Montserrat (corpo)
-  - Espaçamentos, breakpoints, sombras conforme necessário
-- [ ] Carregar fontes com `next/font` (otimização automática)
+    D006), `dark #1E1E2E`, `white #FFFFFF`
+  - Tipografia: Fraunces (display) + Montserrat (body) — ver D014
+  - Easings das referências: `--ease-smooth`, `--ease-out`
+  - Durações das referências: `--duration-short` (200ms), `--duration-medium`
+    (400ms), `--duration-long` (750ms)
+  - **Nota:** Tailwind v4 não usa mais `tailwind.config.ts`. Tokens vão direto
+    no CSS via `@theme inline`, e o Tailwind gera as utility classes
+    automaticamente (`bg-navy`, `text-gold`, `font-display`, etc).
+  - Espaçamentos customizados, breakpoints e sombras adicionais entram conforme
+    necessidade no decorrer da Fase 1.2 — não pré-configurar tudo.
+- [x] Carregar fontes com `next/font/google` no `src/app/layout.tsx` (otimização
+      automática, sem flash of unstyled text):
+  - Fraunces: pesos 400, 500, 600 → CSS variable `--font-fraunces` → token
+    `--font-display` no `@theme`
+  - Montserrat: pesos 300, 400, 500, 600 → CSS variable `--font-montserrat` →
+    token `--font-body` no `@theme`
+  - Ambas com `display: "swap"` e `subsets: ["latin"]`
 - [ ] Criar componentes base em `components/ui/`:
   - `Button` (variantes: primary, secondary, ghost)
   - `Container` (max-width responsivo)
