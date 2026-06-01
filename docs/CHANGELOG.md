@@ -15,6 +15,79 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] SITE — Página Home (`/`) construída — primeira página real do site
+
+`src/app/page.tsx` substituída: saiu a página de validação de tokens, entrou a
+Home oficial seguindo o mapa de copies aprovado pela Amanda. Estrutura em 6
+blocos verticais:
+
+1. **Hero** (navy): eyebrow gold, título Fraunces grande, subtítulo Montserrat,
+   CTAs "Vamos conversar" (primary gold) + "Nossa história" (secondary outline
+   gold)
+2. **Posicionamento + 4 valores** (navy): cabeçalho com título e parágrafo +
+   grid responsivo (1/2/4 colunas) dos 4 valores em layout inline
+3. **Serviços** (navy): 3 ServiceCards numerados (Passagens, Pacotes, Sob
+   Medida)
+4. **História/1987** (branco — contraste editorial intencional no meio da página
+   navy): grid 40/60 com "1987" gigante em Fraunces à esquerda + texto, quote em
+   TestimonialCard, CTA "Ver história completa" à direita
+5. **Depoimentos** (navy): grid responsivo (1/2/3 colunas) de 3 TestimonialCards
+   com depoimentos reais
+6. **CTA Final** (navy, centralizado): "Vamos conversar" + "Nosso blog"
+
+Copies literais do mapa aprovado. Sem imagens (placeholders descartados — fotos
+reais virão por indicação de Nina e Julia).
+
+Componentes adaptados no Design System:
+
+- `ServiceCard`: adicionada prop `tone="light" | "dark"` (default `light`).
+  Funciona em fundo claro (comportamento original) e fundo navy (texto branco,
+  border-white/10).
+- `TestimonialCard`: adicionada prop `tone="light" | "dark"` (default `light`).
+  Funciona em fundo claro (bg-white) e fundo navy (bg-white/5). Prop `context`
+  confirmada como opcional.
+- `src/app/dev/components/page.tsx`: seções 5 (ServiceCard) e 6
+  (TestimonialCard) atualizadas mostrando ambas as variações `light` e `dark`
+  lado a lado.
+
+`/` ainda usa Header dinâmico (hero navy permite). Validação visual aprovada em
+desktop. Lint e format sem issues.
+
+---
+
+### [2026-05-31] BUGFIX — Regras CSS base movidas para @layer base (corrige links invisíveis em fundos escuros)
+
+Detectado durante a validação visual da Home: links de navegação do Header e
+CTAWhatsApp ficavam invisíveis sobre fundo navy mesmo com `text-white` aplicado
+no JSX. Codinho diagnosticou causa raiz no `globals.css` — regras base (`body`,
+`h1..h6`, `a`) escritas fora de qualquer `@layer` atropelavam utility classes do
+Tailwind v4 na cascata do CSS.
+
+Correção em `src/app/globals.css`: envolvidas as regras base num bloco
+`@layer base { ... }`. `scroll-padding-top` também ficou dentro do bloco por
+consistência. Sem mudança em outros arquivos. Sem novas dependências.
+
+Resultado: utility classes voltam a vencer na cascata. Links agora renderizam
+corretamente nas cores aplicadas (`text-white`, hover `text-gold`) em qualquer
+fundo. Bug invisível em fases anteriores porque `/dev/components` tem fundo
+branco — único contexto até então onde links eram testados em contraste real.
+
+Ver DECISION_LOG D019 para racional completo e regra operacional a seguir.
+
+---
+
+### [2026-05-31] DECISÃO — D019 registrada: regras CSS base devem estar em @layer base no Tailwind v4
+
+Decisão D019 registrada. Seletor de elemento HTML "puro" sem classe (`body`,
+`h1..h6`, `a`, e futuros como `button`, `input`) no `globals.css` deve estar
+dentro de `@layer base { ... }`. Regras fora de qualquer `@layer` no Tailwind v4
+sempre vencem regras com layer na cascata do CSS — atropelam utility classes
+silenciosamente. Segundo gap silencioso descoberto na fundação do Tailwind v4
+(depois de D016 sobre namespaces customizados). Ver DECISION_LOG para racional
+completo e regra operacional.
+
+---
+
 ### [2026-05-31] SITE — Fase 1.2 (Design System) concluída
 
 Fundação visual do projeto completa. Cinco blocos entregues e validados:

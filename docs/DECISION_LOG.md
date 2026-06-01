@@ -28,6 +28,76 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D019 — Regras CSS base no Tailwind v4 DEVEM estar dentro de @layer base
+
+**Contexto:** Durante a construção da Home (Fase 1.3), os links de navegação do
+Header apareceram em cor escura sobre o hero navy mesmo com a classe
+`text-white` aplicada corretamente no JSX. Bug não tinha sido detectado nas
+fases anteriores porque `/dev/components` (único contexto onde links sobre fundo
+"real" foram testados) tem fundo branco — links em cor escura ali ficavam
+acidentalmente legíveis.
+
+**Diagnóstico (Codinho):** o `globals.css` tinha regras base (`body`, `h1..h6`,
+`a`) escritas **fora de qualquer `@layer`**. No Tailwind v4, o
+`@import "tailwindcss"` coloca tudo (preflight + utilities) dentro de `@layer`.
+Na cascata do CSS do navegador, **regras sem layer sempre vencem regras com
+layer**, independente de especificidade ou ordem de declaração.
+
+Resultado prático: a regra `a { color: inherit }` (sem layer) atropelava
+`.text-white { color: var(--color-white) }` (em `@layer utilities`). Os `<a>`
+herdavam do `body` → `--color-dark` → invisíveis sobre navy.
+
+Alcance do bug:
+
+- Links do nav no Header (invisíveis sobre navy/transparente)
+- CTAWhatsApp variant secondary (texto vermelhado nos `<a>`)
+- Potencialmente todos `<a>` sobre fundos escuros que dependiam de utility de
+  cor
+
+**Alternativas consideradas:**
+
+- Aumentar especificidade de cada utility no Header (`!important`, seletores
+  compostos): viola Tailwind, espalha gambiarra pelo código
+- Sobrescrever todos `<a>` com classes inline em cada uso: trabalho repetitivo e
+  propenso a esquecimento
+- **Envolver as regras base num `@layer base` no `globals.css`:** solução
+  estrutural, 4 linhas de mudança no CSS, comportamento volta ao esperado em
+  toda a aplicação
+
+**Decisão:** Todas as regras CSS base (elementos sem classe — `body`, `h1..h6`,
+`a`, e futuros como `button`, `input`, etc) DEVEM estar dentro de um bloco
+`@layer base { ... }` no `globals.css`. Assim, utility classes do Tailwind
+ganham na cascata como esperado, e qualquer override pontual via classe
+sobrescreve a base corretamente.
+
+Mudança aplicada em `src/app/globals.css`:
+
+```css
+@layer base {
+  body { ... }
+  h1, h2, h3, h4, h5, h6 { ... }
+  a { color: inherit; text-decoration: none; }
+  /* scroll-padding-top também ficou aqui dentro por consistência */
+}
+```
+
+**Regra operacional do projeto a partir daqui:** ao adicionar qualquer seletor
+de elemento HTML "puro" (sem classe) no `globals.css`, garantir que está dentro
+de `@layer base`. Seletor sem layer cria dívida técnica silenciosa que só se
+manifesta em contexto específico.
+
+**Aprendizado meta:** este é o segundo gap silencioso descoberto na fundação do
+Tailwind v4 (o primeiro foi D016 — namespaces customizados precisam de
+`@utility` explícito). Padrão emergente: **a transição do Tailwind v3 pro v4
+mudou regras de cascata e geração de utilities de formas não-óbvias**. Quando
+algo "obviamente certo" parece não funcionar, suspeitar de comportamento de
+`@layer` e `@utility` antes de qualquer outra coisa.
+
+**Responsável:** Alan Gattiboni (validação visual) · Codinho (diagnóstico e
+implementação) **Status:** Ativa
+
+---
+
 ### [2026-05-31] D018 — Header global com adaptação de fundo por rota via usePathname
 
 **Contexto:** Durante implementação do Bloco 5, o Header foi desenhado com

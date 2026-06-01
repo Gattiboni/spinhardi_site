@@ -39,13 +39,15 @@ const serviceCardExample = `<ServiceCard
   title="Itália sob medida"
   description="Roteiros desenhados nota a nota."
   href="/viagens/sob-medida"
-/>`;
+/>                                  {/* tone="light" — default */}
+<ServiceCard tone="dark" ... />    {/* sobre fundo navy */}`;
 
 const testimonialCardExample = `<TestimonialCard
   quote="Spinhardi não vendeu uma viagem..."
   author="Maria Helena"
   context="Cliente Itália · Mar/2026"
-/>`;
+/>                                          {/* tone="light" — default */}
+<TestimonialCard tone="dark" quote="..." author="..." />  {/* navy, sem context */}`;
 
 const blogCardExample = `<BlogCard
   slug="curadoria-de-roteiros"
@@ -304,24 +306,50 @@ export default function DevComponentsPage() {
       <Section spacing="md">
         <Container>
           <BlockHeader
-            title="5. ServiceCard"
-            description="Item de lista numerada de viagens (seção 4 das referências). Empilhados formam a grade de serviços. Hover satura o número e leva o título para gold."
+            title="5. ServiceCard (light · dark)"
+            description="Item de lista numerada de viagens (seção 4 das referências). Empilhados formam a grade de serviços. Hover satura o número e leva o título para gold. tone=light para fundo claro, tone=dark para fundo navy."
           />
 
-          <div className="border-2 border-dashed border-navy/40 px-6">
-            <ServiceCard
-              number="01"
-              title="Itália sob medida"
-              description="Roteiros desenhados nota a nota, do norte ao sul."
-              href="#"
-            />
-            <ServiceCard
-              number="02"
-              title="Pacotes e roteiros"
-              description="Seleção curada de experiências prontas para partir."
-              href="#"
-            />
-            <ServiceCard number="03" title="Viagem sob medida" href="#" />
+          {/* tone="light" (default) sobre fundo claro */}
+          <DemoItem label='tone="light" · default · sobre fundo branco'>
+            <div className="w-full border-2 border-dashed border-navy/40 px-6">
+              <ServiceCard
+                number="01"
+                title="Itália sob medida"
+                description="Roteiros desenhados nota a nota, do norte ao sul."
+                href="#"
+              />
+              <ServiceCard
+                number="02"
+                title="Pacotes e roteiros"
+                description="Seleção curada de experiências prontas para partir."
+                href="#"
+              />
+              <ServiceCard number="03" title="Viagem sob medida" href="#" />
+            </div>
+          </DemoItem>
+
+          {/* tone="dark" sobre fundo navy */}
+          <div className="mt-6">
+            <DemoItem label='tone="dark" · sobre fundo navy'>
+              <div className="w-full rounded border-2 border-dashed border-green/50 bg-navy px-6">
+                <ServiceCard
+                  tone="dark"
+                  number="01"
+                  title="Itália sob medida"
+                  description="Roteiros desenhados nota a nota, do norte ao sul."
+                  href="#"
+                />
+                <ServiceCard
+                  tone="dark"
+                  number="02"
+                  title="Pacotes e roteiros"
+                  description="Seleção curada de experiências prontas para partir."
+                  href="#"
+                />
+                <ServiceCard tone="dark" number="03" title="Viagem sob medida" href="#" />
+              </div>
+            </DemoItem>
           </div>
 
           <CodeBlock code={serviceCardExample} />
@@ -336,18 +364,34 @@ export default function DevComponentsPage() {
       <Section spacing="md">
         <Container>
           <BlockHeader
-            title="6. TestimonialCard"
-            description="Depoimento em <blockquote>, border-left gold, aspas decorativas e quote em Fraunces italic. O fundo escuro abaixo é só para destacar o card branco."
+            title="6. TestimonialCard (light · dark)"
+            description="Depoimento em <blockquote>, border-left gold, aspas decorativas e quote em Fraunces italic. tone=light (bg-white) para fundo claro, tone=dark (bg-white/5) para fundo navy. O contexto é opcional — quando omitido, a linha não aparece."
           />
 
-          {/* Fundo de apoio só para destacar o bg-white do card nesta página. */}
-          <div className="rounded border-2 border-dashed border-navy/40 bg-dark/5 p-8">
-            <TestimonialCard
-              quote="Spinhardi não vendeu uma viagem. Eles desenharam um momento que ainda hoje, três anos depois, eu lembro com saudade."
-              author="Maria Helena"
-              context="Cliente Itália · Mar/2026"
-              className="max-w-2xl"
-            />
+          {/* tone="light" (default) — fundo de apoio só para destacar o bg-white do card. */}
+          <DemoItem label='tone="light" · default · com context'>
+            <div className="w-full rounded border-2 border-dashed border-navy/40 bg-dark/5 p-8">
+              <TestimonialCard
+                quote="Spinhardi não vendeu uma viagem. Eles desenharam um momento que ainda hoje, três anos depois, eu lembro com saudade."
+                author="Maria Helena"
+                context="Cliente Itália · Mar/2026"
+                className="max-w-2xl"
+              />
+            </div>
+          </DemoItem>
+
+          {/* tone="dark" sem context, sobre fundo navy */}
+          <div className="mt-6">
+            <DemoItem label='tone="dark" · sem context · sobre fundo navy'>
+              <div className="w-full rounded border-2 border-dashed border-green/50 bg-navy p-8">
+                <TestimonialCard
+                  tone="dark"
+                  quote="Já estou no meu portão de embarque pra voltar. Foi tudo maravilhoso, curtimos e aproveitamos demais! Obrigada por todo planejamento e auxílio de sempre."
+                  author="Karoline Soares e Daniel Famula"
+                  className="max-w-2xl"
+                />
+              </div>
+            </DemoItem>
           </div>
 
           <CodeBlock code={testimonialCardExample} />

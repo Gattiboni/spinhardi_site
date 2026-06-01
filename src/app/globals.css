@@ -52,40 +52,50 @@
 
 /* =========================================================================
    Base styles globais
+
+   IMPORTANTE: estas regras DEVEM estar dentro de @layer base.
+   No Tailwind v4, regras fora de qualquer @layer SEMPRE vencem regras
+   dentro de @layer na cascata do CSS — então sem o @layer base, a regra
+   `a { color: inherit }` atropelava utility classes como `.text-white`
+   e `.hover:text-gold`, deixando links invisíveis sobre fundos navy.
+
+   Ver DECISION_LOG D019.
    ========================================================================= */
 
-/* O Header é `position: fixed` (h-20 = 80px). O Next 16 ignora elementos
-   fixed/sticky ao calcular o destino de scroll, então conteúdo navegado por
-   âncora (#id) ou troca de rota pode terminar atrás do Header. scroll-padding-top
-   compensa exatamente os 80px. Ver node_modules/next/.../components/link.md. */
-html {
-  scroll-padding-top: 5rem;
-}
+@layer base {
+  /* O Header é `position: fixed` (h-20 = 80px). O Next 16 ignora elementos
+     fixed/sticky ao calcular o destino de scroll, então conteúdo navegado por
+     âncora (#id) ou troca de rota pode terminar atrás do Header. scroll-padding-top
+     compensa exatamente os 80px. Ver node_modules/next/.../components/link.md. */
+  html {
+    scroll-padding-top: 5rem;
+  }
 
-body {
-  background: var(--color-white);
-  color: var(--color-dark);
-  font-family: var(--font-body);
-  font-weight: 400;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    background: var(--color-white);
+    color: var(--color-dark);
+    font-family: var(--font-body);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-/* Títulos usam fonte de display por padrão */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
+  /* Títulos usam fonte de display por padrão */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
 
-/* Links sem decoração por padrão; cada componente decide */
-a {
-  color: inherit;
-  text-decoration: none;
+  /* Links sem decoração por padrão; cada componente decide */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }

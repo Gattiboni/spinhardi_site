@@ -198,28 +198,39 @@ Implementar conforme `docs/arquitetura_v1.md` +
 `docs/spinhardi_wireframe.html` + copies aprovados em
 `docs/mapa_de_copies_spinhardi_v1_ready.docx`.
 
-**Rotas:**
+**Rotas e progresso:**
 
-- `/` (Home)
-- `/sobre`
-- `/viagens` (hub)
-- `/viagens/pacotes`
-- `/viagens/sob-medida`
-- `/blog` (estrutural, conteúdo mockado)
-- `/blog/[slug]` (estrutural, com 2-3 posts mock)
-- `/contato`
+- [x] `/` (Home) — concluída em 2026-05-31. 6 blocos conforme wireframe e copies
+      da Amanda. Hero navy, Header dinâmico, Bloco 4 em fundo branco pra
+      contraste editorial.
+- [ ] `/sobre`
+- [ ] `/viagens` (hub)
+- [ ] `/viagens/pacotes`
+- [ ] `/viagens/sob-medida`
+- [ ] `/blog` (estrutural, conteúdo mockado)
+- [ ] `/blog/[slug]` (estrutural, com 2-3 posts mock)
+- [ ] `/contato`
 
-Para cada página:
+Para cada página (checklist por página):
 
-- [ ] Implementar estrutura conforme wireframe
-- [ ] Aplicar copy aprovado pela Amanda
-- [ ] Usar imagens placeholder (`/public/placeholders/`) por enquanto
-- [ ] CTAs WhatsApp funcionais com link parametrizado
+- [ ] Implementar estrutura conforme wireframe aprovado nesta sessão
+- [ ] Aplicar copy aprovado pela Amanda (literal — sem reescrever)
+- [ ] Sem imagens reais — fotos virão por indicação de Nina e Julia
+- [ ] CTAs WhatsApp funcionais via `CTAWhatsApp` (que usa `buildWhatsAppURL()`)
+- [ ] Adicionar à `LIGHT_ROUTES` em `Header.tsx` se a página tem fundo claro
+      (ver D018)
 - [ ] Responsivo testado em 380px (mobile) e 1440px (desktop)
-- [ ] Implementar `not-found.tsx` e `error.tsx` globais
 
-**Checkpoint 1.3:** Todas as 8 rotas navegáveis em localhost. Visual fiel ao
-wireframe. Copy idêntico ao mapa aprovado.
+Pendências globais da Fase 1.3:
+
+- [ ] Implementar `not-found.tsx` (404) e `error.tsx` globais
+- [ ] Subpáginas de Viagens (`/viagens/pacotes`, `/viagens/sob-medida`) —
+      atualmente os ServiceCards da Home apontam pra `/viagens` ou `/viagens/*`
+      que vão dar 404 até serem criadas
+
+**Checkpoint 1.3:** Todas as 8 rotas navegáveis em localhost. Visual fiel aos
+wireframes aprovados sessão a sessão. Copy idêntico ao mapa aprovado.
+`not-found.tsx` e `error.tsx` implementados.
 
 ---
 
