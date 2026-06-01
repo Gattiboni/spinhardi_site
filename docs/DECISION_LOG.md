@@ -28,6 +28,50 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D017 — Logos como SVG raster embutido aceito como dívida técnica formal na v1
+
+**Contexto:** Os 3 arquivos de logo exportados do Canva (`logo-clara.svg`,
+`logo-escura.svg`, `logo-icone.svg`) foram identificados pelo Codinho durante o
+Bloco 4 da Fase 1.2 como SVG com PNG raster embutido (não vetor real).
+Funcionam, mas:
+
+- Pixelizam quando ampliados muito além do tamanho original
+- Tamanho de arquivo desproporcional (`logo-icone.svg` com 288 KB, esperado <10
+  KB pra vetor real)
+- `logo-icone` vai virar favicon — peso alto degrada Largest Contentful Paint da
+  página
+- Não permite mudança de cor via CSS (que SVG vetorial permitiria, ex: ícone
+  gold → ícone branco no hover)
+
+**Alternativas consideradas:**
+
+- Refazer no Canva exportando vetor real: Canva Pro nem sempre garante vetor
+  100% — o pássaro pode ser ilustração já rasterizada na origem
+- Pedir ao Codinho redesenhar o pássaro como SVG vetorial puro (factible pro
+  ícone, complexo pra logo completa com tipografia)
+- Contratar designer pra refazer logo em formato vetorial
+- Aceitar raster embutido como dívida técnica formal e registrada
+
+**Decisão:** Aceitar raster embutido como dívida técnica conhecida na v1 do
+site. Componente `Logo.tsx` já está estruturado pra trocar os arquivos sem mudar
+uma linha de código — basta substituir os SVGs em `public/logos/`. Resolução
+fica como item explícito no roadmap de "Melhorias contínuas" pós-launch.
+
+**Racional:** Performance e qualidade visual não estão impactadas
+significativamente em tamanhos de uso típicos do site (Header ~240×80, ícone
+~40×40). O custo de resolver agora (refazer no Canva ou contratar designer) é
+desproporcional ao benefício na fase atual. Quando o site estiver no ar e houver
+tempo de polimento, o `logo-icone.svg` é a prioridade pra refazer como vetor
+(impacto em favicon + Open Graph + ícone mobile).
+
+**Pendência operacional:** monitorar Core Web Vitals após go-live. Se LCP ou TBT
+degradarem por causa dos logos, prioridade sobe.
+
+**Responsável:** Alan Gattiboni (decisão) · Codinho (detecção) **Status:** Ativa
+(com pendência técnica registrada no plano v2)
+
+---
+
 ### [2026-05-31] D016 — Tokens de duração precisam de @utility explícito no Tailwind v4
 
 **Contexto:** Durante o Bloco 3 da Fase 1.2 (Button + Cards), os componentes

@@ -157,8 +157,10 @@ Refletir `docs/identidade_visual.md` no código.
     - [x] `BlogCard` (imagem 16:9 + tag + título + data + excerpt com
           line-clamp)
   - [x] `Divider` (prop `tone` light/dark)
-- [ ] Criar componente `Logo` com variações (escura, clara, ícone)
-- [ ] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
+- [x] Criar componente `Logo` com variações (clara, escura, ícone) — ver D017
+      (dívida técnica de raster embutido)
+- [x] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
+      (`wa.me` + mensagem placeholder customizável)
 - [ ] Criar `Header` e `Footer` (conforme wireframe aprovado)
 - [ ] Criar layout global em `app/layout.tsx`
 - [ ] Documentar design system em `docs/DESIGN_SYSTEM.md`
@@ -658,7 +660,19 @@ Coisas que vão ter que ser decididas/feitas mas ainda não chegou a hora:
 - [ ] Decidir se vai ter página de Política de Privacidade e Termos de Uso
       (recomendado: sim, mesmo que simples)
 - [ ] Decidir backup strategy do Sanity (export periódico ou só confiar no SaaS
-      deles)
+      deles) - [ ] **Refazer `public/logos/logo-icone.svg` como vetor real**
+      (atualmente PNG raster embutido com 288 KB — ver D017). Prioridade: ALTA
+      quando virar favicon, porque impacta Core Web Vitals. Caminho sugerido:
+      pedir ao Codinho redesenhar o pássaro como SVG vetorial puro a partir da
+      referência visual existente.
+- [ ] **Refazer `public/logos/logo-clara.svg` e `public/logos/logo-escura.svg`
+      como vetor real** quando houver tempo de polimento ou se o impacto de
+      performance dos rasters ficar visível. Prioridade: MÉDIA-BAIXA (escala em
+      tamanhos típicos do site não pixeliza visivelmente).
+- [ ] **Validar mensagem padrão do WhatsApp com Amanda** — o componente
+      CTAWhatsApp usa placeholder "Oi! Cheguei pelo site da Spinhardi e quero
+      conversar sobre uma viagem." em `src/lib/whatsapp/constants.ts`. Amanda
+      precisa aprovar ou reescrever antes do go-live.
 
 ---
 

@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
-type ButtonSize = "sm" | "md" | "lg";
+export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Aparência semântica do botão. Default: "primary". */
@@ -47,6 +47,24 @@ const BASE =
   "transition-colors duration-medium focus:outline-none focus-visible:ring-2 " +
   "focus-visible:ring-gold focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
+/**
+ * Monta as classes visuais do Button para um dado variant/size.
+ *
+ * Extraído para ser reaproveitado por elementos que precisam da mesma aparência
+ * mas de outra semântica de HTML — ex.: CTAWhatsApp, que é navegação (`<a>`) e
+ * não um `<button>`. Mantém uma única fonte de verdade para o estilo do botão.
+ */
+export function buttonStyles(
+  variant: ButtonVariant = "primary",
+  size: ButtonSize = "md",
+  className = "",
+): string {
+  const padding = variant === "ghost" ? "" : SIZE_PADDING[size];
+  return `${BASE} ${SIZE_TEXT[size]} ${padding} ${VARIANT[variant]} ${className}`
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function Button({
   variant = "primary",
   size = "md",
@@ -55,13 +73,8 @@ export default function Button({
   children,
   ...props
 }: ButtonProps) {
-  const padding = variant === "ghost" ? "" : SIZE_PADDING[size];
-  const classes = `${BASE} ${SIZE_TEXT[size]} ${padding} ${VARIANT[variant]} ${className}`
-    .replace(/\s+/g, " ")
-    .trim();
-
   return (
-    <button type={type} className={classes} {...props}>
+    <button type={type} className={buttonStyles(variant, size, className)} {...props}>
       {children}
     </button>
   );

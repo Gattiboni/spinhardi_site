@@ -13,6 +13,63 @@ Ordem: mais recente no topo.
 
 ## 2026
 
+---
+
+### [2026-05-31] SITE — Bloco 4 da Fase 1.2 concluído: Logo e CTAWhatsApp
+
+Criados 2 componentes específicos de marca em `src/components/ui/`:
+
+- `Logo.tsx`: 3 variantes (clara, escura, icone), defaults de dimensão por
+  variante (240×80 pra clara/escura, 40×40 pra icone), alt semântico adaptado
+  por variante, prop `priority` pra above-the-fold, usa `next/image` com
+  `unoptimized` automático em SVG (Next 16 default)
+- `CTAWhatsApp.tsx`: link `<a>` estilizado reaproveitando `buttonStyles()`
+  extraído do Button, abre `wa.me/5519997761226` em nova aba, com mensagem
+  placeholder customizável
+
+Refactor de suporte:
+
+- `Button.tsx` agora exporta `buttonStyles(variant, size, className)` e tipos
+  `ButtonVariant`/`ButtonSize` — fonte única de estilo compartilhada entre
+  Button e CTAWhatsApp, evita duplicação
+
+Nova constante operacional:
+
+- `src/lib/whatsapp/constants.ts` com `WHATSAPP_NUMBER`,
+  `WHATSAPP_DEFAULT_MESSAGE` e helper `buildWhatsAppURL()`
+
+`src/app/dev/components/page.tsx` atualizada com seções 8 (Logo) e 9
+(CTAWhatsApp). A demo do CTAWhatsApp usa `pointer-events-none` num wrapper com
+aviso visual claro pra não disparar abertura acidental do WhatsApp durante
+validação — solução server-side pura.
+
+Validação visual aprovada por Alan. `npm run lint`, `npm run format:check` e
+`npx tsc --noEmit` rodando sem erros. `next.config.ts` não modificado.
+
+---
+
+### [2026-05-31] DECISÃO — D017 registrada: SVGs com raster embutido aceitos como dívida técnica formal
+
+Decisão D017 registrada. Os 3 arquivos de logo exportados do Canva
+(`logo-clara.svg`, `logo-escura.svg`, `logo-icone.svg`) contêm PNG raster
+embutido em vez de vetor real. `logo-icone.svg` pesa 288 KB (esperado <10 KB pra
+vetor). Aceito como dívida técnica formal na v1; componente `Logo.tsx` já está
+pronto pra troca dos arquivos sem alteração de código. Prioridade de refazer é o
+`logo-icone` (vai virar favicon). Ver DECISION_LOG para racional completo.
+
+---
+
+### [2026-05-31] DOC — Nomenclatura das variações da logo esclarecida no identidade_visual.md
+
+Seção "Variações e quando usar" do `docs/identidade_visual.md` reescrita. A
+nomenclatura antiga ("Principal escura", "Clara") misturava cor da logo com
+fundo de aplicação, gerando ambiguidade. Nova convenção: nome do arquivo
+descreve a cor do conteúdo visual da logo (não do fundo onde vai). Tabela
+ampliada com composição explícita de cada variação. Convenção documentada como
+nota final pra alertar quem for usar.
+
+---
+
 ### [2026-05-31] SITE — Bloco 3 da Fase 1.2 concluído: Button e Cards
 
 Criados 4 componentes em `src/components/ui/`:

@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import ServiceCard from "@/components/ui/ServiceCard";
 import TestimonialCard from "@/components/ui/TestimonialCard";
 import BlogCard from "@/components/ui/BlogCard";
+import Logo from "@/components/ui/Logo";
+import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 
 /**
  * Página privada de validação visual do design system.
@@ -52,6 +54,19 @@ const blogCardExample = `<BlogCard
   date="12 Jan 2026"
   excerpt="Por que cada roteiro começa de uma página em branco."
   thumbnail=""
+/>`;
+
+const logoExample = `<Logo variant="clara" />          {/* sobre fundo navy */}
+<Logo variant="escura" priority />  {/* sobre fundo branco — default */}
+<Logo variant="icone" />            {/* favicon / contextos compactos */}
+<Logo variant="escura" width={360} height={120} />  {/* custom maior */}`;
+
+const ctaWhatsAppExample = `<CTAWhatsApp />                                  {/* "Vamos conversar" */}
+<CTAWhatsApp variant="secondary" size="lg" />
+<CTAWhatsApp variant="ghost" label="Fale com a gente" />
+<CTAWhatsApp
+  label="Quero meu roteiro"
+  message="Oi! Quero montar um roteiro sob medida pela Itália."
 />`;
 
 function CodeBlock({ code }: { code: string }) {
@@ -363,6 +378,126 @@ export default function DevComponentsPage() {
           </div>
 
           <CodeBlock code={blogCardExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 8. Logo */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="8. Logo (clara · escura · icone)"
+            description="3 variantes via next/image. clara para fundo navy, escura para fundo branco (default), icone para contextos compactos. Dívida conhecida: os SVGs atuais embutem PNG (export raster), então ampliar demais pixeliza — trocar por SVG vetorial não exige mudar o componente."
+          />
+
+          <div className="space-y-6 border-2 border-dashed border-navy/40 p-6">
+            {/* clara sobre navy */}
+            <DemoItem label='variant="clara" · sobre bg-navy'>
+              <div className="flex items-center justify-center rounded bg-navy p-12">
+                <Logo variant="clara" />
+              </div>
+            </DemoItem>
+
+            {/* escura sobre branco */}
+            <DemoItem label='variant="escura" · sobre fundo branco · default'>
+              <div className="flex items-center justify-center rounded border-2 border-dashed border-navy/50 bg-white p-12">
+                <Logo variant="escura" />
+              </div>
+            </DemoItem>
+
+            {/* icone sobre neutro */}
+            <DemoItem label='variant="icone" · sobre fundo neutro'>
+              <div className="flex items-center justify-center rounded bg-dark/5 p-12">
+                <Logo variant="icone" />
+              </div>
+            </DemoItem>
+
+            {/* escala custom maior */}
+            <DemoItem label='variant="escura" · width={360} height={120} · valida escala'>
+              <div className="flex items-center justify-center rounded border-2 border-dashed border-navy/50 bg-white p-12">
+                <Logo variant="escura" width={360} height={120} />
+              </div>
+            </DemoItem>
+          </div>
+
+          <CodeBlock code={logoExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 9. CTAWhatsApp */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="9. CTAWhatsApp (primary · secondary · ghost)"
+            description="Link <a> que abre a conversa no WhatsApp da Spinhardi (wa.me, nova aba). Reaproveita o estilo do Button via buttonStyles(). Nesta página o clique está desabilitado (pointer-events-none) para não abrir o WhatsApp acidentalmente — em produção, clicar abre a conversa."
+          />
+
+          {/* pointer-events-none impede a abertura acidental do WhatsApp nesta página de validação. */}
+          <div className="pointer-events-none space-y-8 border-2 border-dashed border-navy/40 p-6">
+            <p className="font-body text-xs uppercase tracking-widest text-green">
+              🔒 Demonstração visual — clique desabilitado aqui · em produção abre o WhatsApp
+            </p>
+
+            {/* Variantes */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Variantes (size md)
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label='variant="primary"'>
+                  <CTAWhatsApp variant="primary" />
+                </DemoItem>
+                <DemoItem label='variant="secondary"'>
+                  <CTAWhatsApp variant="secondary" />
+                </DemoItem>
+                <DemoItem label='variant="ghost"'>
+                  <CTAWhatsApp variant="ghost" />
+                </DemoItem>
+              </div>
+            </div>
+
+            {/* Tamanhos */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Tamanhos (variant primary)
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label='size="sm"'>
+                  <CTAWhatsApp size="sm" />
+                </DemoItem>
+                <DemoItem label='size="md"'>
+                  <CTAWhatsApp size="md" />
+                </DemoItem>
+                <DemoItem label='size="lg"'>
+                  <CTAWhatsApp size="lg" />
+                </DemoItem>
+              </div>
+            </div>
+
+            {/* Label + message custom */}
+            <div>
+              <p className="mb-3 font-body text-xs uppercase tracking-widest text-dark/50">
+                Label e message customizados
+              </p>
+              <div className="flex flex-wrap items-end gap-6">
+                <DemoItem label="label + message custom">
+                  <CTAWhatsApp
+                    label="Quero meu roteiro"
+                    message="Oi! Quero montar um roteiro sob medida pela Itália."
+                  />
+                </DemoItem>
+              </div>
+            </div>
+          </div>
+
+          <CodeBlock code={ctaWhatsAppExample} />
         </Container>
       </Section>
     </main>
