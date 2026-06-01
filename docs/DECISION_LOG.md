@@ -28,6 +28,64 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D018 — Header global com adaptação de fundo por rota via usePathname
+
+**Contexto:** Durante implementação do Bloco 5, o Header foi desenhado com
+comportamento dinâmico (transparente no topo → sólido após scroll), assumindo
+que todas as páginas começariam com hero navy. Durante validação visual, ficou
+claro que páginas com fundo claro (como `/dev/components`, e futuramente
+`/sobre`, `/viagens`, `/blog`, `/contato`) deixam o Header transparente
+invisível ou em conflito visual com o conteúdo.
+
+Como o Header está no `layout.tsx` global (renderiza uma única vez pra todas as
+rotas), uma prop boolean (`forceSolid`) não resolveria — o layout não sabe qual
+rota está sendo renderizada.
+
+**Alternativas consideradas:**
+
+- Layouts aninhados (`(public)/layout.tsx` vs `(internal)/layout.tsx`): refactor
+  grande, separação prematura, exige reorganizar toda a estrutura de rotas
+- Prop `forceSolid` no Header: descartado — não funciona com layout global
+- Context provider (`useHeaderStyle`): mais código, mais ponto de configuração
+  por página, fácil de esquecer
+- `usePathname()` dentro do Header + lista hardcoded de rotas claras: simples,
+  centralizado, modular, 10 linhas
+
+**Decisão:** Header detecta a rota atual via `usePathname()` (hook do Next 16
+disponível em Client Components). Mantém uma constante `LIGHT_ROUTES` no próprio
+arquivo do Header — lista de rotas que renderizam em fundo claro. Quando o
+Header está sendo renderizado em rota clara, força modo sólido desde o pixel 0
+(sem fase transparente). Quando está em rota com hero navy, mantém comportamento
+dinâmico (transparente → sólido ao scrollar).
+
+Implementação:
+
+```ts
+const LIGHT_ROUTES = ["/dev/components"];
+const pathname = usePathname();
+const isLightRoute = LIGHT_ROUTES.some((route) => pathname.startsWith(route));
+const isSolid = isLightRoute || scrolled;
+```
+
+Otimização: quando `isLightRoute === true`, o `useEffect` faz early-return e não
+registra listener de scroll — sem trabalho desnecessário.
+
+**Racional:** Solução proporcional ao problema. Quando criarmos páginas internas
+(Sobre, Viagens, Blog, Contato), basta adicionar o pathname à lista.
+Centralizado no Header — quem mexer no comportamento do Header tem todo o
+contexto num só lugar. Migração futura pra layouts aninhados continua possível
+se a lista crescer muito.
+
+**Pendência operacional:** atualizar `LIGHT_ROUTES` à medida que páginas com
+fundo claro forem criadas. Hoje a lista contém apenas `/dev/components`. Quando
+Sobre, Viagens, Blog, Contato forem implementadas e tiverem fundo claro,
+adicionar.
+
+**Responsável:** Alan Gattiboni (decisão) · Codinho (implementação) **Status:**
+Ativa
+
+---
+
 ### [2026-05-31] D017 — Logos como SVG raster embutido aceito como dívida técnica formal na v1
 
 **Contexto:** Os 3 arquivos de logo exportados do Canva (`logo-clara.svg`,

@@ -161,12 +161,30 @@ Refletir `docs/identidade_visual.md` no código.
       (dívida técnica de raster embutido)
 - [x] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
       (`wa.me` + mensagem placeholder customizável)
-- [ ] Criar `Header` e `Footer` (conforme wireframe aprovado)
-- [ ] Criar layout global em `app/layout.tsx`
-- [ ] Documentar design system em `docs/DESIGN_SYSTEM.md`
+- [x] Criar `Header` e `Footer`:
+  - [x] `Header.tsx` (Client Component) — sticky dinâmico, detecta rota via
+        `usePathname` (ver D018), Logo + nav + CTA WhatsApp, integrado com
+        MobileMenu
+  - [x] `MobileMenu.tsx` (Client Component) — overlay full-screen com
+        focus-trap, ESC pra fechar, scroll-lock no body, ARIA completo
+  - [x] `Footer.tsx` (Server Component) — 4 colunas (Marca + Páginas +
+        Serviços + Contato) conforme mapa de copies aprovado pela Amanda, rodapé
+        inferior com copyright e Política de privacidade
+- [x] Criar `src/lib/navigation.ts` — fonte única de verdade dos links
+      (consumida por Header, MobileMenu e Footer)
+- [x] Atualizar layout global em `src/app/layout.tsx` — `<Header />` +
+      `<main>{children}</main>` + `<Footer />`. Adicionado
+      `scroll-padding-top: 5rem` no `html` (recomendação da doc oficial do Next
+      16 pra compensar Header fixed em navegação por âncora).
+- [~] ~~Documentar design system em `docs/DESIGN_SYSTEM.md`~~ — descartado.
+  Página `/dev/components` cumpre essa função melhor que markdown estático
+  (referência viva vs documentação que precisaria ser mantida em paralelo).
 
-**Checkpoint 1.2:** Storybook não, mas uma página `/dev/components` lista todos
-os componentes pra inspeção visual.
+**Checkpoint 1.2 ✅:** página `/dev/components` em
+http://localhost:3000/dev/components lista todos os componentes do design system
+(11 seções) e serve como referência viva. Header e Footer renderizam globalmente
+em toda rota. `npm run lint`, `npm run format:check` e `npx tsc --noEmit`
+rodando sem erro.
 
 **Página de validação:** `/dev/components` em
 http://localhost:3000/dev/components — referência viva do design system,
@@ -673,6 +691,12 @@ Coisas que vão ter que ser decididas/feitas mas ainda não chegou a hora:
       CTAWhatsApp usa placeholder "Oi! Cheguei pelo site da Spinhardi e quero
       conversar sobre uma viagem." em `src/lib/whatsapp/constants.ts`. Amanda
       precisa aprovar ou reescrever antes do go-live.
+- [ ] **Manter `LIGHT_ROUTES` atualizada** (ver D018) — quando páginas internas
+      com fundo claro forem criadas (Sobre, Viagens, Blog, Contato, ou quaisquer
+      outras), adicionar o pathname correspondente à constante `LIGHT_ROUTES` em
+      `src/components/ui/Header.tsx`. Hoje a lista contém apenas
+      `/dev/components`. Sem isso, o Header fica transparente sobre fundo claro
+      e os elementos brancos ficam invisíveis até o usuário rolar.
 
 ---
 

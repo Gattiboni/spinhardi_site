@@ -54,6 +54,14 @@
    Base styles globais
    ========================================================================= */
 
+/* O Header é `position: fixed` (h-20 = 80px). O Next 16 ignora elementos
+   fixed/sticky ao calcular o destino de scroll, então conteúdo navegado por
+   âncora (#id) ou troca de rota pode terminar atrás do Header. scroll-padding-top
+   compensa exatamente os 80px. Ver node_modules/next/.../components/link.md. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 body {
   background: var(--color-white);
   color: var(--color-dark);

@@ -3,7 +3,7 @@ import Section from "@/components/ui/Section";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-navy text-white">
+    <div className="min-h-screen bg-navy text-white">
       <Section spacing="lg">
         <Container>
           <p className="text-gold uppercase tracking-widest text-sm mb-4 font-body">
@@ -48,6 +48,6 @@ export default function Home() {
           </div>
         </Container>
       </Section>
-    </main>
+    </div>
   );
 }

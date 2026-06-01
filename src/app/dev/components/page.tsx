@@ -69,6 +69,24 @@ const ctaWhatsAppExample = `<CTAWhatsApp />                                  {/*
   message="Oi! Quero montar um roteiro sob medida pela Itália."
 />`;
 
+const headerExample = `// src/app/layout.tsx — Header já está no layout global
+import Header from "@/components/ui/Header";
+
+<body>
+  <Header />
+  <main>{children}</main>
+  <Footer />
+</body>`;
+
+const footerExample = `// src/app/layout.tsx — Footer já está no layout global
+import Footer from "@/components/ui/Footer";
+
+<body>
+  <Header />
+  <main>{children}</main>
+  <Footer />
+</body>`;
+
 function CodeBlock({ code }: { code: string }) {
   return (
     <pre className="mt-6 overflow-x-auto rounded bg-dark px-4 py-3 text-sm leading-relaxed text-white/90">
@@ -98,7 +116,7 @@ function DemoItem({ label, children }: { label: string; children: React.ReactNod
 
 export default function DevComponentsPage() {
   return (
-    <main className="min-h-screen bg-white text-dark">
+    <div className="min-h-screen bg-white text-dark">
       {/* Cabeçalho da página */}
       <Section spacing="md">
         <Container>
@@ -500,6 +518,61 @@ export default function DevComponentsPage() {
           <CodeBlock code={ctaWhatsAppExample} />
         </Container>
       </Section>
-    </main>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 10. Header */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="10. Header (sticky dinâmico)"
+            description="Barra de navegação fixa no topo (position: fixed, z-50, h-20). Transparente no topo da página; após ~80px de scroll ganha fundo navy sólido + sombra, com transição suave. Em desktop mostra links + CTA; abaixo de lg mostra o hamburger que abre o MobileMenu (overlay full-screen)."
+          />
+
+          <div className="rounded border-2 border-dashed border-navy/40 bg-navy/5 p-6">
+            <p className="font-body text-sm text-dark/70">
+              <strong>O Header já é renderizado no layout global</strong> — não precisa ser
+              importado em cada página. Para vê-lo ao vivo, abra qualquer rota (
+              <code className="font-mono">/</code> por exemplo) e observe o topo: ele começa
+              transparente sobre o hero navy e, ao rolar abaixo de 80px, ganha fundo sólido e
+              sombra. No mobile (&lt; lg), o hamburger abre o menu em tela cheia; o X, a tecla{" "}
+              <code className="font-mono">Esc</code> ou clicar num link fecham.
+            </p>
+            <p className="mt-3 font-body text-xs uppercase tracking-widest text-green">
+              Esta página NÃO renderiza um preview do Header — ele já está fixo acima, vindo do
+              layout. Um segundo Header aqui seria conflito.
+            </p>
+          </div>
+
+          <CodeBlock code={headerExample} />
+        </Container>
+      </Section>
+
+      <Container>
+        <Divider tone="dark" />
+      </Container>
+
+      {/* 11. Footer */}
+      <Section spacing="md">
+        <Container>
+          <BlockHeader
+            title="11. Footer (4 colunas + rodapé)"
+            description="Rodapé global em fundo navy: coluna de marca (logo + texto), Páginas, Serviços e Contato (WhatsApp, Instagram, localização) + barra de copyright com link de política de privacidade. Empilha em 1 coluna no mobile, 2 no tablet, 4 no desktop. Server Component — sem interatividade."
+          />
+
+          <div className="rounded border-2 border-dashed border-navy/40 bg-navy/5 p-6">
+            <p className="font-body text-sm text-dark/70">
+              <strong>O Footer também vive no layout global.</strong> Para vê-lo ao vivo, role até o
+              final de qualquer rota. Como ele faz sentido apenas no fim do documento, não é
+              renderizado inline aqui — fazê-lo seria duplicação.
+            </p>
+          </div>
+
+          <CodeBlock code={footerExample} />
+        </Container>
+      </Section>
+    </div>
   );
 }

@@ -15,6 +15,94 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] SITE — Fase 1.2 (Design System) concluída
+
+Fundação visual do projeto completa. Cinco blocos entregues e validados:
+
+- **Bloco 1:** Tokens de design via `@theme inline` (Tailwind v4 CSS-first),
+  fontes Fraunces + Montserrat via `next/font/google`, layout base
+- **Bloco 2:** Componentes atômicos (Container, Section, Divider)
+- **Bloco 3:** Button (3 variantes, 3 sizes, disabled, focus visível) e 3 Cards
+  (ServiceCard numerado, TestimonialCard com border-l gold, BlogCard com imagem
+  16:9 e line-clamp)
+- **Bloco 4:** Logo (3 variantes: clara, escura, icone) e CTAWhatsApp
+  parametrizado com helper `buildWhatsAppURL()`
+- **Bloco 5:** Header dinâmico (Client Component com `usePathname` + scroll
+  listener), MobileMenu full-screen (focus-trap, ESC, scroll-lock), Footer 4
+  colunas, integração no `app/layout.tsx`
+
+Página `/dev/components` em http://localhost:3000/dev/components serve como
+referência viva do design system — 11 seções de validação (componentes 1-9
+inline + Header e Footer documentados textualmente porque já vivem no layout
+global).
+
+Decisões registradas durante a fase: D013 (tooling), D014 (Fraunces +
+Montserrat), D015 (Container minimalista), D016 (utility explícito pra tokens de
+duração), D017 (SVGs raster como dívida técnica), D018 (Header detecta rota via
+usePathname). `docs/DESIGN_SYSTEM.md` descartado — página `/dev/components`
+cumpre função melhor.
+
+Pendência registrada: refazer logo-icone.svg como vetor antes de virar favicon
+(D017). Próxima fase: construção das páginas reais (Home, Sobre, Viagens, Blog,
+Contato).
+
+---
+
+### [2026-05-31] SITE — Bloco 5 da Fase 1.2 concluído: Header, MobileMenu, Footer e layout global
+
+Criados 3 componentes em `src/components/ui/`:
+
+- `Header.tsx` (Client Component): sticky com `position: fixed`, altura `h-20`,
+  `z-50`. Detecta rota via `usePathname` — em rotas claras (`LIGHT_ROUTES`)
+  começa já sólido (navy + sombra); em rotas com hero navy mantém comportamento
+  dinâmico (transparente → sólido após 80px de scroll). Logo `logo-clara` com
+  `priority`, links em `text-white` com hover gold, CTA "Fale com a gente"
+  reutilizando CTAWhatsApp variant secondary. Listener com `{ passive: true }`,
+  early-return em rota clara pra evitar trabalho desnecessário.
+- `MobileMenu.tsx` (Client Component): overlay full-screen montado sempre (com
+  `opacity-0 pointer-events-none -translate-y-4 inert` quando fechado), permite
+  transição fade+slide na entrada e na saída. Focus-trap circular com Tab, foco
+  inicial no botão X, ESC fecha, scroll do body trava com cleanup que restaura
+  valor anterior. ARIA completo (`role="dialog"`, `aria-modal`, `aria-label`,
+  `aria-expanded`, `aria-controls`).
+- `Footer.tsx` (Server Component): 4 colunas com layout responsivo (1 / 2 / 4
+  colunas conforme breakpoint), seguindo conteúdo aprovado pela Amanda — Marca
+  (logo + texto), Páginas, Serviços, Contato. Rodapé inferior com copyright e
+  link pra Política de privacidade. WhatsApp via `buildWhatsAppURL()`, Instagram
+  externo com `target="_blank"`.
+
+Criado `src/lib/navigation.ts` — fonte única de verdade dos links de navegação
+(`NAV_LINKS`, `FOOTER_PAGE_LINKS`, `FOOTER_SERVICE_LINKS`). Header, MobileMenu e
+Footer consomem dessa única origem. Mudança futura em rota muda em um lugar só.
+
+`src/app/layout.tsx` atualizado com `<Header />` + `<main>{children}</main>` +
+`<Footer />` envolvendo o conteúdo de cada rota. `src/app/globals.css` ganha
+`scroll-padding-top: 5rem` no `html` pra compensar Header fixed em navegação por
+âncora (#id) — recomendação explícita da doc oficial do Next 16.
+`src/app/page.tsx` e `src/app/dev/components/page.tsx` ajustadas (removido
+`<main>` interno pra evitar HTML inválido com main aninhado).
+
+`src/app/dev/components/page.tsx` ganha seções 10 (Header) e 11 (Footer) como
+documentação textual — Header e Footer já são visíveis em toda rota via layout
+global, renderizar uma segunda cópia inline seria HTML inválido e redundância
+visual.
+
+Validação visual aprovada em desktop e mobile (390px) por Alan. Lint, format e
+typecheck sem issues. `next.config.ts` não modificado.
+
+---
+
+### [2026-05-31] DECISÃO — D018 registrada: Header detecta rota clara via usePathname
+
+Decisão D018 registrada. Header global no `layout.tsx` adapta seu fundo conforme
+rota atual: em rotas listadas em `LIGHT_ROUTES` começa já sólido (navy +
+sombra), em demais rotas mantém comportamento dinâmico (transparente no topo,
+sólido após scroll). Implementação via `usePathname()` do Next 16. Hoje
+`LIGHT_ROUTES = ["/dev/components"]`. Lista cresce conforme páginas com fundo
+claro forem criadas. Ver DECISION_LOG para racional completo.
+
+---
+
 ### [2026-05-31] SITE — Bloco 4 da Fase 1.2 concluído: Logo e CTAWhatsApp
 
 Criados 2 componentes específicos de marca em `src/components/ui/`:
