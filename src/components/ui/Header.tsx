@@ -14,7 +14,7 @@ import { NAV_LINKS } from "@/lib/navigation";
  * Quando criarmos páginas internas (Sobre, Viagens, Blog, Contato) que tenham
  * fundo claro, adicionar aqui. Páginas com hero navy NÃO entram nesta lista.
  */
-const LIGHT_ROUTES = ["/dev/components", "/sobre"];
+const LIGHT_ROUTES = ["/dev/components", "/sobre", "/viagens"];
 
 /** Scroll (px) a partir do qual o Header ganha fundo sólido. */
 const SCROLL_THRESHOLD = 80;
