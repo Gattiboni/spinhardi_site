@@ -200,16 +200,28 @@ Implementar conforme `docs/arquitetura_v1.md` +
 
 **Rotas e progresso:**
 
-- [x] `/` (Home) — concluída em 2026-05-31. 6 blocos conforme wireframe e copies
-      da Amanda. Hero navy, Header dinâmico, Bloco 4 em fundo branco pra
-      contraste editorial.
-- [ ] `/sobre`
-- [ ] `/viagens` (hub)
-- [ ] `/viagens/pacotes`
-- [ ] `/viagens/sob-medida`
-- [ ] `/blog` (estrutural, conteúdo mockado)
-- [ ] `/blog/[slug]` (estrutural, com 2-3 posts mock)
-- [ ] `/contato`
+- [x] `/` (Home) — concluída em 2026-05-31
+- [x] `/sobre` — concluída em 2026-05-31. Primeira página com fundo claro do
+      projeto. D018 (LIGHT_ROUTES) validada em produção real.
+- [x] `/viagens` (hub) — concluída em 2026-05-31. 2 cards grandes (Pacotes + Sob
+      Medida), sem Passagens Avulsas (ver D020).
+- [x] `/viagens/pacotes` — concluída em 2026-05-31. Grid 2 colunas com lista
+      numerada + card destacado navy sticky.
+- [x] `/viagens/sob-medida` — concluída em 2026-05-31. Grid 2 colunas com lista
+      numerada + card destacado branco com border gold sticky.
+- [ ] `/blog` (estrutural, conteúdo mockado) — virá junto com painel admin
+      (decisão tomada nesta sessão)
+- [ ] `/blog/[slug]` (estrutural, com 2-3 posts mock) — junto com /blog
+- [ ] `/contato` — virá com formulário funcional + integração Resend
+
+Pendências globais da Fase 1.3:
+
+- [ ] Implementar `not-found.tsx` (404) e `error.tsx` globais
+- [ ] Página dedicada de Passagens Avulsas: **NÃO virá na Fase 1** — ver D020.
+      Será interface de booking operacional na Fase 4 (pós-launch +
+      IDAS/ClickMassa).
+- [ ] Aprovação institucional de Nina e Julia antes de continuar o build
+      (preview Vercel free)
 
 Para cada página (checklist por página):
 
@@ -220,13 +232,6 @@ Para cada página (checklist por página):
 - [ ] Adicionar à `LIGHT_ROUTES` em `Header.tsx` se a página tem fundo claro
       (ver D018)
 - [ ] Responsivo testado em 380px (mobile) e 1440px (desktop)
-
-Pendências globais da Fase 1.3:
-
-- [ ] Implementar `not-found.tsx` (404) e `error.tsx` globais
-- [ ] Subpáginas de Viagens (`/viagens/pacotes`, `/viagens/sob-medida`) —
-      atualmente os ServiceCards da Home apontam pra `/viagens` ou `/viagens/*`
-      que vão dar 404 até serem criadas
 
 **Checkpoint 1.3:** Todas as 8 rotas navegáveis em localhost. Visual fiel aos
 wireframes aprovados sessão a sessão. Copy idêntico ao mapa aprovado.
@@ -707,7 +712,11 @@ Coisas que vão ter que ser decididas/feitas mas ainda não chegou a hora:
       outras), adicionar o pathname correspondente à constante `LIGHT_ROUTES` em
       `src/components/ui/Header.tsx`. Hoje a lista contém apenas
       `/dev/components`. Sem isso, o Header fica transparente sobre fundo claro
-      e os elementos brancos ficam invisíveis até o usuário rolar.
+      e os elementos brancos ficam invisíveis até o usuário rolar. - [ ]
+      **Painel admin pro Blog** — quando construirmos `/blog` e `/blog/[slug]`,
+      virão junto com painel administrativo pra Amanda criar/editar posts.
+      Decisão tomada na sessão de 2026-05-31. Por enquanto, estrutura blog está
+      pausada. Implementação completa virá em conjunto.
 
 ---
 

@@ -15,6 +15,96 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] SITE — Fase 1.3 navegação principal completa: Sobre, Viagens hub, Pacotes, Sob Medida
+
+Quatro páginas construídas em sequência durante esta sessão. Todas em fundo
+branco (D018 — `LIGHT_ROUTES` validado em produção real pela primeira vez na
+Sobre), todas com Header navy sólido desde o pixel 0, todas com copies literais
+do mapa de copies aprovado pela Amanda.
+
+**`/sobre` — Página Sobre a Spinhardi (5 blocos):**
+
+- Cabeçalho (branco): eyebrow "Nossa história", título "Uma agência construída à
+  mão. Por quase quatro décadas.", subtítulo introdutório
+- Foto da equipe (branco): placeholder inline aspect 16:9 — substituível por
+  foto real quando Nina e Julia indicarem
+- Linha do tempo (navy): 4 momentos históricos (1987 / 1987–2012 / 2024 /
+  Atualmente), grid 12 colunas (período à esquerda em Fraunces gold, conteúdo à
+  direita), divisores sutis
+- Valores expandidos (branco): grid de 4 colunas (Presença Real, Cuidado com o
+  Detalhe, Transparência, História e confiança) — versão expandida do que
+  aparece na Home
+- CTA Final (branco, centralizado): "Quer conversar com a gente?" + WhatsApp
+
+Mudança no Header: `/sobre` adicionado a `LIGHT_ROUTES`. Primeira página real
+com fundo claro do projeto — confirma que D018 funciona em produção.
+
+**`/viagens` — Hub de Viagens (3 blocos):**
+
+- Cabeçalho (branco): eyebrow "Viagens", título "Como podemos ajudar na sua
+  próxima viagem", subtítulo
+- 2 cards grandes (branco): Pacotes e Roteiros + Viagem Sob Medida. Cards
+  inteiros clicáveis com placeholder de imagem aspect 4:3, número Fraunces gold,
+  título navy, descrição cinza, "Ver mais →" em gold com animação no hover. Sem
+  botão Button — link envolve o card todo.
+- CTA Final (branco, centralizado): "Não sabe por onde começar?" + WhatsApp
+
+Mudança no Header: `/viagens` adicionado a `LIGHT_ROUTES`. Via
+`pathname.startsWith()`, cobre automaticamente as subpáginas (`/viagens/pacotes`
+e `/viagens/sob-medida`) — uma linha cobre o braço inteiro.
+
+Decisão pontual do Codinho: remoção de classes Tailwind no-op
+(`transition-colors duration-short group-hover:text-gold` num elemento já
+`text-gold`). Mantém consistência com Sobre e elimina código morto. Aprovado.
+
+**`/viagens/pacotes` — Pacotes e Roteiros (2 blocos):**
+
+- Cabeçalho com breadcrumb (branco): "Viagens / Pacotes e Roteiros" — "Viagens"
+  clicável, título "Pacotes pensados para quem quer ir e voltar tranquilo.",
+  subtítulo
+- Grid 2 colunas (branco): lista numerada 01–05 ("O que está incluído" —
+  passagem, hospedagem, transfers, seguro, suporte) à esquerda + card destacado
+  **navy** sticky à direita ("Próximos destinos disponíveis", CTA "Quero saber
+  mais")
+
+**`/viagens/sob-medida` — Viagem Sob Medida (2 blocos):**
+
+- Cabeçalho com breadcrumb (branco): "Viagens / Viagem Sob Medida", título "Cada
+  detalhe de acordo com o que você quer viver.", subtítulo
+- Grid 2 colunas (branco): lista numerada 01–05 ("Como funciona" — conversa,
+  briefing, proposta, aprovação, suporte) à esquerda + card destacado **branco
+  com border gold** sticky à direita ("Para quem é", CTA "Quero minha viagem sob
+  medida")
+
+Diferenciação visual intencional entre os 2 cards destacados: Pacotes em fundo
+navy (sóbrio), Sob Medida com border gold (premium feel — mapa especifica "card
+destacado em ouro").
+
+**Padrões comuns às 4 páginas:**
+
+- Sem componentes novos. Composição inline reaproveitando o Design System.
+- Sem imagens reais — placeholders nos slots de foto, substituíveis quando Nina
+  e Julia indicarem.
+- Sem Bloco 3 CTA Final nas subpáginas de Viagens — card destacado já tem CTA
+  forte, segundo CTA seria redundância.
+- Metadata individual em cada página (`title` específico, descrição extraída do
+  mapa).
+- Lint, format, typecheck e build OK em todas. SSG estático prerenderizado nas 4
+  rotas.
+
+---
+
+### [2026-05-31] DECISÃO — D020 registrada: Passagens Avulsas vira interface de booking operacional na Fase 4
+
+Passagens Avulsas permanece listada na Home como um dos 3 serviços, mas **não
+recebe página dedicada na Fase 1**. ServiceCard correspondente já aponta pra
+/viagens (hub) — comportamento já implementado e consistente com a decisão. Será
+endereçada na Fase 4 pós-launch como interface de booking operacional,
+possivelmente em rota separada (`/passagens` ou `/reservas`), com integração
+IDAS + ClickMassa. Ver DECISION_LOG para racional completo.
+
+---
+
 ### [2026-05-31] SITE — Página Home (`/`) construída — primeira página real do site
 
 `src/app/page.tsx` substituída: saiu a página de validação de tokens, entrou a

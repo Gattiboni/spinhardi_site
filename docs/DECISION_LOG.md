@@ -28,6 +28,49 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-05-31] D020 — Passagens Avulsas: serviço sem página dedicada na Fase 1, virá com interface de booking operacional
+
+**Contexto:** Durante a construção do hub de Viagens (`/viagens`), o mapa de
+copies aprovado pela Amanda especifica claramente apenas 2 cards no hub
+(Pacotes + Sob Medida). "Passagens Avulsas" aparece como serviço listado na Home
+(Tabela 6 — "01 Passagens e Serviços Avulsos"), mas não tem página dedicada no
+mapa de copies.
+
+Investigando, ficou claro que isso não é esquecimento — é decisão estratégica:
+Passagens Avulsas é o serviço mais operacional e transacional dos 3 (passagem
+aérea, hospedagem, transfer, seguro), com fluxo de booking direto. Faz mais
+sentido tratar isso como **interface de booking real** quando entrarmos em
+operação plena, não como página de marketing.
+
+**Decisão:** Na Fase 1 (presença digital), Passagens Avulsas:
+
+- Permanece listada na Home como um dos 3 serviços
+- ServiceCard correspondente aponta provisoriamente pra `/viagens` (hub) —
+  comportamento aceitável porque o hub apresenta os 2 serviços principais
+- **Não recebe página dedicada** em `/viagens/passagens` na Fase 1
+- Será endereçada na **Fase 4** (pós-launch) junto com integração IDAS +
+  ClickMassa, como interface de booking operacional, possivelmente em subdomínio
+  ou rota separada (`/passagens` ou `/reservas`)
+
+**Por que registrar como decisão e não como pendência:** porque é uma escolha
+consciente de **escopo e timing**, não um item esquecido. Pendência implica
+"ainda não resolvido"; decisão implica "resolvido assim, reversível se a
+estratégia mudar".
+
+**Implicações:**
+
+- Verificado que `src/app/page.tsx` (Bloco 3, Card 01) já aponta pra `/viagens`
+  (hub), portanto sem ajuste técnico necessário.
+- Adicionar nota institucional na mensagem de aprovação pra Nina e Julia
+  explicando a decisão.
+
+**Responsável:** Alan Gattiboni (decisão estratégica) **Status:** Ativa
+**Reversibilidade:** Alta — se for decidido criar página de marketing pra
+Passagens Avulsas antes da Fase 4, basta criar `/viagens/passagens/page.tsx` e
+ajustar o link no Card 01.
+
+---
+
 ### [2026-05-31] D019 — Regras CSS base no Tailwind v4 DEVEM estar dentro de @layer base
 
 **Contexto:** Durante a construção da Home (Fase 1.3), os links de navegação do
