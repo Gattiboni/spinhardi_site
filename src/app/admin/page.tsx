@@ -1,10 +1,23 @@
-export default function AdminDashboard() {
+import { getContactStats } from "@/lib/contacts";
+import { iddas } from "@/lib/integrations/iddas";
+import { clickmassa } from "@/lib/integrations/clickmassa";
+import { getPosts } from "@/lib/blog";
+import DashboardClient from "./DashboardClient";
+
+export default async function AdminDashboard() {
+  const [contactStats, iddasStats, clickmassaStats, posts] = await Promise.all([
+    getContactStats(),
+    iddas.getStats(),
+    clickmassa.getStats(),
+    getPosts({ status: "publicado" }),
+  ]);
+
   return (
-    <div>
-      <h1 className="font-display text-3xl text-navy mb-4">Dashboard</h1>
-      <p className="font-body text-dark/60">
-        Dashboard híbrido virá no próximo lote (Fase 1.9). Por enquanto, navegue pelo menu lateral.
-      </p>
-    </div>
+    <DashboardClient
+      contactStats={contactStats}
+      iddasStats={iddasStats}
+      clickmassaStats={clickmassaStats}
+      postsCount={posts.length}
+    />
   );
 }

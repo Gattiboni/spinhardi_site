@@ -1,10 +1,33 @@
 "use server";
 
+import type {
+  DestinoTipo,
+  OrcamentoEstimado,
+  PrazoIdeal,
+  PerfilViajante,
+} from "@/lib/contacts/types";
+
 export type ContactFormData = {
-  nome: string;
+  // Sobre você
+  name: string;
   whatsapp: string;
-  destino: string;
-  mensagem: string;
+  email?: string;
+
+  // Sobre a viagem
+  destinoTipo: DestinoTipo;
+  destinoTexto?: string;
+  prazoIdeal: PrazoIdeal;
+  dataIda?: string;
+  passageirosAdultos: number;
+  passageirosCriancas: number;
+  passageirosBebes: number;
+
+  // Sobre o perfil
+  perfilViajante: PerfilViajante;
+  orcamentoEstimado: OrcamentoEstimado;
+
+  // Observações
+  observacao?: string;
 };
 
 export type ContactFormResult = {
@@ -13,24 +36,29 @@ export type ContactFormResult = {
 };
 
 /**
- * Envia mensagem de contato.
+ * Recebe os campos enriquecidos do formulário do site.
  *
- * MOCK na Fase 1: console.log estruturado + simulação de latência.
- * Vira insert real no Supabase na Fase 1.11 (lote dedicado de SQL).
- * E-mail real (Resend) entra na Fase 3.
+ * MOCK na Fase 1 (Lote B): só loga + simula sucesso (não persiste).
+ * No Lote C: cria contact no Supabase com `origem: "site_contato"` e dispara
+ * iddas.createSolicitacao + clickmassa.createTicket em Promise.allSettled,
+ * atualizando os campos de sync. O contact é criado ANTES das chamadas
+ * externas — zero perda de lead.
  */
 export async function submitContact(data: ContactFormData): Promise<ContactFormResult> {
-  // Simula latência de rede pra UX realista
+  // Simula latência
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  // Mock — vira insert no Supabase na Fase 1.11
+  // Mock — Lote B só loga
   console.log("[contact submission - mock]", {
     timestamp: new Date().toISOString(),
     ...data,
   });
 
-  // Mock de e-mail — vira Resend real na Fase 3
-  console.log("[email mock] would notify equipe@spinhardi.com.br");
+  // Lote C: aqui cria contact no Supabase + chama iddas.createSolicitacao +
+  //         clickmassa.createTicket em Promise.allSettled
+  console.log(
+    "[email mock] would notify equipe@spinhardi.com.br + send WhatsApp greeting via ClickMassa",
+  );
 
   return { success: true };
 }

@@ -15,6 +15,51 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-08 — Lote B v3: Módulo Contatos unificado + Dashboard híbrido + Configurações
+
+### Adicionado
+
+- **Camada de dados `src/lib/contacts/`** com interface `Contact` (~50 campos em
+  10 agrupamentos), mocks com 8 contatos diversificados, 25+ interações,
+  abstração `getContacts/getContactById/getContactInteractions/getContactStats`
+  com filtros completos (estágio, origem, tags, sync, busca)
+- **Camada de integração `src/lib/integrations/`** com stubs documentados do
+  Iddas e ClickMassa retornando mock plausível seedado por data
+- **Página `/admin/contatos`** — lista unificada com busca, 4 filtros, checkbox
+  por linha, ações em massa (mock), paginação
+- **Página `/admin/contatos/[id]`** — visão 360 com 3 colunas (Dados /
+  Qualificação / Sistemas externos), gestão interna editável visualmente,
+  timeline de interações
+- **Página `/admin/contatos/novo`** — criação manual reutilizando form
+  enriquecido
+- **Dashboard `/admin/page.tsx`** completamente reescrito — 10 cards em 3 grupos
+  (Hoje / Este mês / Métricas de integração), saudação dinâmica, 3 atalhos
+- **Página `/admin/configuracoes`** — conteúdo real com 5 cards (Iddas,
+  ClickMassa, Origens, Mensagem WhatsApp, Tags)
+- **Componentes admin:** `DashboardCard`, `StageBadge` (9 cores por estágio),
+  `SyncBadge` (2 ícones com tooltip)
+- **Form do site enriquecido** em `src/components/ui/ContactForm.tsx` — 4 grupos
+  visuais com 12 campos (6 obrigatórios), alinhado com qualificação de agência
+  boutique e API do Iddas
+
+### Modificado
+
+- **Server Action `src/app/(public)/contato/actions.ts`** — recebe payload
+  enriquecido (campos de qualificação completa), loga em mock por enquanto
+- **AdminSidebar** — grupo "Admin" reduzido a 2 itens (Usuários, Configurações)
+
+### Removido
+
+- **Rota `/admin/integracoes`** — conteúdo absorvido por `/admin/configuracoes`
+
+### Decisões registradas
+
+- D024 — Spinhardi como source of truth de contatos
+- D025 — Dashboard híbrido em 3 grupos
+- D026 — Remoção da rota /admin/integracoes
+
+---
+
 [2026-06-07] SITE — Lote A: abstrações de auth/analytics + back office
 estrutural + Route Groups Fundação técnica do back office. Após essa entrega, o
 admin tem layout definitivo, login mock funcional, e a base pra plugar Supabase

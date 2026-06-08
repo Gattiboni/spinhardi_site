@@ -17,7 +17,6 @@ const NAV_GROUPS = [
     title: "Admin",
     items: [
       { href: "/admin/usuarios", label: "Usuários", icon: "👥" },
-      { href: "/admin/integracoes", label: "Integrações", icon: "🔌" },
       { href: "/admin/configuracoes", label: "Configurações", icon: "⚙" },
     ],
   },

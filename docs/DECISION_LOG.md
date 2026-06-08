@@ -28,6 +28,125 @@ Ordem: mais recente no topo.
 
 ---
 
+## D024 — Spinhardi como source of truth de contatos
+
+**Contexto:** durante o planejamento do Lote B, após investigação intensiva das
+APIs do Iddas e ClickMassa (via Comet em modo agente, dia 08/06/2026),
+descobriu-se que ambos os sistemas têm APIs REST completas e funcionais:
+
+- **Iddas:** Swagger oficial em `apiagencia.iddas.com.br`, com endpoints CRUD
+  pra Pessoa, Orçamento, Solicitação, Venda, Voo, Hospedagem, Transporte,
+  Passeio, Cruzeiro, Seguro, Etiqueta, Situação, Canal de Venda, Tarefa,
+  Receita, Despesa, Aeroporto, Companhia, Usuário. Inclui **2 endpoints POST
+  públicos** desenhados pra captura externa (Solicitação de Cotação + Cadastro
+  de Pessoa).
+- **ClickMassa:** API completa com endpoints `/v1/api/external/{apiId}` pra
+  envio de mensagens, criação de notas internas, gestão de Tags, Opportunities
+  (CRM próprio com pipeline e steps), Templates WABA, ChatFlows. Suporta WABA
+  (Meta oficial) e WhatsApp Web.
+
+A discussão sobre o que fazer no nosso back office levou a uma virada
+arquitetural fundamental.
+
+**Decisão:** **Spinhardi (nosso Supabase) é source of truth de contatos.**
+
+Implicações:
+
+- Toda pessoa com quem a Spinhardi se relaciona vira `contact` no nosso
+  Supabase, independente da origem (site, Google Ads, Instagram, indicação,
+  manual, importado).
+- Iddas e ClickMassa são **canais operacionais especializados** que recebem
+  subset dos dados conforme cada um pode consumir (Iddas pra cotação/venda,
+  ClickMassa pra atendimento WhatsApp).
+- A tabela `contacts` é modelada rica desde o nascimento (~50 campos em 10
+  agrupamentos: identificação, dados pessoais, endereço, qualificação, estágio
+  interno, tags, espelho Iddas, espelho ClickMassa, comportamento, metadados).
+- Inteligência (segmentação, automação, IA, campanhas) mora no nosso admin
+  porque é a única camada que consegue cruzar dados dos múltiplos sistemas
+  - comportamento próprio (posts lidos, emails abertos, etc).
+
+**Racional:**
+
+Ter contatos de cliente espalhados em interfaces de terceiros sem capacidade
+própria de cruzamento e ação automatizada via IA mais à frente é dívida
+estrutural. Imagina disparar uma ação de CRM direto da interface do site
+filtrando "todos que viajaram pra Itália em 2025 e ainda não voltaram" — isso
+exige tabela própria com governança própria. Iddas e ClickMassa não conseguem
+isso isoladamente porque cada um só vê o seu pedaço.
+
+**Consequências:**
+
+- Lote B reescopado: módulo Contatos completo no nosso admin (não janela de
+  leitura como considerado inicialmente)
+- Lote C (Supabase): schema da tabela `contacts` vira tradução direta dos tipos
+  TypeScript já modelados no Lote B — zero inferência
+- Fase 4: integrações com Iddas e ClickMassa são bidirecionais. Captura alimenta
+  Iddas/ClickMassa, mudanças neles voltam pra nós via sync periódico (Make ou
+  serverless function)
+
+**Aprendizado registrado:**
+
+A decisão certa só apareceu depois de investigar a realidade dos sistemas
+externos. A tentativa anterior de modelar baseado em "boas práticas genéricas de
+CRM de turismo" estava destinada a virar refactor no Lote C. **Investigar
+realidade antes de modelar.**
+
+---
+
+## D025 — Dashboard híbrido em 3 grupos (nossas métricas + integrações)
+
+**Contexto:** wireframe inicial do Dashboard propunha 6 cards (3 "Hoje" + 3
+"Este mês"). Durante a execução do Lote B, ficou claro que separar nossas
+métricas (que consultam nossa base) das métricas dos sistemas externos (Iddas e
+ClickMassa via API) tornaria o dashboard mais honesto sobre origem dos dados. A
+divisão em 3 grupos foi confirmada visualmente após implementação e considerada
+mais clara que a proposta original.
+
+**Decisão:** dashboard organizado em 3 grupos temáticos:
+
+1. **Hoje (3 cards):** Novos contatos, A fazer follow-up, Pendentes de sync
+   (tone "warning" se >0)
+2. **Este mês (3 cards):** Capturas totais, Em negociação, Fechados
+3. **Métricas de integração (4 cards):** Orçamentos no Iddas, Vendas no Iddas,
+   Tickets abertos no ClickMassa, Posts publicados
+
+Total: 10 cards. Sem badges "Em breve" — tudo é real (mock plausível por
+enquanto, fetch real no Lote C/D).
+
+**Racional:**
+
+- Separação visual reflete arquitetura real (nossa base vs sistemas externos)
+- Card "Pendentes de sync" com tone "warning" se >0 é alerta operacional
+  importante — indica saúde da integração
+- Métricas de integração rodam via stubs em `lib/integrations/iddas.ts` e
+  `clickmassa.ts` retornando mock seedado por data, garantindo plausibilidade
+  sem precisar de API real ainda
+- Saudação dinâmica (Bom dia / Boa tarde / Boa noite) + nome do user + data
+  formatada PT-BR no topo
+
+---
+
+## D026 — Remoção da rota `/admin/integracoes`
+
+**Contexto:** wireframe inicial previa `/admin/integracoes` como placeholder
+("Em breve · Fase 4"). Durante a execução, com a página `/admin/configuracoes`
+ganhando conteúdo real (cards de Integração Iddas, Integração ClickMassa,
+Origens, Mensagem padrão, Tags), ficou redundante manter as duas rotas.
+
+**Decisão:** remover `/admin/integracoes`. Conteúdo absorvido por
+`/admin/configuracoes`.
+
+**Consequências:**
+
+- `src/app/admin/integracoes/page.tsx` deletado
+- `AdminSidebar.tsx` grupo "Admin" agora tem 2 itens (Usuários, Configurações)
+- Rota retorna 404
+- Quando integrações virarem operacionais (Lote D / Fase 4) e demandarem página
+  própria de monitoramento, a rota volta — agora como tela funcional, não
+  placeholder
+
+---
+
 [2026-06-07] D023 — verifySession idempotente como defesa contra React Strict
 Mode Contexto: Após implementação do back office estrutural (Lote A), um bug
 intermitente apareceu: depois de logout + novo login, usuário ficava preso na

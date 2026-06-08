@@ -103,7 +103,7 @@ export default function Contato() {
             {/* Coluna direita: formulário */}
             <div className="lg:col-span-7">
               <p className="text-gold uppercase tracking-widest text-sm font-body mb-8">
-                Envie uma mensagem
+                Conte sobre sua viagem
               </p>
               <ContactForm />
             </div>

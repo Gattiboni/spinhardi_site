@@ -190,8 +190,8 @@ em `docs/mapa_de_copies_spinhardi_v1_ready.docx`.
 - [x] `/viagens/pacotes` — concluída em 2026-05-31.
 - [x] `/viagens/sob-medida` — concluída em 2026-05-31.
 - [X] `/contato` — formulário com envio mockado (Supabase entra na 1.10)
-- [ ] `not-found.tsx` (404) global
-- [ ] `error.tsx` global
+- [X] `not-found.tsx` (404) global
+- [X] `error.tsx` global
 
 Para cada página:
 
@@ -312,7 +312,7 @@ refatoração. Zero dívida técnica desde o dia 1.
   // lib/auth/roles.ts (tipos Role + helper hasPermission)
   // lib/auth/index.ts (re-exporta provider ativo)
   ```
-- [ ] Documentar cada abstração no próprio arquivo (JSDoc)
+- [X] Documentar cada abstração no próprio arquivo (JSDoc)
 
 **Checkpoint 1.5:** as páginas e o admin nunca importam direto de SDKs ou APIs
 externas. Tudo passa por `lib/`. Trocar provider de IA, auth, analytics ou
@@ -383,86 +383,132 @@ do admin aparece após login. Sidebar mostra opções conforme role.
 
 ---
 
-## 1.8 Back office — Módulo Contatos
+## 1.8 Back office — Módulo Contatos unificado
 
-**Estado de saída:** time consegue ver lista de submissões do formulário, ver
-detalhe, marcar status, deixar notas internas.
+**Estado de saída:** time consegue ver lista unificada de contatos (de todas
+as origens), filtrar, ver detalhe 360 com gestão interna e timeline.
 
-Por enquanto, com mock de dados (lista estática). Plug no Supabase real
-entra na 1.10.
+**REESCOPO (registrado em D024):** após descoberta das APIs do Iddas
+(`apiagencia.iddas.com.br`) e ClickMassa, decidiu-se tornar o Supabase nosso
+source of truth de contatos, com Iddas e ClickMassa como canais operacionais
+especializados. Esta fase materializa a estrutura completa do módulo em mock
+TypeScript, pronto pra plugar Supabase no Lote C.
 
-- [ ] Criar `src/app/admin/contatos/page.tsx` — lista de submissões
-  - Tabela com colunas: data, nome, e-mail, status, ação
-  - Filtros: status (todos/novos/em atendimento/respondidos/arquivados), busca
-    por nome ou e-mail
-  - Paginação (10-20 por página)
-  - Indicador visual de "novo" (não lido) — dot dourado
-- [ ] Criar `src/app/admin/contatos/[id]/page.tsx` — detalhe da submissão
-  - Mostra todos os campos do formulário
-  - Permite mudar status (dropdown)
-  - Campo de notas internas (textarea)
-  - Botão "abrir WhatsApp" se telefone foi informado
-  - Botão "responder por e-mail" → abre mailto: ou copia e-mail
-- [ ] Implementar lógica de "marcar como lido" automática quando admin abre
-      detalhe
-- [ ] Criar mock em `lib/contacts/mock-submissions.ts` com 10-15 submissões
-      variadas pra demonstrar UX
-- [ ] Criar abstração `lib/contacts/index.ts` com `getSubmissions()`,
-      `getSubmissionById()`, `updateSubmission()` — mock agora, Supabase na 1.10
+- [x] Criar `src/lib/contacts/types.ts` — interface `Contact` com ~50 campos
+      em 10 agrupamentos: identificação, dados pessoais, endereço,
+      qualificação, estágio interno (nosso funil), tags, espelho Iddas,
+      espelho ClickMassa, comportamento, metadados
+- [x] Criar `src/lib/contacts/mock-contacts.ts` — 8 contatos com diversidade
+      total (origens, estágios, status de sync) pra demonstrar UX completa
+- [x] Criar `src/lib/contacts/mock-interactions.ts` — timeline unificada com
+      25+ interações distribuídas
+- [x] Criar abstração `src/lib/contacts/index.ts` — `getContacts()`,
+      `getContactById()`, `getContactInteractions()`, `getContactStats()`,
+      stubs de mutação com mensagem clara sobre Lote C
+- [x] Criar `src/lib/integrations/iddas.ts` — stubs documentados de
+      `createSolicitacao()` e `getStats()` retornando mock plausível
+- [x] Criar `src/lib/integrations/clickmassa.ts` — stubs documentados de
+      `createTicket()` e `getStats()` retornando mock plausível
+- [x] Criar `src/app/admin/contatos/page.tsx` (Server) + `ContactsClient.tsx`
+      (Client) — lista unificada com:
+  - Busca por nome, WhatsApp, e-mail, tags
+  - 4 filtros (Estágio, Origem, Tags, Sync)
+  - Checkbox por linha + dropdown de "Ações em massa"
+  - Paginação 10 por página
+- [x] Criar `src/app/admin/contatos/[id]/page.tsx` + `ContactDetailClient.tsx`
+      — visão 360 em layout de 2 áreas (bloco principal + coluna lateral):
+  - Bloco principal com 3 colunas: Dados pessoais / Qualificação / Sistemas
+    externos (com IDs do Iddas e ClickMassa, links de abertura, status de
+    sync e botão "Forçar nova sync")
+  - Coluna lateral à direita com Gestão interna (estágio editável, próximo
+    follow-up, tags, notas internas) e Timeline de interações abaixo
+  - Timeline com ícone por tipo de evento (form, sync Iddas em laranja, sync
+    ClickMassa em verde, nota interna, mudança de estágio, tag, mensagens
+    WhatsApp), em ordem cronológica, com timestamp + autor
+  - Botão "Salvar alterações" em Gestão Interna → alert sobre Lote C
+  - Botão "Forçar nova sync" em Sistemas Externos → alert sobre Lote C
+  - Links "Abrir no Iddas →" / "Abrir no ClickMassa →" em nova aba
+- [x] Criar `src/app/admin/contatos/novo/page.tsx` — criação manual usando
+      mesmo form do site (sem mensagem de sucesso, redireciona pra lista —
+      mock por enquanto)
+- [x] Criar `src/components/admin/StageBadge.tsx` — badge colorido por estágio
+      (9 cores: gold, blue, indigo, purple, orange, green, teal, gray, red)
+- [x] Criar `src/components/admin/SyncBadge.tsx` — 2 ícones lado a lado
+      (Iddas + ClickMassa) com tooltip nativo
+- [x] Enriquecer formulário do site `src/components/ui/ContactForm.tsx` em 4
+      grupos visuais com 12 campos (6 obrigatórios) — Sobre você / Sobre a
+      viagem / Sobre o perfil / Observações
+- [x] Atualizar Server Action `src/app/(public)/contato/actions.ts` — recebe
+      payload enriquecido, loga em mock por enquanto (Promise.allSettled com
+      Iddas/ClickMassa vem no Lote C)
 
-**Checkpoint 1.8:** lista de contatos navegável com mocks. Mudança de status,
-notas, ações funcionam visualmente. Pronto pra plugar Supabase.
+**Checkpoint 1.8:** lista navegável com 8 mocks, visão 360 completa de cada
+um, form do site enriquecido captura qualificação completa. Pronto pra plugar
+Supabase no Lote C com tradução direta dos tipos TypeScript pra SQL.
 
 ---
 
-## 1.9 Back office — Dashboard híbrido
+## 1.9 Back office — Dashboard híbrido (real + integrações)
 
-**Estado de saída:** ao entrar em `/admin`, time vê visão geral. Tudo mockado
-nesta fase (Supabase entra na 1.10, GA4 e integrações ficam pra Fase 4).
+**Estado de saída:** ao entrar em `/admin`, time vê visão consolidada com
+métricas reais sobre nossa base + métricas dos sistemas externos via
+integração.
 
-- [ ] Criar `src/app/admin/page.tsx` — dashboard inicial
-- [ ] Implementar componentes:
-  - `DashboardCard` — card reutilizável com título, valor principal, trend
-    opcional, link "ver mais"
-  - `DashboardSection` — agrupa cards numa seção temática ("Hoje", "Esta
-    semana", "Mês")
-- [ ] Implementar provider analytics mock (`lib/analytics/mock.ts`) — retorna
-      números plausíveis (visitas, cliques WhatsApp, conversões) com pequena
-      variação dia a dia (não pode ser estático demais)
-- [ ] Dashboard renderiza:
-  - **Saudação:** "Olá, [Nome]" + data formatada
-  - **Hoje:** novos contatos (mock por enquanto), conversas WhatsApp (mock),
-    reservas IDAS (mock)
-  - **Esta semana:** visitas GA4 (mock), cliques WhatsApp (mock), posts
-    publicados (mock)
-  - **Atalhos:** botões pra Contatos, Blog (novo post), Configurações
-- [ ] Indicar visualmente quais cards são reais vs mock (badge "Mock" ou
-      "Em breve" pequeno e sutil)
+**REESCOPO (registrado em D025):** após arquitetura travada em D024, todos os
+cards do dashboard são reais — não há mais cards "Em breve". A divisão é
+entre métricas internas (nossa base) e métricas de integração (Iddas /
+ClickMassa via API). Em mock por enquanto, com estrutura pronta pra fetch
+real no Lote C.
 
-**Checkpoint 1.9:** dashboard carrega em <1s. Visual completo, mocks plausíveis.
-Pronto pra plugar dados reais na 1.10 (contatos) e Fase 4 (GA4, integrações).
+- [x] Criar `src/app/admin/page.tsx` — substitui placeholder atual, faz
+      `Promise.all` dos stats em paralelo
+- [x] Criar `src/app/admin/DashboardClient.tsx` — Client Component com
+      saudação dinâmica (Bom dia / Boa tarde / Boa noite) + nome do user +
+      data formatada PT-BR
+- [x] Criar `src/components/admin/DashboardCard.tsx` — reutilizável com
+      props: `title`, `value`, `href?`, `tone?` ("default" | "warning")
+- [x] Dashboard renderiza em 3 grupos temáticos:
+  - **Hoje (3 cards):** Novos contatos, A fazer follow-up, Pendentes de sync
+    (tone "warning" se >0)
+  - **Este mês (3 cards):** Capturas totais, Em negociação, Fechados
+  - **Métricas de integração (4 cards):** Orçamentos no Iddas, Vendas no
+    Iddas, Tickets abertos no ClickMassa, Posts publicados (mock plausível
+    seedado por data, vira fetch real no Lote C)
+- [x] 3 botões de atalho: "Ver contatos", "Novo post", "Configurações"
+
+**Checkpoint 1.9:** dashboard carrega em <1s. 10 cards distribuídos em 3
+grupos, todos consumindo mocks plausíveis. Pronto pra plugar dados reais no
+Lote C (contatos via Supabase) e Lote D (integrações Iddas/ClickMassa via
+API).
 
 ---
 
-## 1.10 Páginas administrativas auxiliares (placeholders na Fase 1)
+## 1.10 Páginas administrativas auxiliares
 
-Rotas existem, layout do admin envolve, conteúdo é placeholder "Em breve" com
-explicação curta. Implementação real vem conforme demanda real surgir.
+**REESCOPO (registrado em D026):** após D024, a página `/admin/integracoes`
+foi REMOVIDA porque seu conteúdo foi absorvido pela página
+`/admin/configuracoes`, que ganhou implementação real (visual) ao invés de
+placeholder.
 
-- [ ] Criar `src/app/admin/usuarios/page.tsx` — placeholder
-  - Texto curto: "Gestão de usuários do back office. Disponível após go-live
-    (Fase 3), quando convidaremos Nina, Julia, Amanda e demais membros do
-    time."
-- [ ] Criar `src/app/admin/integracoes/page.tsx` — placeholder
-  - Texto curto: "Configuração e monitoramento das integrações (IDAS,
-    ClickMassa, Make). Disponível na Fase 4, quando as integrações entrarem
-    em operação."
-- [ ] Criar `src/app/admin/configuracoes/page.tsx` — placeholder
-  - Texto curto: "Configurações gerais do site (mensagem padrão WhatsApp,
-    e-mail de notificação, etc). Implementação conforme demanda."
+- [x] Remover `src/app/admin/integracoes/page.tsx`
+- [x] Atualizar `src/components/admin/AdminSidebar.tsx` — grupo "Admin"
+      agora tem 2 itens (Usuários, Configurações)
+- [x] Manter `src/app/admin/usuarios/page.tsx` como placeholder
+      ("Em breve · Fase 3")
+- [x] Implementar `src/app/admin/configuracoes/page.tsx` com conteúdo real:
+  - Card Integração Iddas (status, URL, link de solicitação, botão "Testar
+    conexão" → alert)
+  - Card Integração ClickMassa (status, modelo WABA, sessão, apiId, botão
+    "Testar conexão" → alert)
+  - Card Origens de captura (5 origens listadas: site_contato, google_ads,
+    instagram, indicacao, manual — botão "+ Adicionar" → alert)
+  - Card Mensagem padrão WhatsApp (textarea editável com mensagem mock,
+    botão "Salvar" → alert)
+  - Card Tags do sistema (tags mockadas listadas, botão "+ Nova tag" → alert)
 
-**Checkpoint 1.10:** rotas existem, sidebar do admin não tem links quebrados,
-placeholders comunicam o que ainda vem.
+**Checkpoint 1.10:** rotas existem, `/admin/integracoes` retorna 404,
+sidebar limpa, configurações com conteúdo visual real (mutações mostram
+alert sobre Lote C).
 
 ---
 
