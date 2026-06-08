@@ -12,8 +12,8 @@ type BlogCardProps = {
   date: string;
   /** Resumo curto (até ~2 linhas). */
   excerpt: string;
-  /** URL da imagem. Vazio renderiza um placeholder neutro. */
-  thumbnail: string;
+  /** URL da imagem. Vazio ou `null` renderiza um placeholder neutro. */
+  thumbnail: string | null;
   className?: string;
 };
 
