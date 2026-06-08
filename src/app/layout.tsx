@@ -3,6 +3,7 @@ import { Fraunces, Montserrat } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
+import BackToTop from "@/components/ui/BackToTop";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -39,6 +40,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
         <Footer />
+        <BackToTop />
       </body>
     </html>
   );

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 
 export const metadata: Metadata = {
@@ -17,14 +17,14 @@ export default function SobMedida() {
       {/* Bloco 1 · Cabeçalho com breadcrumb */}
       <Section spacing="lg" className="bg-white text-dark pt-32 lg:pt-40">
         <Container>
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="mb-6 font-body text-sm text-dark/50">
-            <Link href="/viagens" className="hover:text-gold transition-colors duration-short">
-              Viagens
-            </Link>
-            <span className="mx-2">/</span>
-            <span>Viagem Sob Medida</span>
-          </nav>
+          <Breadcrumb
+            levels={[
+              { label: "Home", href: "/" },
+              { label: "Viagens", href: "/viagens" },
+              { label: "Viagem Sob Medida" },
+            ]}
+            className="mb-6"
+          />
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-navy leading-tight mb-6 max-w-4xl">
             Cada detalhe de acordo com

@@ -1,5 +1,6 @@
 import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import ContactForm from "@/components/ui/ContactForm";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -47,6 +48,10 @@ export default function Contato() {
       {/* Bloco 1 - Cabeçalho */}
       <Section spacing="lg" className="bg-white text-dark pt-32 lg:pt-40">
         <Container>
+          <Breadcrumb
+            levels={[{ label: "Home", href: "/" }, { label: "Contato" }]}
+            className="mb-6"
+          />
           <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">Contato</p>
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-navy leading-tight mb-6 max-w-4xl">
             Vamos conversar

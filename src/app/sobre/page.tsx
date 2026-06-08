@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import Divider from "@/components/ui/Divider";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 
@@ -17,6 +18,10 @@ export default function Sobre() {
       {/* Bloco 1 · Cabeçalho da página */}
       <Section spacing="lg" className="bg-white text-dark pt-32 lg:pt-40">
         <Container>
+          <Breadcrumb
+            levels={[{ label: "Home", href: "/" }, { label: "Sobre" }]}
+            className="mb-6"
+          />
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
             Nossa história
           </p>

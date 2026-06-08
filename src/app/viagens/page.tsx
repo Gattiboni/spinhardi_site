@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 
 export const metadata: Metadata = {
@@ -17,6 +18,10 @@ export default function Viagens() {
       {/* Bloco 1 · Cabeçalho da página */}
       <Section spacing="lg" className="bg-white text-dark pt-32 lg:pt-40">
         <Container>
+          <Breadcrumb
+            levels={[{ label: "Home", href: "/" }, { label: "Viagens" }]}
+            className="mb-6"
+          />
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">Viagens</p>
           <h1 className="mb-6 max-w-4xl font-display text-5xl leading-tight text-navy md:text-6xl lg:text-7xl">
             Como podemos ajudar
