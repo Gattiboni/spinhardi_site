@@ -15,6 +15,220 @@ Ordem: mais recente no topo.
 
 ---
 
+[2026-06-07] SITE — Lote A: abstrações de auth/analytics + back office
+estrutural + Route Groups Fundação técnica do back office. Após essa entrega, o
+admin tem layout definitivo, login mock funcional, e a base pra plugar Supabase
+Auth no Lote C está pronta. Camada de abstrações (src/lib/):
+
+lib/auth/: interface AuthProvider, implementação mock via localStorage, stub
+supabaseAuth com TODO pro Lote C, sistema de roles (admin/editor) com helper
+hasPermission. Provider ativo exportado em index.ts — trocar mock por real é
+mudança de 1 linha. lib/analytics/: interface AnalyticsProvider, implementação
+mock com números plausíveis seedados por data/hora (parece "vivo"), stub
+ga4Analytics com TODO pra Fase 4. 6 métricas mapeadas: visitas, cliques
+WhatsApp, envios de form, conversas ativas, reservas, posts publicados.
+
+Refactor estrutural (Route Groups):
+
+Todas as 8 páginas públicas movidas pra src/app/(public)/ via git mv (preserva
+histórico). URLs intactas — parênteses do Route Group não afetam o caminho. Novo
+root src/app/layout.tsx minimal: só html, body, fontes (Fraunces + Montserrat),
+metadata global. Sem chrome. Novo src/app/(public)/layout.tsx com chrome público
+(Header, Footer, BackToTop) — substitui o que estava no root. Import absoluto em
+ContactForm.tsx corrigido (@/app/contato/actions →
+@/app/(public)/contato/actions) — único caso de import absoluto em todo o
+código.
+
+Back office estrutural (src/app/admin/):
+
+middleware.ts na raiz: matcher /admin/:path*, libera /admin/login*, demais
+validadas client-side via AdminLayout (limitação Edge runtime + localStorage).
+Validação real server-side chega no Lote C com Supabase. AdminSidebar.tsx: 6
+itens em 2 grupos (Navegação: Dashboard, Contatos, Blog · Admin: Usuários,
+Integrações, Configurações). Filtragem por hasPermission(role, item.href).
+Emojis como placeholders de ícones (substituídos por lucide-react em sessão de
+polimento futura). AdminHeader.tsx: navy sólido, link "Spinhardi · Admin",
+toggle de role apenas em dev (Admin/Editor), nome + role do usuário + botão
+"Sair". admin/layout.tsx definitivo: Client Component, valida sessão via
+auth.getUser() no useEffect, redireciona pra /admin/login se sem sessão, pra
+/admin se sem permissão. Login renderiza sem chrome admin (detectado via
+pathname). admin/login/page.tsx: formulário magic link + aviso amarelo "Modo
+desenvolvimento" + link gold "Simular clique" (apenas em dev).
+admin/login/verificar/page.tsx: callback do mock, chama verifySession() e
+redireciona. admin/page.tsx: dashboard placeholder ("Dashboard híbrido virá no
+próximo lote").
+
+Decisões de execução do Codinho registradas no commit:
+
+Metadata do root layout preservada do projeto original (não a genérica do
+wireframe). setLoading(false) síncrono em early-return removido por violação de
+react-hooks/set-state-in-effect (era código morto — early-return acontecia antes
+de loading ser lido).
+
+Validação: 21 rotas geradas, 12 testadas via HTTP (todas 200), separação de
+chrome confirmada (público com Header/Footer, /admin/login sem chrome). Site
+público funcionando após refactor de Route Groups. 2 bugs identificados em teste
+visual e corrigidos em sessão dedicada:
+
+Bug 1: toggle de Editor não filtrava sidebar. Causa: PERMISSIONS do editor tinha
+"/admin" e match usava startsWith, então /admin/usuarios casava com /admin e
+editor via tudo. Correção: nova convenção em PERMISSIONS — paths exatos (sem /_)
+vs paths com filhos (/admin/blog/_). Editor passa de ["/admin", "/admin/blog",
+"/admin/contatos"] para ["/admin", "/admin/blog/_", "/admin/contatos/_"].
+hasPermission distingue match exato (path === perm) de match com filhos
+(perm.endsWith("/*")). Bug 2: usuário preso no login após re-login. Causa: React
+Strict Mode em dev invoca useEffect 2x, a primeira chamada de verifySession
+consumia pending-email e criava sessão, a segunda achava pending-email vazio e
+redirecionava pra /admin/login. Como ambas rodavam em paralelo, a segunda
+vencia. Correção: verifySession virou idempotente — se já existe sessão no
+localStorage, retorna ela direto sem mexer no pending-email. Strict Mode
+permanece ligado (não esconder sintomas).
+
+Diagnóstico autônomo do Codinho lendo o código identificou ambas as causas com
+alta confiança antes da reprodução visual. Instrumentação temporária
+(DebugPanel + console.logs estruturados com prefixos [auth-mock],
+[admin-layout], [admin-header], [verificar]) foi adicionada mas removida
+totalmente após confirmação. grep final em src/ confirma zero resíduo. Refs:
+Fases 1.5 e 1.7 do plano v3. Wireframe em
+docs/wireframe_lote_a_auth_e_back_office.md. Decisões D021, D022 e D023
+registradas no DECISION_LOG.
+
+[2026-06-06] SITE — Fase 1.4: Blog público + Admin do blog com 3 posts da Amanda
+Fase 1.4 fechada. Após essa entrega, o blog está navegável publicamente com 5
+posts (3 completos escritos pela Amanda + 2 esqueletos) e o admin tem UI
+completa pronta pra receber CRUD funcional via Sanity na Fase 3. Camada de dados
+(src/lib/blog/):
+
+types.ts: interface Post + 4 categorias tipadas (Destinos, Bastidores, Dicas de
+Viagem, História da Agência) mock-posts.ts: 5 posts com 3 corpos integrais
+transcritos do mapa de copies (linhas 290-344, 346-406, 407-473 — "Como escolher
+o destino certo", "10 coisas antes de montar um roteiro", "O que ninguém te
+conta sobre Europa") + 2 esqueletos com corpo curto ("publicado em breve")
+index.ts: abstração getPosts/getPostBySlug + stubs createPost, updatePost,
+deletePost que lançam erro "vem com Sanity na Fase 3". Plug no Sanity é mudança
+de implementação dessas funções — páginas que consomem não mudam.
+src/lib/utils/date.ts: helper formatDate centralizado em PT-BR.
+
+Telas públicas:
+
+/blog: Server Component pro cabeçalho + Client Component (BlogClient.tsx) pra
+filtros + grid. 5 pills clicáveis (Todos + 4 categorias). Filtragem
+frontend-only sem query params (decisão deliberada — simplicidade).
+/blog/[slug]: post individual com generateStaticParams (5 rotas SSG) +
+generateMetadata dinâmico por post. Tipografia editorial em coluna estreita
+(max-w-3xl). Renderização markdown-leve manual sem dependência externa: ## vira
+h3 Fraunces 2xl navy, parágrafos por \n\n. CTAs finais dos posts da Amanda
+([Entre em contato com a Spinhardi Turismo]) saem do body e viram Bloco 3
+visual.
+
+Telas admin (sem auth ainda — middleware vem no Lote A):
+
+Layout admin temporário criado em src/app/admin/layout.tsx — substituído pelo
+definitivo no Lote A. /admin/blog: tabela com 5 colunas (Título, Categoria,
+Data, Status, Ações), badges de status verde/amarelo, link "+ Novo post".
+/admin/blog/novo e /admin/blog/[id]: forms idênticos via componente reutilizável
+PostForm.tsx (Client Component). Botões "Salvar como rascunho" e "Publicar"
+lançam alert "Implementação completa virá com Sanity (Fase 3)".
+
+Header: /blog adicionado a LIGHT_ROUTES (cobre /blog/[slug] via startsWith).
+/admin/* NÃO entra — admin teria Header próprio no Lote A. Decisões de execução
+do Codinho registradas no commit:
+
+Excerpt do Post 1 da Amanda é literalmente a 1ª frase do texto; corpo começa na
+2ª frase pra evitar duplicação visual com o lead em italic. Convenção de heading
+no body: ## → h3 (Fraunces 2xl navy). Os 2 documentos (wireframe e renderBody)
+concordavam no prefixo, divergiam no nível semântico. Codinho seguiu o resultado
+visual. BlogCard NÃO foi envolvido em <Link> externo — já tem <Link> interno;
+envolver geraria <a> dentro de <a> (HTML inválido + erro de hidratação).
+Hover-lift movido pra dentro do componente. Ajuste em BlogCard.tsx: thumbnail
+agora string | null (placeholder cinza já existia, render inalterado).
+eslint.config.mjs: argsIgnorePattern: "^_" adicionado pra honrar convenção
+idiomática de args intencionalmente não-usados nos stubs de CRUD.
+
+Refs: Fase 1.4 do plano v3. Wireframe em docs/wireframe_blog_publico_e_admin.md.
+2 melhorias pendentes pra Fase 3 com Sanity registradas: agendamento de post +
+upload real de foto no admin.
+
+[2026-06-05] SITE — Fase 1.3 refinamento de UI global: Breadcrumb padronizado +
+BackToTop Após construção do /contato + 404 + error, ficou claro que só
+/viagens/pacotes e /viagens/sob-medida tinham breadcrumb. Antes de partir pro
+blog (que herda o padrão desde o nascimento), padronização global em sessão
+curta. 2 componentes novos:
+
+src/components/ui/Breadcrumb.tsx: Server Component puro, recebe array tipado
+levels: BreadcrumbLevel[] (label + href opcional). Último item nunca é link
+(proteção via isLast), mesmo se receber href. aria-label padrão WAI-ARIA.
+Convenção: primeiro nível é sempre Home (href "/"), último é sempre página atual
+(sem href). src/components/ui/BackToTop.tsx: Client Component, aparece após
+600px de scroll, fixed bottom-6 right-6 no mobile / lg:bottom-8 lg:right-8 no
+desktop, círculo navy 48x48 com seta gold, z-40 (1 abaixo do Header z-50),
+shadow-lg shadow-dark/30 pra contraste mesmo quando cai sobre o Footer navy.
+Sempre montado, transição via opacity + pointer-events. Scroll suave ao clicar.
+
+Layout global: <BackToTop /> adicionado a src/app/layout.tsx após
+
+<Footer /> — aparece em todas as rotas.
+Breadcrumb adicionado em: /sobre, /viagens, /contato (não tinham).
+Breadcrumb refatorado em: /viagens/pacotes e /viagens/sob-medida
+(substituir JSX inline pelo componente + adicionar "Home" no início do array —
+antes começavam em "Viagens").
+Decisões de execução do Codinho registradas no commit:
+
+Import morto de Link removido em /viagens/pacotes e /viagens/sob-medida após
+refactor — era usado só no breadcrumb inline antigo. grep confirmou zero outros
+usos. BackToTop com responsividade explícita bottom-6 right-6 mobile e
+lg:bottom-8 lg:right-8 desktop, evitando colar na borda em telas pequenas.
+Classes hover:bg-navy hover:text-gold redundantes removidas (eram no-ops — a
+base já é bg-navy text-gold). Apenas hover:scale-105 mantido como hover real.
+
+Decisão de UX confirmada com Alan: sem botão flutuante "Voltar pra Home" — logo
+do Header já cumpre essa função. Breadcrumb + BackToTop bastam, sem UI
+redundante. Refs: Fase 1.3 (refinamento) do plano v3.
+
+[2026-06-05] SITE — Fase 1.3 fechamento: /contato + not-found + error global 3
+entregas numa sessão. Contato é a página final do site público; 404 e error são
+telas estruturais que fechavam a Fase 1.3. /contato (2 blocos, fundo branco):
+
+Cabeçalho: breadcrumb (adicionado posteriormente em refinamento global) +
+eyebrow "Contato" + título "Vamos conversar" + subtítulo "Sem compromisso. Sem
+pressão. Me conte o que você tem em mente e a gente pensa juntos." Grid 2
+colunas (5/12 + 7/12): lista de contatos à esquerda (WhatsApp, Instagram,
+Localização, Horário — cada um com label gold uppercase + linha principal
+Fraunces navy + linha secundária descritiva em Montserrat dark/70)
+
+formulário à direita (4 campos: Nome, WhatsApp, Destino com select de 6 opções
+do mapa, Mensagem).
+
+Server Action mockada: src/app/contato/actions.ts simula latência (setTimeout
+1s) + console.log estruturado. Sem persistência real — plug no Supabase na Fase
+1.11 (decisão estratégica: Supabase em SQL lote único no final). E-mail também
+mockado em console.log — Resend entra na Fase 3. Estado de sucesso inline: form
+some, aparece card com ✓ gold, "Mensagem recebida.", botão "Abrir WhatsApp →".
+Sem redirect pra rota separada. not-found.tsx global: Server Component, fundo
+navy, "404" Fraunces 9xl gold, "Página não encontrada" branco, descrição + 2
+CTAs (Voltar pra Home + Falar com a gente via WhatsApp). Tom sóbrio sem piadas
+(Spinhardi não é marca brincalhona). error.tsx global: Client Component
+obrigatório no Next 16 (error boundaries são sempre Client). Sem número "500"
+(decisão UX), apenas "Algo deu errado." em Fraunces grande. 2 CTAs: "Tentar de
+novo" chama reset(), "Voltar pra Home" linka pra /. useEffect loga o erro no
+console (futuro Sentry). Header: /contato adicionado a LIGHT_ROUTES. 404 e error
+NÃO entram — fundo navy, Header dinâmico já funciona neles. Decisões fixadas:
+
+Sem campo de e-mail no formulário — mapa pede só Nome, WhatsApp, Destino,
+Mensagem. WhatsApp é o canal preferencial da Spinhardi. Sem anti-spam nesta fase
+— honeypot vem na Fase 3, sem reCAPTCHA (atrito demais). Mensagem de sucesso
+inline, sem /contato/obrigado separada — UX mais limpa. Sem rascunho local no
+localStorage — overkill pra essa etapa.
+
+Confirmações de assinatura registradas pelo Codinho: Button estende
+ButtonHTMLAttributes<HTMLButtonElement> via spread — aceita type="submit",
+disabled, onClick nativamente. CTAWhatsApp aceita prop label custom. Tokens
+(font-display, duration-short, navy/gold/dark, classes red-50/200/800) todos
+disponíveis. Refs: Fase 1.3 do plano v3. Wireframe em
+docs/wireframe_contato_404_error.md.
+
+---
+
 ### [2026-05-31] SITE — Fase 1.3 navegação principal completa: Sobre, Viagens hub, Pacotes, Sob Medida
 
 Quatro páginas construídas em sequência durante esta sessão. Todas em fundo

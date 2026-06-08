@@ -28,6 +28,167 @@ Ordem: mais recente no topo.
 
 ---
 
+[2026-06-07] D023 — verifySession idempotente como defesa contra React Strict
+Mode Contexto: Após implementação do back office estrutural (Lote A), um bug
+intermitente apareceu: depois de logout + novo login, usuário ficava preso na
+tela de /admin/login mesmo com fluxo completo executado (digitar e-mail, clicar
+"Simular clique"). Curiosamente, digitar /admin direto na URL funcionava —
+indicando que a sessão estava sendo criada no localStorage, mas algo cancelava o
+redirect. Diagnóstico autônomo (lendo código) identificou a causa: React Strict
+Mode em dev invoca cada useEffect duas vezes intencionalmente — é mecanismo de
+defesa do React pra forçar idempotência. No verifySession original:
+
+1ª invocação: lia pending-email, criava sessão no localStorage, removia
+pending-email, retornava user, redirecionava pra /admin. 2ª invocação:
+pending-email já tinha sido consumido, retornava null, redirecionava pra
+/admin/login.
+
+As 2 chamadas corriam em paralelo e a segunda vencia. A sessão criada pela
+primeira persistia no localStorage (por isso /admin direto funcionava).
+Alternativas consideradas:
+
+(a) Desligar React Strict Mode no next.config.ts — mais rápido mas esconde a
+causa-raiz e bugs futuros similares (b) Adicionar flag de "já chamou" em algum
+estado externo — gambiarra (c) Tornar verifySession idempotente: se já existe
+sessão, retorna ela direto sem mexer no pending-email
+
+Decisão: (c). Tornar verifySession idempotente. Implementação em
+src/lib/auth/mock.ts: tsasync verifySession() { if (typeof window ===
+"undefined") return null;
+
+// Idempotência: se já existe sessão, retorna ela direto. // Necessário pra
+sobreviver ao Strict Mode (useEffect 2x em dev). const existing =
+localStorage.getItem(STORAGE_KEY); if (existing) { try { return
+JSON.parse(existing) as User; } catch { /* segue */ } }
+
+const email = localStorage.getItem(PENDING_EMAIL_KEY); if (!email) return null;
+
+const user: User = { /* ... */ }; localStorage.setItem(STORAGE_KEY,
+JSON.stringify(user)); localStorage.removeItem(PENDING_EMAIL_KEY); return user;
+} Resultado:
+
+1ª invocação: não tem sessão, tem pending-email → cria sessão, remove
+pending-email, retorna user, redirect pra /admin 2ª invocação: já tem sessão
+(criada na 1ª) → retorna user da sessão, ignora pending-email, redirect pra
+/admin (idempotente, é no-op)
+
+Racional: desligar Strict Mode esconderia esse bug e qualquer outro similar que
+possa aparecer em integrações futuras (Supabase Auth real no Lote C, GA4 na Fase
+4, etc). Idempotência é o que o React pediu desde o início — Strict Mode existe
+pra forçar exatamente esse cuidado. Resolver via idempotência é fazer o que era
+esperado. Implicações pra Lote C (Supabase Auth real): quando supabaseAuth
+substituir mockAuth, o método verifySession real também precisa ser idempotente.
+Como Supabase usa cookies/JWT, isso é gerenciado pelo SDK automaticamente —
+chamadas duplicadas de auth.getUser() são naturalmente idempotentes. Sem
+trabalho extra. Responsável: Codinho (diagnóstico autônomo) + Alan (decisão
+arquitetural) Status: Ativa Reversibilidade: Alta — basta voltar pra
+implementação que consome pending-email na primeira chamada, mas Strict Mode
+quebraria de novo.
+
+[2026-06-07] D022 — Route Groups separando site público de admin Contexto: Após
+o Lote do blog (Fase 1.4) ficou óbvio que o Header e o Footer públicos apareciam
+sobrepostos ao admin (/admin/*) com aparência gambiarrenta. Inicialmente aceito
+como "dívida temporária explícita" até o Lote A, ficou claro que tinha 2
+caminhos: gambiarra (esconder Header via CSS condicional) ou refactor estrutural
+(Route Groups do Next 16). Alternativas consideradas:
+
+(a) Esconder Header/Footer no /admin/* via condicional (useEffect + CSS) —
+funciona mas é gambiarra, root layout passa a ter lógica de UI que não é dele
+(b) Mover páginas públicas pra Route Group src/app/(public)/ e dar layout
+próprio. Admin permanece em src/app/admin/ com seu próprio layout. Root layout
+vira minimal (html + body + fontes)
+
+Decisão: (b). Refactor com Route Groups. Implementação:
+
+Todas as 8 páginas públicas movidas via git mv (preserva histórico):
+
+src/app/page.tsx → src/app/(public)/page.tsx src/app/sobre/, viagens/, contato/,
+blog/, dev/ → idem dentro de (public)/ not-found.tsx e error.tsx → idem
+
+Novo root layout minimal em src/app/layout.tsx: só html/body/fontes (Fraunces +
+Montserrat) + metadata global Novo src/app/(public)/layout.tsx com chrome
+público (Header, Footer, BackToTop) AdminLayout (src/app/admin/layout.tsx) ganha
+autonomia visual completa — não compartilha mais nenhum elemento com público
+
+Racional: Route Groups do Next 16 (pasta com nome entre parênteses) é exatamente
+a primitiva certa pra esse cenário. NÃO afeta URLs — /sobre continua sendo
+/sobre, não vira /public/sobre. Permite layouts independentes pro mesmo "nível"
+de rota. Sem gambiarra, sem condicional, sem dívida. Implicações:
+
+LIGHT_ROUTES no Header público deixa de precisar mencionar /admin/* (admin nunca
+renderiza Header público mais). AdminLayout pode definir seu próprio chrome
+(AdminHeader navy + AdminSidebar branca) sem nenhuma interferência do layout
+público. 1 import absoluto em ContactForm.tsx (@/app/contato/actions) precisou
+ser atualizado pra @/app/(public)/contato/actions — único caso. Todos os outros
+imports usam @/ alias que sobrevive ao move.
+
+Responsável: Alan Gattiboni (decisão arquitetural, após explicação do trade-off
+por Claudinho) Status: Ativa Reversibilidade: Média — reverter exige git mv na
+direção inversa em 8 caminhos + remover layout do public group + restaurar
+chrome no root. Não é trivial mas é mecânico.
+
+[2026-06-07] D021 — Auth mockado via localStorage no Lote A; Supabase Auth real
+fica no Lote C Contexto: Lote A precisava entregar back office estrutural
+completo (login
+
+middleware + AdminLayout + Sidebar + AdminHeader). Mas auth real via Supabase
+depende de várias peças que só estarão prontas no Lote C: tabela user_profiles
+no Supabase, configuração SMTP no Supabase Pro pra enviar magic links, e
+auth.users populado com contas convidadas (que só virão na Fase 3 com o convite
+formal a Nina/Julia/Amanda).
+
+Alternativas consideradas:
+
+(a) Esperar o Lote C pra construir back office — atrasa todo o resto da Fase 1
+(b) Construir back office com auth real desabilitado, retornando user hardcoded
+— funciona mas não testa o fluxo de login real (c) Construir back office com
+auth mockado via localStorage, com arquitetura idêntica ao Supabase real —
+permite testar fluxo completo de login + logout + permissões + role override
+
+Decisão: (c). Auth mockado via localStorage no Lote A, estrutura idêntica ao
+Supabase real, plug em 1 linha no Lote C. Implementação:
+
+src/lib/auth/provider.ts: interface AuthProvider com 4 métodos (signIn, signOut,
+getUser, verifySession) src/lib/auth/mock.ts: implementação via localStorage
+(chaves: spinhardi-admin-session, spinhardi-pending-email,
+spinhardi-admin-role-override) src/lib/auth/supabase.ts: stub vazio com TODO
+marcado pro Lote C src/lib/auth/index.ts: export const auth = mockAuth; — no
+Lote C vira export const auth = supabaseAuth;. Zero refactor em código de
+produto. src/lib/auth/roles.ts: Role = "admin" | "editor" + helper
+hasPermission(role, path) Role override em dev: toggle no AdminHeader
+(admin/editor) salva chave spinhardi-admin-role-override no localStorage.
+getSession() aplica o override quando lê a sessão. Visível apenas em
+process.env.NODE_ENV === "development". Permite testar UX dos 2 perfis sem
+precisar de 2 contas reais.
+
+Racional:
+
+Princípio da incrementalidade: back office estrutural pode ser construído e
+validado sem depender de SMTP configurado, Supabase Pro contratado, ou contas
+reais convidadas. Modularidade: abstração AuthProvider permite trocar provider
+sem tocar páginas. Páginas chamam auth.signIn(email) — não importa se é mock ou
+Supabase. Zero dívida técnica: quando Supabase entrar no Lote C, mock pode ser
+deletado inteiro (ou mantido como teste). Nada de código de produto muda.
+
+Trade-off honesto registrado: localStorage NÃO é seguro como auth de produção.
+Mas estamos em dev, com URL preview privada (Vercel Hobby), sem dados reais
+sensíveis. Em produção (Fase 3) vai ser Supabase Auth com JWT, sessions seguras,
+RLS no banco. Implicações:
+
+Middleware do Next 16 (middleware.ts na raiz) é mínimo no Lote A: libera
+/admin/login*, demais rotas passam pra validação client-side no AdminLayout
+(porque Edge Runtime não tem acesso a localStorage). No Lote C com Supabase,
+middleware passa a validar server-side via cookies. AdminLayout
+(src/app/admin/layout.tsx) é Client Component, valida sessão via auth.getUser()
+no useEffect. Quando Supabase entrar, mesma estrutura funciona porque o método
+getUser() continua igual.
+
+Responsável: Alan Gattiboni (decisão arquitetural) Status: Ativa
+Reversibilidade: Alta — quando Supabase Auth entrar (Lote C), basta atualizar
+src/lib/auth/index.ts pra exportar supabaseAuth em vez de mockAuth.
+
+---
+
 ### [2026-05-31] D020 — Passagens Avulsas: serviço sem página dedicada na Fase 1, virá com interface de booking operacional
 
 **Contexto:** Durante a construção do hub de Viagens (`/viagens`), o mapa de

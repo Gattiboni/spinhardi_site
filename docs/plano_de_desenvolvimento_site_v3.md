@@ -189,20 +189,20 @@ em `docs/mapa_de_copies_spinhardi_v1_ready.docx`.
       Medida), sem Passagens Avulsas (ver D020).
 - [x] `/viagens/pacotes` — concluída em 2026-05-31.
 - [x] `/viagens/sob-medida` — concluída em 2026-05-31.
-- [ ] `/contato` — formulário com envio mockado (Supabase entra na 1.10)
+- [X] `/contato` — formulário com envio mockado (Supabase entra na 1.10)
 - [ ] `not-found.tsx` (404) global
 - [ ] `error.tsx` global
 
 Para cada página:
 
-- [ ] Implementar estrutura conforme wireframe da sessão
-- [ ] Aplicar copy aprovado pela Amanda (literal — sem reescrever)
-- [ ] Sem imagens reais — fotos virão por indicação de Nina e Julia (ver Fase
+- [X] Implementar estrutura conforme wireframe da sessão
+- [X] Aplicar copy aprovado pela Amanda (literal — sem reescrever)
+- [X] Sem imagens reais — fotos virão por indicação de Nina e Julia (ver Fase
       1.13)
-- [ ] CTAs WhatsApp funcionais via `CTAWhatsApp`
-- [ ] Adicionar à `LIGHT_ROUTES` em `Header.tsx` se a página tem fundo claro
+- [X] CTAs WhatsApp funcionais via `CTAWhatsApp`
+- [X] Adicionar à `LIGHT_ROUTES` em `Header.tsx` se a página tem fundo claro
       (ver D018)
-- [ ] Responsivo testado em 380px (mobile) e 1440px (desktop)
+- [X] Responsivo testado em 380px (mobile) e 1440px (desktop)
 
 **Checkpoint 1.3:** todas as rotas públicas navegáveis em localhost. Visual fiel
 aos wireframes aprovados sessão a sessão. Copy idêntico ao mapa aprovado.
@@ -215,7 +215,7 @@ aos wireframes aprovados sessão a sessão. Copy idêntico ao mapa aprovado.
 Preparar a estrutura completa do blog com mocks. Sanity entra na Fase 3 e só
 substitui a implementação, sem refactor.
 
-- [ ] Definir TypeScript interface para `Post`:
+- [X] Definir TypeScript interface para `Post`:
   ```ts
   interface Post {
     slug: string;
@@ -235,24 +235,24 @@ substitui a implementação, sem refactor.
     ogImage: string;
   }
   ```
-- [ ] Criar mock de 3-4 posts em `lib/blog/mock-posts.ts`
-- [ ] Criar abstração `lib/blog/index.ts` com `getPosts()`, `getPostBySlug()`,
+- [X] Criar mock de 3-4 posts em `lib/blog/mock-posts.ts`
+- [X] Criar abstração `lib/blog/index.ts` com `getPosts()`, `getPostBySlug()`,
       `createPost()`, `updatePost()`, `deletePost()` — implementação mock agora,
       vira Sanity na Fase 3 sem tocar nas páginas
-- [ ] Implementar `/blog` (listagem com filtro de categoria funcional)
-- [ ] Implementar `/blog/[slug]` (post individual com tipografia editorial,
+- [X] Implementar `/blog` (listagem com filtro de categoria funcional)
+- [X] Implementar `/blog/[slug]` (post individual com tipografia editorial,
       navegação prev/next opcional)
 
 **Admin do blog (UI completa, CRUD desativado na Fase 1):**
 
-- [ ] Implementar `/admin/blog` (lista de posts no formato administrativo —
+- [X] Implementar `/admin/blog` (lista de posts no formato administrativo —
       tabela com colunas: título, categoria, data, status, ações)
-- [ ] Implementar `/admin/blog/novo` (formulário de criação)
-- [ ] Implementar `/admin/blog/[id]` (formulário de edição)
-- [ ] Formulários renderizam completos (título, slug, categoria, excerpt, body,
+- [X] Implementar `/admin/blog/novo` (formulário de criação)
+- [X] Implementar `/admin/blog/[id]` (formulário de edição)
+- [X] Formulários renderizam completos (título, slug, categoria, excerpt, body,
       SEO fields, imagem) — botão "Salvar" mostra mensagem
       "Implementação completa virá com Sanity (Fase 3)"
-- [ ] Botão "Excluir" também mostra mensagem similar
+- [X] Botão "Excluir" também mostra mensagem similar
 
 **Checkpoint 1.4:** blog público navegável com mocks. Filtros funcionando.
 Admin do blog tem UI completa, validada visualmente. Sanity (Fase 3) só pluga
@@ -265,13 +265,13 @@ implementação real.
 Criar as fronteiras de código pra que integrações pós-launch não exijam
 refatoração. Zero dívida técnica desde o dia 1.
 
-- [ ] Criar `lib/integrations/index.ts` como ponto único de entrada:
+- [X] Criar `lib/integrations/index.ts` como ponto único de entrada:
   ```ts
   export { idas } from "./idas";
   export { clickmassa } from "./clickmassa";
   export { make } from "./make";
   ```
-- [ ] Criar `lib/integrations/idas.ts` com interface (sem implementação real):
+- [X] Criar `lib/integrations/idas.ts` com interface (sem implementação real):
   ```ts
   export const idas = {
     getReservations: async () => {
@@ -279,16 +279,16 @@ refatoração. Zero dívida técnica desde o dia 1.
     },
   };
   ```
-- [ ] Mesmo padrão para `lib/integrations/clickmassa.ts` e
+- [X] Mesmo padrão para `lib/integrations/clickmassa.ts` e
       `lib/integrations/make.ts`
-- [ ] Criar `lib/ai/` com abstração genérica:
+- [X] Criar `lib/ai/` com abstração genérica:
   ```ts
   // lib/ai/provider.ts
   export interface AIProvider {
     ask(prompt: string, context?: object): Promise<string>;
   }
   ```
-- [ ] Criar `lib/analytics/` com abstração:
+- [X] Criar `lib/analytics/` com abstração:
   ```ts
   // lib/analytics/provider.ts
   export interface AnalyticsProvider {
@@ -300,7 +300,7 @@ refatoração. Zero dívida técnica desde o dia 1.
   // lib/analytics/ga4.ts (implementação real — Fase 4)
   // lib/analytics/index.ts (re-exporta provider ativo)
   ```
-- [ ] Criar `lib/auth/` com abstração:
+- [X] Criar `lib/auth/` com abstração:
   ```ts
   // lib/auth/provider.ts
   export interface AuthProvider {
@@ -325,11 +325,11 @@ adicionar nova integração não toca código de produto.
 Construir formulário de `/contato` funcional, salvando em estrutura mockada
 local. Plug no Supabase real entra na Fase 1.10.
 
-- [ ] Implementar formulário em `/contato` conforme wireframe
-- [ ] Validação client-side (campos obrigatórios, formato de e-mail, telefone)
-- [ ] Criar Server Action `submitContact()` que por enquanto salva em log
+- [X] Implementar formulário em `/contato` conforme wireframe
+- [X] Validação client-side (campos obrigatórios, formato de e-mail, telefone)
+- [X] Criar Server Action `submitContact()` que por enquanto salva em log
       (`console.log` estruturado ou arquivo JSON local em dev)
-- [ ] Envio de e-mail mockado:
+- [X] Envio de e-mail mockado:
   ```ts
   // lib/email/index.ts
   export const email = {
@@ -338,7 +338,7 @@ local. Plug no Supabase real entra na Fase 1.10.
     },
   };
   ```
-- [ ] Página de sucesso (`/contato/obrigado`) ou estado UI de confirmação
+- [X] Página de sucesso (`/contato/obrigado`) ou estado UI de confirmação
 
 **Checkpoint 1.6:** formulário envia, mostra sucesso, e-mail real e
 persistência Supabase ficam pra 1.10.
@@ -351,30 +351,30 @@ persistência Supabase ficam pra 1.10.
 com magic link. Layout do back office implementado. Usuário não-admin não
 consegue acessar.
 
-- [ ] Implementar `lib/auth/provider.ts` (interface) e
+- [X] Implementar `lib/auth/provider.ts` (interface) e
       `lib/auth/supabase.ts` (implementação) — preparação, ativação real na 1.10
-- [ ] Implementar `lib/auth/roles.ts` com tipos `Role = "admin" | "editor"` e
+- [X] Implementar `lib/auth/roles.ts` com tipos `Role = "admin" | "editor"` e
       helper `hasPermission(user, action)`
-- [ ] Implementar `middleware.ts` na raiz do projeto (Next 16 middleware)
+- [X] Implementar `middleware.ts` na raiz do projeto (Next 16 middleware)
       protegendo `/admin/*`:
   - Não logado → redirect pra `/admin/login`
   - Logado mas sem `user_profile` válido → tela de erro "sem permissão"
   - Logado e válido → acesso liberado
-- [ ] Criar `src/app/admin/login/page.tsx` — formulário simples (campo de
+- [X] Criar `src/app/admin/login/page.tsx` — formulário simples (campo de
       e-mail + botão "Enviar link de acesso")
-- [ ] Criar `src/app/admin/login/verificar/page.tsx` — página intermediária
+- [X] Criar `src/app/admin/login/verificar/page.tsx` — página intermediária
       após clique no magic link (Supabase faz callback aqui)
-- [ ] Criar `src/app/admin/layout.tsx` — layout do back office:
+- [X] Criar `src/app/admin/layout.tsx` — layout do back office:
   - Sidebar com navegação (Dashboard, Contatos, Blog, Usuários, Integrações,
     Configurações)
   - Header com nome do usuário logado + botão sair
   - Visual distinto do site público (mais funcional, menos editorial) mas
     usando os mesmos tokens
-- [ ] Criar componente `AdminSidebar.tsx` com lista de links e indicação de
+- [X] Criar componente `AdminSidebar.tsx` com lista de links e indicação de
       rota ativa
-- [ ] Criar componente `AdminHeader.tsx` com info do usuário e logout
-- [ ] Implementar logout (chamar `auth.signOut()` e redirecionar)
-- [ ] Esconder itens da sidebar conforme role:
+- [X] Criar componente `AdminHeader.tsx` com info do usuário e logout
+- [X] Implementar logout (chamar `auth.signOut()` e redirecionar)
+- [X] Esconder itens da sidebar conforme role:
   - Admin vê tudo
   - Editor não vê "Usuários" nem "Integrações" nem "Configurações"
 

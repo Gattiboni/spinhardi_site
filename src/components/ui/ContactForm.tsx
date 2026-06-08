@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
-import { submitContact, type ContactFormData } from "@/app/contato/actions";
+import { submitContact, type ContactFormData } from "@/app/(public)/contato/actions";
 
 const DESTINOS = [
   { value: "italia", label: "Itália" },

@@ -1,47 +1,14 @@
-import type { Metadata } from "next";
-import { Fraunces, Montserrat } from "next/font/google";
-import "./globals.css";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import BackToTop from "@/components/ui/BackToTop";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  display: "swap",
-});
-
-export const metadata: Metadata = {
-  title: {
-    default: "Spinhardi Turismo — Cada viagem, uma vez. Feita para você.",
-    template: "%s | Spinhardi Turismo",
-  },
-  description:
-    "Agência boutique de viagens em Serra Negra, SP. Desde 1987, curadoria personalizada para quem viaja de verdade.",
-  metadataBase: new URL("https://spinharditurismo.com.br"),
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${fraunces.variable} ${montserrat.variable}`}>
-      <body>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-        <BackToTop />
-      </body>
-    </html>
+    <>
+      <Header />
+      <main>{children}</main>
+      <Footer />
+      <BackToTop />
+    </>
   );
 }
