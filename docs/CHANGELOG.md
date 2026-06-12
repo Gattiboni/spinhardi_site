@@ -15,6 +15,42 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-11 — Paleta atualizada: Verde-pinheiro #3F5B30 substitui sage
+
+### Adicionado
+
+- **Branding Book Lite v3** (`bb_lite_v3_spinhardi_complete.pdf`) com
+  Verde-pinheiro `#3F5B30` aplicado em todas as 38 ocorrências de cor visual e
+  nos 4 trechos textuais que mencionavam o sage
+- **Moodboard v1** montado no Canva, alinhado à nova paleta (escopo separado do
+  BB)
+
+### Modificado
+
+- **Substituição global de cor no BB:** `#8CB89F` (sage) → `#3F5B30`
+  (verde-pinheiro) em todas as 38 ocorrências do XML (bordas verticais
+  decorativas e headings de subtítulos)
+- **Seção "O Que Cada Cor Carrega":** restrição de uso reescrita (motivo mudou
+  de baixo contraste para luminosidade próxima do Navy); regra de hierarquia
+  atualizada com o novo nome, mantendo o status de coadjuvante
+- **Seção "Aplicações por Canal":** linhas de Instagram e Site sobre uso do
+  verde reescritas
+- **Imagem da tabela de cores** (`image1.png`) refeita no Canva, agora exibe
+  swatch Verde-pinheiro com hex `#3F5B30`
+- **Imagem das variações da logo** (`image2.png`) refeita no Canva, variação que
+  usava fundo sage agora usa Verde-pinheiro, ícone do arco italiano repintado
+
+### Decisões registradas
+
+- D027 — Verde-pinheiro `#3F5B30` substitui sage na paleta oficial (supera D006)
+
+### Pendente
+
+- Atualização dos tokens Tailwind no site (`spinhardi-preview.vercel.app`)
+- Revisão de OG image e favicon se usarem o verde
+
+---
+
 ## 2026-06-08 — Lote B v3: Módulo Contatos unificado + Dashboard híbrido + Configurações
 
 ### Adicionado

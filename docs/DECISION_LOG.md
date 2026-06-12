@@ -28,6 +28,72 @@ Ordem: mais recente no topo.
 
 ---
 
+## D027 — Verde-pinheiro #3F5B30 substitui sage #8CB89F na paleta oficial
+
+**Contexto:** o sage `#8CB89F` do Branding Book v2 (pastel, frio, hue ~140°) foi
+rejeitado pela Nina em revisão de paleta. A direção pedida foi explicitada com
+referência concreta: o verde da camiseta de safári da Spinhardi que ela já usa,
+ajustado pra ficar "menos pastel, um pouco mais escuro, com um pingo de brilho".
+
+A direção fechou três coisas que o sage não entregava: cor com peso e ancoragem
+(não respiro), conexão com o universo real da marca (camiseta, safári, Serra
+Negra), e tom de viagem que evoca raiz e continuidade em vez de leveza italiana
+abstrata.
+
+A D006 (verde provisório `#4DBF72`) também é resolvida por essa decisão: o verde
+nunca chegou a virar paleta oficial, ficou só como token de dev, e agora é
+substituído pela escolha real.
+
+**Alternativas consideradas:**
+
+- Manter sage `#8CB89F`: descartado pela Nina, pastel demais
+- Sage saturado no mesmo eixo (`#6cb390`, `#4fac81`): mais vivo mas continua
+  frio e claro, não atende a direção de peso
+- Verde-limão (`#8ab85c`, `#a1c03b`): movimento na direção oposta, esquentava
+  demais e brigava com o ouro
+- `#3F5B30` (verde-oliva escuro, hue ~~85°): escolhido. Calibrado a partir da
+  camiseta de safári (~~ `#4d5d3a`) com saturação aumentada e luminosidade
+  reduzida
+
+**Decisão:** `#3F5B30`. Nome oficial no BB: "Verde-pinheiro" (referência poética
+da Nina, mesmo que tecnicamente seja oliva). Hierarquia mantida: Navy e ouro
+continuam protagonistas, verde-pinheiro continua coadjuvante.
+
+Restrição de uso reescrita: antes era "sage só sobre fundo branco, nunca sobre
+Navy" por baixo contraste; agora é "verde-pinheiro nunca diretamente adjacente
+ao Navy" por luminosidade próxima entre dois escuros, sempre branco ou claro
+neutro respirando entre os dois.
+
+**Racional:**
+
+A cor saiu de uma referência real (camiseta usada pela Nina em safári), não de
+um briefing abstrato. Conecta marca, dona e produto numa cor só. Verde-pinheiro
+escuro evoca raiz, ancoragem, continuidade, vocabulário compatível com "quase 40
+anos de história" e com Serra Negra (montanhas em verde escuro). Não compete com
+o ouro pela atenção, mantém hierarquia atual da paleta.
+
+Tecnicamente: hue ~85° (oliva quente), saturação ~32%, luminosidade ~27%. Tem
+peso suficiente pra ancorar composição, contraste alto o bastante com branco pra
+ser usado como bloco de cor ou tipografia em corpo médio.
+
+**Consequências:**
+
+- BB Lite v2 → v3 com hex novo aplicado nas 38 ocorrências do XML (bordas
+  decorativas, headings de subtítulos) + 4 trechos textuais reescritos
+  (restrição, hierarquia, Instagram, Site)
+- `image1.png` (tabela de cores) e `image2.png` (variações da logo) refeitas no
+  Canva
+- Moodboard novo montado no Canva alinhado com a paleta
+- Tokens Tailwind no site (`spinhardi-preview.vercel.app`) precisam atualizar:
+  substituir `#8CB89F` por `#3F5B30` em `tailwind.config.ts` e variáveis CSS,
+  checar componentes que usam o sage
+- OG image e favicon a serem revistos se usarem o verde
+
+**Responsável:** Nina (decisão de cor) + Alan Gattiboni (calibração técnica e
+aplicação no BB) **Status:** Ativa, supera D006
+
+---
+
 ## D024 — Spinhardi como source of truth de contatos
 
 **Contexto:** durante o planejamento do Lote B, após investigação intensiva das
