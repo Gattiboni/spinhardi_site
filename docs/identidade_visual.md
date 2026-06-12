@@ -1,13 +1,7 @@
 # Guia de Identidade Visual — Spinhardi Turismo
-
-**Versão:** 1.0 (em aprovação pelas sócias)\
-**Fonte de verdade:** `bb_lite_v2_spinhardi.docx`\
-**Última atualização:** Abril 2026
-
-> ⚠️ O verde (`#4DBF72`) está definido provisoriamente para desenvolvimento do
-> site. A paleta do Branding Book usa `#8CB89F` (sage). A substituição será
-> validada pelas sócias ao ver aplicado, e aí atualizamos o Canva e o manual.
-> Não alterar o docx até aprovação.
+**Versão:** 1.1 (paleta atualizada após D027)
+**Fonte de verdade:** `bb_lite_v3_spinhardi_complete.pdf`
+**Última atualização:** ver Git
 
 ---
 
@@ -17,7 +11,7 @@
 | ------------- | ------------ | --------- | -------------------------------------------------------- |
 | `color-navy`  | Navy         | `#1A2B4A` | Cor principal. Fundo dominante, ancora tudo.             |
 | `color-gold`  | Ouro         | `#AD8330` | Destaque. Ícone, CTAs, elementos que pedem atenção.      |
-| `color-green` | Verde        | `#4DBF72` | Apoio vibrante. **Provisório — em aprovação.**           |
+| `color-green` | Verde-pinheiro | `#3F5B30` | Apoio. Coadjuvante na hierarquia. |
 | `color-text`  | Texto escuro | `#1E1E2E` | Todo texto corrido. Nunca substituir por cinza neutro.   |
 | `color-white` | Branco       | `#FFFFFF` | Contraste e respiro. Sempre funcional, nunca decorativo. |
 
@@ -30,9 +24,11 @@
 
 ### Restrição crítica
 
-> Verde **nunca** aparece como texto ou elemento sobre fundo navy. Baixa
-> legibilidade — inclusive para pessoas com dificuldade visual. Verde só sobre
-> fundo branco ou claro neutro.
+> Verde-pinheiro **nunca** aparece diretamente adjacente ao Navy. As duas
+> cores têm luminosidade próxima e perdem definição quando coladas. Sempre
+> que verde-pinheiro e Navy aparecerem na mesma composição, deve haver
+> branco ou claro neutro respirando entre os dois. Verde-pinheiro funciona
+> bem sobre fundo branco ou como bloco isolado.
 
 ---
 
@@ -65,7 +61,7 @@ nome do arquivo.
 | `logo-clara`       | Pássaro gold + "SPINHARDI" gold + "Turismo" branco  | Fundo navy (Header, Footer, hero)                 | Fundos brancos ou claros — a logo desaparece    |
 | `logo-escura`      | Pássaro gold + "SPINHARDI" navy + "Turismo" gold    | Fundo branco ou tons claros (papelaria, conteúdo) | Fundos escuros — perde contraste                |
 | `logo-icone`       | Apenas o pássaro gold isolado                       | Qualquer fundo (com contraste suficiente)         | Quando há espaço para a logo completa com texto |
-| Verde (pendente)   | A definir após aprovação do verde definitivo (D006) | Variação editorial em peças específicas           | Uso principal de marca                          |
+| Verde-pinheiro     | Verde-pinheiro `#3F5B30` sobre fundo branco/claro   | Variação editorial em peças específicas           | Uso principal de marca, ou adjacente a Navy — é apoio, não protagonista |
 
 **Convenção de nomes:** o nome do arquivo descreve o **conteúdo visual da logo**
 (cor do texto), não o fundo onde ela vai. Exemplo: `logo-clara.svg` tem texto
@@ -89,7 +85,7 @@ claro (branco no "Turismo") porque foi pensada pra fundo escuro. Essa convençã
 
 - Fundo navy em seções de destaque, branco nas seções de conteúdo
 - Ouro em títulos principais (H1, H2) e CTAs
-- Verde apenas em seções de apoio com fundo branco ou claro
+- Verde-pinheiro apenas em seções de apoio com fundo branco ou claro
 - CTAs diretos: "Fale com a gente" ou "Me conta sua viagem" — nunca "Clique
   aqui"
 - Fotografias grandes e reais — sem stock photo óbvio
@@ -98,7 +94,7 @@ claro (branco no "Turismo") porque foi pensada pra fundo escuro. Essa convençã
 
 - Fundo navy como base das artes gráficas e cards de texto
 - Ouro para destaque tipográfico e elementos de atenção
-- Verde apenas sobre fundo branco — nunca sobre navy
+- Verde-pinheiro apenas sobre fundo branco — nunca sobre navy
 - Fotos com paleta quente e de viagem: luz natural, momentos reais, sem filtros
   excessivos
 - TT Fors Display em títulos de cards, Montserrat em textos de apoio
@@ -119,24 +115,40 @@ claro (branco no "Turismo") porque foi pensada pra fundo escuro. Essa convençã
 
 ---
 
-## Tokens para `tailwind.config.ts`
+## Tokens no `globals.css` (Tailwind v4 CSS-first)
 
-```ts
-colors: {
-  navy:  '#1A2B4A',
-  gold:  '#AD8330',
-  green: '#4DBF72', // provisório — aguardando aprovação
-  dark:  '#1E1E2E',
-  white: '#FFFFFF',
-},
-fontFamily: {
-  display: ['TT Fors Display', 'serif'],
-  body:    ['Montserrat', 'sans-serif'],
-},
+O projeto usa Tailwind v4 com configuração CSS-first via `@theme`. Os tokens
+ficam declarados em `src/app/globals.css`:
+
+```css
+@theme inline {
+  --color-navy: #1a2b4a;
+  --color-gold: #ad8330;
+  --color-green: #3f5b30;
+  --color-dark: #1e1e2e;
+  --color-white: #ffffff;
+
+  --font-display: var(--font-fraunces), serif;
+  --font-body: var(--font-montserrat), sans-serif;
+}
 ```
+
+### Regra de uso do verde no site público
+
+Qualquer uso de verde em telas **públicas** (não-admin) DEVE usar o token via
+classes bare: `text-green`, `bg-green`, `border-green`, `border-green/50`, etc.
+Essas classes apontam pra `#3F5B30` (verde-pinheiro oficial).
+
+A escala numérica do Tailwind (`green-50`, `green-100`, `green-600`,
+`green-700`, etc.) fica **reservada para estados de UI no admin**: sucesso,
+sincronizado, publicado, alertas. Em telas públicas, não usar a escala
+numérica.
+
+Essa separação preserva a paleta de marca no público e mantém a convenção
+universal de "verde = sucesso" nas interfaces internas.
 
 ---
 
 _Este documento é referência para desenvolvimento. Não substitui o Branding
-Book._ _Qualquer alteração de paleta ou tipografia deve ser refletida aqui e no
-`tailwind.config.ts` simultaneamente._
+Book._ _Qualquer alteração de paleta ou tipografia deve ser refletida aqui e em
+`src/app/globals.css` simultaneamente._

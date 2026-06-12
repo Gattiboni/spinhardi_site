@@ -92,6 +92,25 @@ ser usado como bloco de cor ou tipografia em corpo médio.
 **Responsável:** Nina (decisão de cor) + Alan Gattiboni (calibração técnica e
 aplicação no BB) **Status:** Ativa, supera D006
 
+**Aplicado em código (2026-06-12):**
+
+- `src/app/globals.css:14` — token `--color-green` atualizado para `#3f5b30`
+- `docs/identidade_visual.md` — versão 1.1: paleta, restrição crítica reescrita
+  (adjacência Navy/luminosidade), variação verde da logo, seção de tokens
+  reescrita como CSS-first com governança público/admin explícita, rodapé
+  corrigido (não há `tailwind.config.ts`)
+- `docs/plano_de_desenvolvimento_site_v3.md` e `v2.md` — referências do verde
+  atualizadas
+- `docs/spinhardi_wireframe.html` — token `--green` atualizado
+
+**Governança consolidada:** no site público, qualquer uso de verde DEVE usar o
+token `--color-green` via classes bare (`text-green`, `bg-green`,
+`border-green`, etc.). A escala numérica do Tailwind (`green-50…green-950`) fica
+reservada para estados de UI no admin (sucesso, sincronizado, publicado,
+alertas). Essa regra está registrada em `docs/identidade_visual.md`.
+
+Resolve definitivamente a D006 (verde provisório).
+
 ---
 
 ## D024 — Spinhardi como source of truth de contatos

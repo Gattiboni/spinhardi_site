@@ -128,8 +128,8 @@ Refletir `docs/identidade_visual.md` no código.
 
 - [x] Configurar tokens de design em `src/app/globals.css` (Tailwind v4
       CSS-first):
-  - Cores: `navy #1A2B4A`, `gold #AD8330`, `green #4DBF72` (provisório, ver
-    D006), `dark #1E1E2E`, `white #FFFFFF`
+  - Cores: `navy #1A2B4A`, `gold #AD8330`, `green #3F5B30` (verde-pinheiro
+    oficial — ver D027), `dark #1E1E2E`, `white #FFFFFF`
   - Tipografia: Fraunces (display) + Montserrat (body) — ver D014
   - Easings das referências: `--ease-smooth`, `--ease-out`
   - Durações das referências: `--duration-short` (200ms), `--duration-medium`

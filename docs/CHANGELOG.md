@@ -15,6 +15,52 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-12 — Paleta: verde-pinheiro oficial (`#3F5B30`) aplicado em código
+
+### Modificado
+
+- **`src/app/globals.css`** — token `--color-green` atualizado de `#4DBF72`
+  (provisório) para `#3F5B30` (verde-pinheiro oficial). Mudança propaga
+  automaticamente para todos os usos via classes bare (`text-green`, `bg-green`,
+  `border-green`, etc.).
+- **`docs/identidade_visual.md`** — atualizado para versão 1.1: cabeçalho com
+  nova fonte de verdade (`bb_lite_v3_spinhardi_complete.pdf`), tabela de paleta,
+  restrição crítica reescrita (adjacência Navy / luminosidade próxima), variação
+  verde da logo, aplicação por canal (Site, Instagram), seção de tokens
+  completamente reescrita pra refletir o modelo Tailwind v4 CSS-first com
+  `@theme` (substitui referências obsoletas a `tailwind.config.ts` que não
+  existe), e nova regra de governança público/admin sobre uso do token vs escala
+  numérica.
+- **`docs/plano_de_desenvolvimento_site_v3.md`** e
+  **`docs/plano_de_desenvolvimento_site_v2.md`** — referência do verde
+  atualizada para `#3F5B30 (verde-pinheiro oficial — ver D027)`.
+- **`docs/spinhardi_wireframe.html`** — token `--green` atualizado.
+
+### Não modificado (decisão de governança)
+
+- Classes `green-NNN` (escala numérica default do Tailwind) usadas no admin
+  (`SyncBadge`, `StageBadge`, blog, login, configurações) — mantidas como estão.
+  Convenção universal de UI ("verde = sucesso") preservada para interfaces
+  internas.
+
+### Validação
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` — zero erros / zero
+  warnings
+- Grep final: zero ocorrências do hex antigo em `src/` e nos docs (excluindo
+  `CHANGELOG.md` e `DECISION_LOG.md`, que mantêm histórico)
+- Validação visual confirmada: `/dev/components` renderiza verde-pinheiro
+  escuro; admin mantém verdes vibrantes nos badges de
+  sucesso/sincronizado/publicado
+
+### Decisões aplicadas
+
+- D027 — verde-pinheiro `#3F5B30` como cor oficial (aplicação em código
+  registrada na própria D027)
+- D006 — resolvida (verde provisório substituído pelo definitivo)
+
+---
+
 ## 2026-06-11 — Paleta atualizada: Verde-pinheiro #3F5B30 substitui sage
 
 ### Adicionado
