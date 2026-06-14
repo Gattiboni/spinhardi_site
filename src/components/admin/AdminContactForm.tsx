@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import { createManualContact } from "@/app/admin/contatos/novo/actions";
 import {
   type DestinoTipo,
   type PrazoIdeal,
@@ -17,8 +18,6 @@ import {
   PERFIL_LABELS,
   ORCAMENTO_LABELS,
 } from "@/lib/contacts/types";
-
-const LOTE_C_ALERT = "Implementação completa virá no Lote C";
 
 type AdminContactFormState = {
   name: string;
@@ -45,6 +44,8 @@ type AdminContactFormState = {
  */
 export default function AdminContactForm() {
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [values, setValues] = useState<AdminContactFormState>({
     name: "",
     whatsapp: "",
@@ -71,9 +72,18 @@ export default function AdminContactForm() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Salvar contato manual (origem: manual).\n\n${LOTE_C_ALERT}.`);
+    setSaving(true);
+    setError(null);
+
+    const result = await createManualContact(values);
+    if (result.success) {
+      router.push("/admin/contatos");
+    } else {
+      setError(result.error ?? "Não foi possível salvar o contato. Tente novamente.");
+      setSaving(false);
+    }
   };
 
   const inputClass =
@@ -326,9 +336,15 @@ export default function AdminContactForm() {
         />
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
-        <Button type="submit" variant="primary" size="lg">
-          Salvar contato
+        <Button type="submit" variant="primary" size="lg" disabled={saving}>
+          {saving ? "Salvando..." : "Salvar contato"}
         </Button>
         <button
           type="button"

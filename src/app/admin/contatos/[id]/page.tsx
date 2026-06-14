@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import ContactDetailClient from "./ContactDetailClient";
 import type { Metadata } from "next";
 
+// Leitura ao vivo do Supabase a cada request (sem prerender de snapshot vazio).
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: Promise<{ id: string }>;
 };

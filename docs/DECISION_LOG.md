@@ -28,6 +28,244 @@ Ordem: mais recente no topo.
 
 ---
 
+## D030 — Auth mock client-side expõe dados via SSR; Supabase Auth real é pré-requisito de go-live
+
+**Contexto:** durante o Lote C, o Codinho aplicou
+`export const dynamic = "force-dynamic"` nas três páginas admin de leitura
+(`/admin`, `/admin/contatos`, `/admin/contatos/[id]`). A decisão era necessária:
+o `AdminLayout` é Client Component (lê auth do `localStorage`, ver D021), e sem
+`force-dynamic` o Next prerenderiza um snapshot estático no build, fazendo a
+lista nunca refletir os dados reais e ainda tentando bater no banco em build
+time.
+
+A consequência apareceu junto: agora essas páginas renderizam no server e buscam
+contatos via service role no SSR. O `AdminLayout` só checa auth depois, no
+client. Pra qualquer request, mesmo não-autenticado, o server monta o HTML com
+os dados dos contatos dentro do payload, e o redirect pra `/admin/login`
+acontece tarde demais no browser. Um `curl /admin/contatos` voltaria nome,
+whatsapp e email dos contatos.
+
+A causa-raiz é estrutural: auth em `localStorage` é client-side por definição,
+então o server não tem como saber se o request está autenticado. Não há policy
+de RLS que resolva isso, porque a query passa pela service role (que bypassa RLS
+de propósito).
+
+**Alternativas consideradas:**
+
+- (a) Reverter `force-dynamic` e voltar pra mock client-side puro: quebra o
+  requisito básico de o admin mostrar dados reais
+- (b) Mover proteção pra middleware Next.js lendo `localStorage`: middleware
+  roda no edge/server, não acessa `localStorage` do browser, inviável
+- (c) Supabase Auth real com sessão em cookie HTTP-only: o server lê a sessão
+  antes de renderizar, redireciona não-autenticados, e os Server
+  Components/Actions só rodam pra quem tem sessão válida
+
+**Decisão:** (c). Supabase Auth real vira pré-requisito de go-live, não mais
+"melhoria futura" como tratado na D021.
+
+**Racional:**
+
+`force-dynamic` continua certo, é o que páginas de CRM precisam (sem ele,
+snapshot estático e tentativa de DB no build). O problema não é da escolha do
+Codinho, é consequência inevitável do auth provisório encontrando server
+rendering. Resolver via auth real é o que estava previsto desde D021, só que
+agora o timing dele deixou de ser "quando der" e virou "obrigatório antes do
+go-live". Registrar agora evita esquecimento no checklist de pré-produção.
+
+**Consequências:**
+
+- Em preview, com banco vazio e sem cliente real, o risco é inócuo na prática
+- Pra produção, isso não pode ir como está. Antes do go-live: Supabase Auth
+  real, sessão em cookie HTTP-only, checagem server-side antes de renderizar,
+  redirect 302 pra não-autenticados sem nunca montar os dados no HTML
+- A RLS `authenticated` armada nas duas tabelas só protege de verdade quando o
+  auth real estiver no lugar (hoje o server bypassa via service role)
+- A D021 fica explicitamente substituída na fase de pré-go-live (o mock
+  client-side não vai pra produção)
+- Documentar requisitos exatos em `docs/SECURITY_GO_LIVE.md` (a criar)
+
+**Responsável:** Claudinho (identificação do risco) + Alan Gattiboni (decisão de
+elevação) **Status:** Ativa (substitui parcialmente D021)
+
+---
+
+## D029 — Lote C (código): camada de acesso server-side com service role e mapper explícito
+
+**Contexto:** o Lote B do site usa mock TypeScript em `src/lib/contacts/`. O
+Lote C precisa religar essas funções pra falar com o Supabase real, sem mudar as
+páginas que consomem (mesmas assinaturas). Quatro decisões de arquitetura
+precisam ser cravadas antes da execução.
+
+**Alternativas consideradas:**
+
+1. Mapper snake↔camel: genérico (recursivo) vs explícito por campo
+2. Quantos clients Supabase: dois (anon no browser + service role no server) vs
+   um (service role no server)
+3. Onde rodam as operações: mistura Client/Server Components vs tudo server-side
+   (Server Components leem, Server Actions escrevem)
+4. Sync com Iddas/ClickMassa: chamar APIs reais agora vs manter stub mock até
+   Fase 4
+5. Seed dos 8 contatos mockados: inserir como seed vs começar limpo
+
+**Decisão:**
+
+1. **Mapper EXPLÍCITO por campo, à mão.** Tipos `ContactRow`/`ContactInsertRow`
+   fazem o compilador cobrar os 53 campos nas duas direções.
+2. **Um único client no Lote C:** `supabaseAdmin` server-side com service role
+   em `src/lib/supabase/server.ts`, com `import 'server-only'` no topo.
+3. **Leitura via Server Components, escrita via Server Actions**, ambos usando
+   `supabaseAdmin`.
+4. **Iddas/ClickMassa continuam STUB.** Lote C grava contato real + interação
+   `form_submission`, mas `sync_status` fica `pending`.
+5. **Banco começa LIMPO.** Mocks ficam no repo como referência, deixam de ser
+   fonte de dados.
+
+**Racional:**
+
+- Mapper genérico converteria também as chaves dentro do `metadata` jsonb das
+  interações, corrompendo o payload. E TypeScript cobrar 53 campos trava
+  esquecimentos no compile time.
+- Como auth ainda é mock client-side (D021), o browser não tem sessão
+  `authenticated`. Um client anon cairia na role `anon`, que a RLS bloqueia.
+  Criar o client anon agora seria órfão sem ninguém usando, ele entra junto com
+  Supabase Auth real (passo futuro, D030).
+- Server-side puro: a service role nunca pode chegar no bundle do browser.
+  `import 'server-only'` quebra o build de propósito se algum Client Component
+  importar `server.ts`.
+- Integração externa real é Fase 4. Marcar `synced` sem sincronização real seria
+  dado mentiroso. A estrutura (tabela `contact_interactions` com tipos
+  `sync_iddas`/`sync_clickmassa`) já está pronta pra receber a camada real.
+- Produção não nasce com 8 fakes que precisam ser caçados antes do go-live.
+  Empty state precisa funcionar de qualquer jeito, e cria-se contatos reais via
+  form pra testar a UI cheia.
+
+**Consequências de execução:**
+
+- `@supabase/supabase-js@2.108.1` instalado
+- `src/lib/supabase/server.ts` com `supabaseAdmin` (service role, server-only)
+- `src/lib/contacts/mappers.ts` com `rowToContact` / `contactToInsertRow` /
+  `contactPatchToRow` / `rowToInteraction` / `interactionToInsertRow`
+- `src/lib/contacts/index.ts` religado: `getContacts` / `getContactById` /
+  `getContactInteractions` / `getContactStats` agora consultam Supabase.
+  `getContactStats` puxa ativos uma vez e conta em memória (volume boutique, não
+  justifica múltiplas `count` queries)
+- Server Actions:
+  - `src/app/(public)/contato/actions.ts`: form do site cria contato
+    `origem=site_contato` + interação `form_submission`, sync `pending`. Contato
+    salvo antes de qualquer stub de sync, zero perda de lead
+  - `src/app/admin/contatos/novo/actions.ts`: criação manual cria
+    `origem=manual`
+  - `src/app/admin/contatos/[id]/actions.ts`: "Salvar alterações" da Gestão
+    Interna persiste estágio/follow-up/notas; bumpa `estagio_atualizado_em`
+    apenas quando o estágio muda
+- `src/lib/contacts/from-form.ts`: defaults compartilhados site/admin (mesmo
+  shape)
+- Stubs de sync Iddas/ClickMassa intocados (Fase 4)
+- Mocks `mock-contacts.ts` e `mock-interactions.ts` ficam como referência
+
+**Responsável:** Claudinho (decisões técnicas) + Codinho (execução) + Alan
+Gattiboni (validação) **Status:** Ativa
+
+---
+
+## D028 — Lote C: schema Supabase real e tradução TS→SQL
+
+**Contexto:** Lote C precisa criar o schema real no Supabase pra substituir o
+mock TypeScript do Lote B. O `src/lib/contacts/types.ts` é a fonte de verdade do
+shape de Contact (53 campos camelCase em 10 grupos), ContactInteraction (7
+campos) e 8 enums. A tradução desses tipos pra SQL exige várias decisões que
+afetam evolução, performance e dívida.
+
+**Alternativas consideradas:**
+
+1. Nomenclatura no banco: snake_case vs camelCase quotado
+2. Enums: ENUM type nativo vs TEXT + CHECK constraint
+3. Tags: `text[]` com GIN vs tabela de junção `contact_tags`
+4. Relação `origem` × `capture_origins`: FK direta vs TEXT+CHECK solto com
+   `capture_origins` como catálogo independente
+5. `ON DELETE` em `contact_interactions`: CASCADE vs RESTRICT
+6. Escrita do form anônimo: policy permitindo INSERT pra `anon` vs
+   `service_role` na Server Action
+7. Timestamp em tags: adicionar `created_at` por boa prática vs fiel ao TS (sem
+   timestamp)
+8. Escopo do Lote C: criar todas as 4 tabelas (contacts, interactions,
+   capture_origins, tags) vs criar só as 2 com código consumindo agora
+
+**Decisão:**
+
+1. **snake_case no banco, camelCase no TS, mapper isolado na fronteira**
+   (`lib/contacts/`)
+2. **TEXT + CHECK pros 8 enums** (origem, destino_tipo, orcamento_estimado,
+   prazo_ideal, perfil_viajante, estagio, iddas_sync_status /
+   clickmassa_sync_status, status; mais `tipo` em contact_interactions)
+3. **`tags text[] not null default '{}'` com índice GIN**
+4. **`origem` TEXT+CHECK (7 valores canônicos), `capture_origins` fora de FK**
+   (catálogo independente)
+5. **CASCADE em `contact_interactions`**
+6. **`service_role` no server, anon trancado, RLS `authenticated`-only**
+7. **Fiel ao TS — sem `created_at` em tags**
+8. **Só `contacts` + `contact_interactions` agora**; `capture_origins` e `tags`
+   entram com seus types TS quando ligar Configurações
+
+**Defaults além do que o TS especifica** (decisões de coluna pra evitar travar
+insert e refletir estado inicial óbvio):
+
+- `status` default `'ativo'`
+- `iddas_sync_status` e `clickmassa_sync_status` default `'pending'`
+- `estagio_atualizado_em` default `now()`
+- `notas_internas` default `''`
+- `emails_abertos` default `0`
+
+**Índices em `contacts`** (pelas queries reais de `getContacts` /
+`getContactStats`): `status`, `estagio`, `origem`, `created_at desc`,
+`proximo_follow_up`, `iddas_sync_status`, `clickmassa_sync_status`, GIN em
+`tags`. Trigger `trg_contacts_updated_at` via função genérica
+`set_updated_at()`. Em `contact_interactions`: FK
+`contact_id → contacts(id) ON DELETE CASCADE`, índice composto
+`(contact_id, criado_em)` pra timeline.
+
+**Racional:**
+
+- **snake_case** respeita PostgREST sem aspas em query; o mapper isolado mantém
+  Lote B intocado e absorve a fronteira banco↔app numa única camada
+- **ENUM nativo engessa evolução** (ALTER difícil, remover valor quase
+  impossível); CHECK valida igual e evolui com uma linha
+- **`text[]` + GIN é direto do mock** e performático pro volume boutique; tabela
+  de junção seria over-engineering. A tabela `tags` é catálogo de UI,
+  conceitualmente separada
+- **`origem` e `capture_origins` são conceitos diferentes** (tipo canônico
+  estável vs catálogo configurável); FK misturaria estabilidade dos tipos com
+  dinâmica do catálogo
+- **Soft-delete via `status`** é o fluxo normal; CASCADE existe só pro
+  hard-delete raro (LGPD), evita órfãos sem cleanup
+- **`service_role` no server centraliza escrita** (alinha com D024); publishable
+  key no browser sem policy pra anon fica trancado
+- **`created_at` em catálogo de tags de agência boutique não é caso de
+  auditoria**; adicionar seria adição especulativa que quebra "sem estrutura
+  inventada" e forçaria mexer no type TS
+- **Criar tabela sem código consumindo é dívida silenciosa**. `capture_origins`
+  e `tags` entram quando ligar Configurações, com type TS nascendo junto
+
+**Consequências:**
+
+- Tabelas `contacts` (53 colunas, 8 índices, trigger) e `contact_interactions`
+  (7 colunas, FK CASCADE, índice de timeline) criadas e validadas no Supabase
+  via SQL editor (insert+rollback provou defaults; CASCADE provou retorno
+  `interacoes_orfas=0`)
+- RLS ligada nas duas (`rowsecurity=true`); policies
+  `authenticated_all_contacts` e `authenticated_all_interactions` (ALL pra
+  `authenticated`)
+- `capture_origins` e `tags` ficam pendentes pro passo de ligar a página de
+  Configurações
+- A Fase 1.11 do `docs/plano_de_desenvolvimento_site_v3.md` precisa ser
+  reescrita pra refletir o schema real (substitui descrição antiga que falava de
+  `contact_submissions`/`user_profiles`/`admin_activity`)
+
+**Responsável:** Claudinho (decisões técnicas cravadas) + Alan Gattiboni
+(validação) **Status:** Ativa
+
+---
+
 ## D027 — Verde-pinheiro #3F5B30 substitui sage #8CB89F na paleta oficial
 
 **Contexto:** o sage `#8CB89F` do Branding Book v2 (pastel, frio, hue ~140°) foi

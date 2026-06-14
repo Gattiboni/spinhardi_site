@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/admin/StageBadge";
 import { formatDateTime } from "@/lib/utils/date";
+import { saveGestaoInterna } from "./actions";
 import {
   type Contact,
   type ContactInteraction,
@@ -237,12 +239,30 @@ function SistemasExternosCard({ contact: c }: { contact: Contact }) {
 
 // ── Gestão interna ──────────────────────────────────────────────
 function GestaoInternaForm({ contact: c }: { contact: Contact }) {
+  const router = useRouter();
   const [estagio, setEstagio] = useState<EstagioFunil>(c.estagio);
   const [followUp, setFollowUp] = useState(c.proximoFollowUp ?? "");
   const [notas, setNotas] = useState(c.notasInternas);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
 
-  const handleSalvar = () => {
-    alert(`Salvar alterações de gestão interna.\n\n${LOTE_C_ALERT}.`);
+  const handleSalvar = async () => {
+    setSaving(true);
+    setFeedback(null);
+
+    const result = await saveGestaoInterna(c.id, {
+      estagio,
+      proximoFollowUp: followUp.trim() ? followUp : null,
+      notasInternas: notas,
+    });
+
+    setSaving(false);
+    if (result.success) {
+      setFeedback({ type: "ok", text: "Alterações salvas." });
+      router.refresh();
+    } else {
+      setFeedback({ type: "erro", text: result.error ?? "Não foi possível salvar." });
+    }
   };
 
   const inputClass =
@@ -333,10 +353,17 @@ function GestaoInternaForm({ contact: c }: { contact: Contact }) {
         />
       </div>
 
-      <div className="mt-6">
-        <Button variant="primary" size="md" onClick={handleSalvar}>
-          Salvar alterações
+      <div className="mt-6 flex items-center gap-4">
+        <Button variant="primary" size="md" onClick={handleSalvar} disabled={saving}>
+          {saving ? "Salvando..." : "Salvar alterações"}
         </Button>
+        {feedback && (
+          <span
+            className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
+          >
+            {feedback.text}
+          </span>
+        )}
       </div>
     </div>
   );

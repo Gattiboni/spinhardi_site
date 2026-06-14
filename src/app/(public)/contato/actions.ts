@@ -1,34 +1,11 @@
 "use server";
 
-import type {
-  DestinoTipo,
-  OrcamentoEstimado,
-  PrazoIdeal,
-  PerfilViajante,
-} from "@/lib/contacts/types";
+import { createContact, addInteraction } from "@/lib/contacts";
+import { draftContactFromForm, type ContactFormInput } from "@/lib/contacts/from-form";
 
-export type ContactFormData = {
-  // Sobre você
-  name: string;
-  whatsapp: string;
-  email?: string;
-
-  // Sobre a viagem
-  destinoTipo: DestinoTipo;
-  destinoTexto?: string;
-  prazoIdeal: PrazoIdeal;
-  dataIda?: string;
-  passageirosAdultos: number;
-  passageirosCriancas: number;
-  passageirosBebes: number;
-
-  // Sobre o perfil
-  perfilViajante: PerfilViajante;
-  orcamentoEstimado: OrcamentoEstimado;
-
-  // Observações
-  observacao?: string;
-};
+// Mesmos campos coletados pelo formulário do site (shape compartilhado com o
+// cadastro manual). Mantido como `ContactFormData` pra não mudar o consumidor.
+export type ContactFormData = ContactFormInput;
 
 export type ContactFormResult = {
   success: boolean;
@@ -36,29 +13,39 @@ export type ContactFormResult = {
 };
 
 /**
- * Recebe os campos enriquecidos do formulário do site.
+ * Captura do formulário do site (`captureContact`).
  *
- * MOCK na Fase 1 (Lote B): só loga + simula sucesso (não persiste).
- * No Lote C: cria contact no Supabase com `origem: "site_contato"` e dispara
- * iddas.createSolicitacao + clickmassa.createTicket em Promise.allSettled,
- * atualizando os campos de sync. O contact é criado ANTES das chamadas
- * externas — zero perda de lead.
+ * Cria o contato real no Supabase com `origem: "site_contato"` e registra uma
+ * interação `form_submission`. O contato é salvo ANTES de qualquer outra coisa —
+ * zero perda de lead (se a interação falhar, o contato já está salvo).
+ *
+ * Iddas/ClickMassa continuam STUB: `sync_status` fica `pending`, nada é enviado
+ * pra fora. A sync real é Fase 4.
  */
 export async function submitContact(data: ContactFormData): Promise<ContactFormResult> {
-  // Simula latência
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  let contactId: string;
 
-  // Mock — Lote B só loga
-  console.log("[contact submission - mock]", {
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  try {
+    const draft = draftContactFromForm(data, { origem: "site_contato", hadInteraction: true });
+    const contact = await createContact(draft);
+    contactId = contact.id;
+  } catch (err) {
+    console.error("[submitContact] erro ao criar contato:", err);
+    return { success: false, error: "Não foi possível enviar agora. Tente de novo em instantes." };
+  }
 
-  // Lote C: aqui cria contact no Supabase + chama iddas.createSolicitacao +
-  //         clickmassa.createTicket em Promise.allSettled
-  console.log(
-    "[email mock] would notify equipe@spinhardi.com.br + send WhatsApp greeting via ClickMassa",
-  );
+  // Contato já salvo — uma falha aqui não deve fazer o cliente reenviar (evita
+  // duplicar o lead). Loga e segue.
+  try {
+    await addInteraction(contactId, {
+      tipo: "form_submission",
+      descricao: "Captura via site (formulário de contato)",
+      metadata: { origem: "site_contato", destino: data.destinoTipo },
+      criadoPor: "sistema",
+    });
+  } catch (err) {
+    console.error("[submitContact] contato criado, mas falhou ao registrar a interação:", err);
+  }
 
   return { success: true };
 }

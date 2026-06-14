@@ -15,6 +15,150 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-14 — Lote C: `contacts` ligado ao Supabase real
+
+### Adicionado
+
+**Supabase (banco):**
+
+- Tabela `contacts` (53 colunas em 10 agrupamentos): identificação, dados
+  pessoais, endereço, qualificação, estágio interno, tags, espelho Iddas,
+  espelho ClickMassa, comportamento, metadados
+- Tabela `contact_interactions` (7 colunas): FK
+  `contact_id → contacts(id) ON DELETE CASCADE`, índice composto
+  `(contact_id, criado_em)` pra timeline
+- Função genérica `set_updated_at()` e trigger `trg_contacts_updated_at` em
+  `contacts`
+- Índices em `contacts`: `status`, `estagio`, `origem`, `created_at desc`,
+  `proximo_follow_up`, `iddas_sync_status`, `clickmassa_sync_status`, GIN em
+  `tags`
+- 9 CHECK constraints validando enums (`origem`, `destino_tipo`,
+  `orcamento_estimado`, `prazo_ideal`, `perfil_viajante`, `estagio`,
+  `iddas_sync_status`, `clickmassa_sync_status`, `status`, mais `tipo` em
+  `contact_interactions`)
+- RLS ligada nas duas tabelas (`rowsecurity=true`); policies
+  `authenticated_all_contacts` e `authenticated_all_interactions` (cmd `ALL`,
+  role `authenticated`)
+
+**Código:**
+
+- `@supabase/supabase-js@2.108.1` instalado
+- `src/lib/supabase/server.ts` — client `supabaseAdmin` server-only com service
+  role; `import 'server-only'` no topo (build quebra de propósito se Client
+  Component importar)
+- `src/lib/contacts/mappers.ts` — mapper explícito snake↔camel pra `Contact` e
+  `ContactInteraction`, type-safe nas duas direções via `ContactRow` /
+  `ContactInsertRow` (compilador cobra os 53 campos)
+- `src/lib/contacts/from-form.ts` — defaults compartilhados entre form do site e
+  criação manual
+
+### Modificado
+
+- `src/lib/contacts/index.ts` — `getContacts` / `getContactById` /
+  `getContactInteractions` / `getContactStats` agora consultam Supabase via
+  `supabaseAdmin` (assinaturas mantidas, mock substituído). `getContactStats`
+  puxa ativos uma vez e conta em memória (volume boutique)
+- `src/app/(public)/contato/actions.ts` — form do site cria contato real
+  (`origem=site_contato`) + interação `form_submission`; `sync_status` fica
+  `pending`. Contato salvo antes de qualquer stub de sync, zero perda de lead
+- `src/app/admin/contatos/novo/actions.ts` e
+  `src/components/admin/AdminContactForm.tsx` — criação manual cria contato
+  `origem=manual` e redireciona pra lista
+- `src/app/admin/contatos/[id]/actions.ts` e
+  `src/app/admin/contatos/[id]/ContactDetailClient.tsx` — "Salvar alterações" da
+  Gestão Interna persiste estágio, follow-up e notas. `estagio_atualizado_em` é
+  bumpado apenas quando o estágio muda
+- `src/app/admin/page.tsx`, `src/app/admin/contatos/page.tsx`,
+  `src/app/admin/contatos/[id]/page.tsx` — adicionado
+  `export const dynamic = "force-dynamic"`. Sem isso, o Next prerenderiza
+  snapshot estático no build (lista nunca refletiria dados reais, build tentaria
+  bater no banco)
+
+### Não modificado (decisão de escopo)
+
+- Tabelas `capture_origins` e `tags` no Supabase — só entram quando a página de
+  Configurações (hoje mock) for ligada, com seus types TS nascendo junto. Criar
+  agora seria órfã sem consumidor (D028)
+- Stubs de sync Iddas e ClickMassa — sincronização real é Fase 4. Lote C grava
+  contatos com `iddas_sync_status='pending'` e
+  `clickmassa_sync_status='pending'` (estado honesto)
+- Auth mock client-side — Supabase Auth real entra como pré-requisito de go-live
+  (D030 substitui D021 parcialmente)
+- Mocks `mock-contacts.ts` e `mock-interactions.ts` — ficam no repo como
+  referência, mas deixam de ser fonte de dados (banco começa limpo, não seedado)
+- `.env.local` e `.env.example` — já existiam com as variáveis corretas; Alan
+  cola a `service_role` key local, `.env.example` segue sem segredo
+
+### Validação
+
+**SQL (Supabase SQL editor):**
+
+- `set_updated_at()` criada (retorno `proname='set_updated_at'`)
+- `contacts`: 53 colunas conferidas via `information_schema.columns` (tipos,
+  nulidade, defaults). Insert+rollback com só campos obrigatórios provou
+  defaults: `nacionalidade='Brasileira'`, `pais='Brasil'`,
+  `passageiros_adultos=1`, `status='ativo'`, `iddas_sync_status='pending'`,
+  `tags='{}'`, `created_at` preenchido
+- `contact_interactions`: 7 colunas conferidas. Teste de CASCADE inseriu
+  contato + interação, deletou o contato, voltou `interacoes_orfas=0` (FK +
+  CASCADE + defaults provados num único bloco com rollback)
+- RLS: `pg_tables.rowsecurity=true` nas duas tabelas; `pg_policies` retornou as
+  2 policies (`ALL`, role `authenticated`)
+
+**Código:**
+
+- `npm run format` ✓ · `npm run lint` ✓ (exit 0) · `npx tsc --noEmit` ✓ (zero
+  erros) · `npm run build` ✓
+- Build passou com `SUPABASE_SERVICE_ROLE_KEY` ainda como placeholder, o que
+  prova que nenhuma página consulta banco em build time (efeito intencional do
+  `force-dynamic` nas rotas admin)
+
+**End-to-end manual** (com `service_role` key real em `.env.local`):
+
+- Form `/contato`: 1 row em `contacts` (`origem=site_contato`, `status=ativo`,
+  `iddas_sync_status=pending`) + 1 row em `contact_interactions`
+  (`tipo=form_submission`)
+- Empty state da lista admin funcionou antes da primeira captura
+- Lista admin: contato do form aparece (Image 2). Após criação manual, lista tem
+  2 contatos com origens distintas (Site / Manual, Image 3)
+- Visão 360: dados reais renderizados; Gestão Interna persiste edições após
+  reload (JSON confirmou `estagio_atualizado_em` > `created_at` no contato
+  editado)
+- Criação manual: cria contato com `origem=manual` e redireciona pra lista
+- Dashboard: 6 cards refletem contagens reais
+
+### Decisões aplicadas
+
+- **D028** — Schema Supabase real e tradução TS→SQL (snake_case + TEXT+CHECK +
+  `text[]`+GIN + CASCADE + service_role; escopo de 2 tabelas agora)
+- **D029** — Camada de acesso server-side com service role, mapper explícito,
+  leitura/escrita via Server Components/Actions, stubs de sync mantidos
+- **D030** — Auth mock client-side expõe dados via SSR; Supabase Auth real vira
+  pré-requisito de go-live (substitui parcialmente D021)
+
+### Riscos conhecidos
+
+- **Auth mock + `force-dynamic` + service role no SSR:** requests
+  não-autenticados a `/admin/*` recebem HTML com dados dos contatos no payload
+  (redirect pra login acontece tarde demais, no client). Inócuo em preview
+  (banco vazio, sem cliente real), bloqueador pra produção. Resolução
+  documentada em D030
+
+### Pendências (fora do escopo deste lote)
+
+- Reescrever Fase 1.11 do `docs/plano_de_desenvolvimento_site_v3.md` pra
+  refletir o schema real (atualmente descreve schema antigo:
+  `contact_submissions`/`user_profiles`/`admin_activity`)
+- Criar `docs/SECURITY_GO_LIVE.md` com checklist de pré-produção (Supabase Auth
+  real, proteção de rotas server-side, teste de payload SSR pra request anônimo)
+- Tabelas `capture_origins` e `tags` no Supabase + types TS correspondentes
+  (entram com a página de Configurações)
+- Limpar resíduo de here-string PowerShell no `.gitignore` (linha 1 `@'` e
+  última linha `'@ | Out-File ...`; não quebra ignore do `.env.local`,
+  verificado)
+
+---
+
 ## 2026-06-12 — Paleta: verde-pinheiro oficial (`#3F5B30`) aplicado em código
 
 ### Modificado

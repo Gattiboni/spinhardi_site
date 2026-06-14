@@ -1,14 +1,30 @@
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { Contact, ContactInteraction, EstagioFunil, CaptureOrigin } from "./types";
-import { MOCK_CONTACTS } from "./mock-contacts";
-import { MOCK_INTERACTIONS } from "./mock-interactions";
+import {
+  rowToContact,
+  rowToInteraction,
+  contactToInsertRow,
+  contactPatchToRow,
+  interactionToInsertRow,
+  type ContactRow,
+  type ContactInteractionRow,
+} from "./mappers";
 
 /**
- * Acesso a contatos.
+ * Acesso a contatos — Supabase (Lote C).
  *
- * MOCK na Fase 1: dados estáticos.
- * Vira integração Supabase no Lote C — implementação destas funções muda,
- * páginas que consomem continuam idênticas.
+ * Leitura via Server Components, escrita via Server Actions; ambos passam por
+ * este módulo, que usa o client server-only com service role (`supabaseAdmin`,
+ * bypassa RLS). As assinaturas são idênticas às da fase mock — as páginas que
+ * consomem não mudam.
+ *
+ * Os filtros de `getContacts` são aplicados em memória sobre o array já mapeado.
+ * O volume é boutique; não vale a complexidade de traduzir cada filtro pra query.
  */
+
+// ─────────────────────────────────────────────────────────────────
+// Leitura
+// ─────────────────────────────────────────────────────────────────
 
 export async function getContacts(opts?: {
   estagio?: EstagioFunil | "todos";
@@ -18,14 +34,17 @@ export async function getContacts(opts?: {
   search?: string;
   status?: "ativo" | "arquivado";
 }): Promise<Contact[]> {
-  let contacts = MOCK_CONTACTS;
+  const { data, error } = await supabaseAdmin
+    .from("contacts")
+    .select("*")
+    .eq("status", opts?.status ?? "ativo")
+    .order("created_at", { ascending: false });
 
-  if (opts?.status) {
-    contacts = contacts.filter((c) => c.status === opts.status);
-  } else {
-    // default: ativos
-    contacts = contacts.filter((c) => c.status === "ativo");
+  if (error) {
+    throw new Error(`Erro ao buscar contatos: ${error.message}`);
   }
+
+  let contacts = (data as ContactRow[]).map(rowToContact);
 
   if (opts?.estagio && opts.estagio !== "todos") {
     contacts = contacts.filter((c) => c.estagio === opts.estagio);
@@ -67,38 +86,97 @@ export async function getContacts(opts?: {
     );
   }
 
-  return [...contacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return contacts;
 }
 
 export async function getContactById(id: string): Promise<Contact | null> {
-  return MOCK_CONTACTS.find((c) => c.id === id) ?? null;
+  const { data, error } = await supabaseAdmin
+    .from("contacts")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Erro ao buscar contato ${id}: ${error.message}`);
+  }
+
+  return data ? rowToContact(data as ContactRow) : null;
 }
 
 export async function getContactInteractions(contactId: string): Promise<ContactInteraction[]> {
-  return MOCK_INTERACTIONS.filter((i) => i.contactId === contactId).sort((a, b) =>
-    a.criadoEm.localeCompare(b.criadoEm),
-  );
+  const { data, error } = await supabaseAdmin
+    .from("contact_interactions")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("criado_em", { ascending: true });
+
+  if (error) {
+    throw new Error(`Erro ao buscar interações do contato ${contactId}: ${error.message}`);
+  }
+
+  return (data as ContactInteractionRow[]).map(rowToInteraction);
 }
 
-// Stubs — não funcionais na Fase 1
+// ─────────────────────────────────────────────────────────────────
+// Escrita
+// ─────────────────────────────────────────────────────────────────
+
 export async function createContact(
-  _data: Omit<Contact, "id" | "createdAt" | "updatedAt">,
+  data: Omit<Contact, "id" | "createdAt" | "updatedAt">,
 ): Promise<Contact> {
-  throw new Error("Implementação completa virá no Lote C (Supabase)");
+  const { data: inserted, error } = await supabaseAdmin
+    .from("contacts")
+    .insert(contactToInsertRow(data))
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Erro ao criar contato: ${error.message}`);
+  }
+
+  return rowToContact(inserted as ContactRow);
 }
 
-export async function updateContact(_id: string, _patch: Partial<Contact>): Promise<Contact> {
-  throw new Error("Implementação completa virá no Lote C (Supabase)");
+export async function updateContact(id: string, patch: Partial<Contact>): Promise<Contact> {
+  // `updated_at` fica de fora do patch — o trigger do banco cuida dele.
+  const { data: updated, error } = await supabaseAdmin
+    .from("contacts")
+    .update(contactPatchToRow(patch))
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Erro ao atualizar contato ${id}: ${error.message}`);
+  }
+
+  return rowToContact(updated as ContactRow);
 }
 
 export async function addInteraction(
-  _contactId: string,
-  _data: Omit<ContactInteraction, "id" | "contactId" | "criadoEm">,
+  contactId: string,
+  data: Omit<ContactInteraction, "id" | "contactId" | "criadoEm">,
 ): Promise<ContactInteraction> {
-  throw new Error("Implementação completa virá no Lote C (Supabase)");
+  const { data: inserted, error } = await supabaseAdmin
+    .from("contact_interactions")
+    .insert(interactionToInsertRow({ contactId, ...data }))
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Erro ao registrar interação do contato ${contactId}: ${error.message}`);
+  }
+
+  return rowToInteraction(inserted as ContactInteractionRow);
 }
 
-// Helpers de agregação pro dashboard
+// ─────────────────────────────────────────────────────────────────
+// Agregação pro dashboard
+//
+// Volume boutique: puxa os ativos uma vez e conta em memória — uma fonte de
+// verdade só (mesmo mapeamento de `getContacts`), sem 6 queries de count.
+// ─────────────────────────────────────────────────────────────────
+
 export async function getContactStats(): Promise<{
   novosHoje: number;
   followUpHoje: number;
@@ -112,7 +190,7 @@ export async function getContactStats(): Promise<{
     .toISOString()
     .slice(0, 10);
 
-  const ativos = MOCK_CONTACTS.filter((c) => c.status === "ativo");
+  const ativos = await getContacts({ status: "ativo" });
 
   return {
     novosHoje: ativos.filter((c) => c.createdAt.startsWith(hoje)).length,
