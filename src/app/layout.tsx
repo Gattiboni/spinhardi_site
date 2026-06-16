@@ -16,14 +16,35 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
+const SITE_TITLE = "Spinhardi Turismo — Cada viagem, uma vez. Feita para você.";
+const SITE_DESCRIPTION =
+  "Agência boutique de viagens em Serra Negra, SP. Desde 1987, curadoria personalizada para quem viaja de verdade.";
+// og:image provisória: foto hero existente (Portofino). Arte dedicada 1200x630
+// fica para a fase de SEO/branding.
+const OG_IMAGE = "/hero-principal-02.jpg";
+
 export const metadata: Metadata = {
   title: {
-    default: "Spinhardi Turismo — Cada viagem, uma vez. Feita para você.",
+    default: SITE_TITLE,
     template: "%s | Spinhardi Turismo",
   },
-  description:
-    "Agência boutique de viagens em Serra Negra, SP. Desde 1987, curadoria personalizada para quem viaja de verdade.",
+  description: SITE_DESCRIPTION,
   metadataBase: new URL("https://spinharditurismo.com.br"),
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "https://spinharditurismo.com.br",
+    siteName: "Spinhardi Turismo",
+    images: [{ url: OG_IMAGE, alt: "Spinhardi Turismo" }],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [OG_IMAGE],
+  },
 };
 
 export default function RootLayout({

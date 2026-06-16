@@ -2,6 +2,8 @@
 
 import { createContact, addInteraction } from "@/lib/contacts";
 import { draftContactFromForm, type ContactFormInput } from "@/lib/contacts/from-form";
+import { sendContactNotification } from "@/lib/email/resend";
+import type { Contact } from "@/lib/contacts/types";
 
 // Mesmos campos coletados pelo formulário do site (shape compartilhado com o
 // cadastro manual). Mantido como `ContactFormData` pra não mudar o consumidor.
@@ -23,12 +25,11 @@ export type ContactFormResult = {
  * pra fora. A sync real é Fase 4.
  */
 export async function submitContact(data: ContactFormData): Promise<ContactFormResult> {
-  let contactId: string;
+  let contact: Contact;
 
   try {
     const draft = draftContactFromForm(data, { origem: "site_contato", hadInteraction: true });
-    const contact = await createContact(draft);
-    contactId = contact.id;
+    contact = await createContact(draft);
   } catch (err) {
     console.error("[submitContact] erro ao criar contato:", err);
     return { success: false, error: "Não foi possível enviar agora. Tente de novo em instantes." };
@@ -37,7 +38,7 @@ export async function submitContact(data: ContactFormData): Promise<ContactFormR
   // Contato já salvo — uma falha aqui não deve fazer o cliente reenviar (evita
   // duplicar o lead). Loga e segue.
   try {
-    await addInteraction(contactId, {
+    await addInteraction(contact.id, {
       tipo: "form_submission",
       descricao: "Captura via site (formulário de contato)",
       metadata: { origem: "site_contato", destino: data.destinoTipo },
@@ -45,6 +46,15 @@ export async function submitContact(data: ContactFormData): Promise<ContactFormR
     });
   } catch (err) {
     console.error("[submitContact] contato criado, mas falhou ao registrar a interação:", err);
+  }
+
+  // Notificação por e-mail é best-effort: o contato já está salvo (fonte de
+  // verdade). Se o Resend falhar (chave inválida, rede, etc.), loga e segue —
+  // o usuário recebe sucesso do mesmo jeito.
+  try {
+    await sendContactNotification(contact);
+  } catch (err) {
+    console.error("[submitContact] contato salvo, mas falhou ao enviar e-mail (Resend):", err);
   }
 
   return { success: true };

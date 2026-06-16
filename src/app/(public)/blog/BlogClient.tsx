@@ -44,7 +44,9 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
         <Container>
           {filteredPosts.length === 0 ? (
             <p className="font-body text-dark/60 text-center py-12">
-              Nenhum post nesta categoria ainda.
+              {posts.length === 0
+                ? "Em breve, novos conteúdos por aqui."
+                : "Nenhum post nesta categoria ainda."}
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">

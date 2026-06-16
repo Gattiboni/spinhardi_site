@@ -5,6 +5,9 @@ import { getPosts } from "@/lib/blog";
 import BlogClient from "./BlogClient";
 import type { Metadata } from "next";
 
+// ISR: revalida a listagem a cada 60s para refletir o Studio.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Blog",
   description:

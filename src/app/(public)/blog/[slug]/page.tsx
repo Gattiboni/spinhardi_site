@@ -6,6 +6,10 @@ import { getPostBySlug, getPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { PortableText } from "@portabletext/react";
+
+// ISR: revalida o conteúdo do Studio a cada 60s.
+export const revalidate = 60;
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -27,9 +31,42 @@ export async function generateStaticParams() {
 }
 
 /**
- * Renderização markdown-leve manual (sem dependência externa, conforme decisão
- * da Fase 1.4): blocos separados por linha em branco; prefixo "## " vira h3 e
- * "# " vira h2; o resto vira parágrafo.
+ * Componentes do PortableText (corpo rico vindo da Sanity), estilizados para
+ * casar com a tipografia do artigo (mesmo visual do `renderBody` legado).
+ */
+const portableComponents = {
+  block: {
+    normal: ({ children }: { children?: React.ReactNode }) => <p>{children}</p>,
+    h2: ({ children }: { children?: React.ReactNode }) => (
+      <h2 className="font-display text-3xl text-navy mt-12 mb-4">{children}</h2>
+    ),
+    h3: ({ children }: { children?: React.ReactNode }) => (
+      <h3 className="font-display text-2xl text-navy mt-12 mb-4">{children}</h3>
+    ),
+    blockquote: ({ children }: { children?: React.ReactNode }) => (
+      <blockquote className="border-l-2 border-gold pl-6 italic text-dark/70">
+        {children}
+      </blockquote>
+    ),
+  },
+  marks: {
+    link: ({ children, value }: { children?: React.ReactNode; value?: { href?: string } }) => (
+      <a
+        href={value?.href}
+        className="text-gold underline"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    ),
+  },
+};
+
+/**
+ * Renderização markdown-leve manual (fallback quando não há PortableText):
+ * blocos separados por linha em branco; prefixo "## " vira h3 e "# " vira h2;
+ * o resto vira parágrafo.
  */
 function renderBody(body: string) {
   return body.split("\n\n").map((block, i) => {
@@ -99,7 +136,11 @@ export default async function Post({ params }: Props) {
       <Section spacing="md" className="bg-white text-dark">
         <Container>
           <article className="max-w-3xl mx-auto font-body text-base lg:text-lg text-dark/80 leading-relaxed space-y-6">
-            {renderBody(post.body)}
+            {post.richBody?.length ? (
+              <PortableText value={post.richBody} components={portableComponents} />
+            ) : (
+              renderBody(post.body)
+            )}
           </article>
         </Container>
       </Section>
