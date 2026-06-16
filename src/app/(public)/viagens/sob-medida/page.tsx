@@ -4,6 +4,7 @@ import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
+import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 
 export const metadata: Metadata = {
   title: "Viagem Sob Medida",
@@ -117,20 +118,29 @@ export default function SobMedida() {
               </div>
             </div>
 
-            {/* Coluna direita: card destacado branco com border gold, sticky */}
-            <div className="lg:col-span-5">
-              <div className="lg:sticky lg:top-32 bg-white text-dark border-2 border-gold rounded-md p-8 lg:p-10">
-                <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">
-                  Para quem é
-                </p>
-                <p className="font-body text-base lg:text-lg text-dark/80 leading-relaxed mb-8">
-                  Para quem tem um orçamento em mente e quer ajuda para montar tudo do zero. Para
-                  quem quer delegar e receber de volta uma viagem pensada especificamente para si.
-                  Para quem já viajou, mas quer algo diferente desta vez.
-                </p>
-                <CTAWhatsApp variant="primary" size="md" label="Quero minha viagem sob medida" />
+            {/* Coluna direita: foto + card destacado branco com border gold, sticky juntos */}
+            <aside className="lg:col-span-5">
+              <div className="space-y-6 lg:sticky lg:top-32">
+                <SpinhardiImage
+                  src="/destino-curadoria-02.jpg"
+                  alt="Detalhe de uma viagem sob medida"
+                  aspect="4/5"
+                  className="rounded-md"
+                  sizes="(max-width: 1024px) 100vw, 42vw"
+                />
+                <div className="bg-white text-dark border-2 border-gold rounded-md p-8 lg:p-10">
+                  <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">
+                    Para quem é
+                  </p>
+                  <p className="font-body text-base lg:text-lg text-dark/80 leading-relaxed mb-8">
+                    Para quem tem um orçamento em mente e quer ajuda para montar tudo do zero. Para
+                    quem quer delegar e receber de volta uma viagem pensada especificamente para si.
+                    Para quem já viajou, mas quer algo diferente desta vez.
+                  </p>
+                  <CTAWhatsApp variant="primary" size="md" label="Quero minha viagem sob medida" />
+                </div>
               </div>
-            </div>
+            </aside>
           </div>
         </Container>
       </Section>

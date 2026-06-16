@@ -92,7 +92,7 @@ Escolher bem o destino é o primeiro passo de um roteiro que faz sentido. E um r
 Se você está pensando em uma viagem internacional e ainda não sabe para onde ir — ou sabe para onde quer ir mas não sabe por onde começar —, a gente pode conversar. Sem pressa, sem lista pronta, sem destino empurrado.
 
 Só uma boa conversa sobre o que você quer viver.`,
-    thumbnail: null,
+    thumbnail: "/blog-thumb-01.jpg",
     status: "publicado",
     seoTitle: "Como escolher o destino certo da sua próxima viagem | Spinhardi",
     seoDescription:
@@ -197,7 +197,7 @@ Quando você sabe o que quer sentir no final, fica mais fácil dizer não para o
 Essas dez perguntas não têm resposta certa. Têm a sua resposta — e é a partir dela que um bom roteiro começa a ser construído.
 
 Se você está pensando em planejar uma viagem e quer conversar sobre o que faz sentido para o seu perfil, a gente está aqui. Sem pressa, sem compromisso.`,
-    thumbnail: null,
+    thumbnail: "/blog-thumb-02.jpg",
     status: "publicado",
     seoTitle: "10 perguntas antes de planejar uma viagem | Spinhardi",
     seoDescription:
@@ -314,34 +314,46 @@ A primeira viagem para a Europa tem peso especial. É a que você vai contar mai
 Vale a pena construir com cuidado.
 
 Se você está pensando em planejar a sua, a gente pode conversar sobre o que faz sentido para o seu perfil — sem pressão, sem compromisso, só uma boa conversa antes de qualquer decisão.`,
-    thumbnail: null,
+    thumbnail: "/blog-thumb-03.jpg",
     status: "publicado",
     seoTitle: "O que ninguém te conta sobre a primeira viagem à Europa | Spinhardi",
     seoDescription:
       "Depois de quase quarenta anos construindo roteiros para a Europa, as percepções que nenhum guia cobre. Para quem vai pela primeira vez.",
   },
-  {
-    slug: "florenca-fora-do-circuito",
-    title: "5 lugares em Florença que os turistas normais não conhecem",
-    excerpt:
-      "Florença vai muito além da Galleria Uffizi e do Duomo. Os lugares que os florentinos amam estão nas ruas que os guias não cobrem.",
-    category: "Destinos",
-    author: "Spinhardi Turismo",
-    date: "2026-04-10",
-    body: "Este post será publicado em breve. Estamos finalizando os detalhes.",
-    thumbnail: null,
-    status: "publicado",
-  },
-  {
-    slug: "selecao-parceiros-locais",
-    title: "Como escolhemos os parceiros locais que entram nos nossos roteiros",
-    excerpt:
-      "Cada roteiro Spinhardi tem nomes próprios por trás. Não é o guia genérico que aparece no booking. É alguém que a gente conhece pelo nome.",
-    category: "Bastidores",
-    author: "Spinhardi Turismo",
-    date: "2026-04-12",
-    body: "Este post será publicado em breve. Estamos finalizando os detalhes.",
-    thumbnail: null,
-    status: "publicado",
-  },
+  /*
+   * Post temporariamente desativado — aguardando blog-thumb-04 da Amanda.
+   * Placeholder cinza no blog público é dívida visual (D031). Quando a thumb
+   * chegar, descomentar este objeto e definir thumbnail: "/blog-thumb-04.jpg".
+   *
+   * {
+   *   slug: "florenca-fora-do-circuito",
+   *   title: "5 lugares em Florença que os turistas normais não conhecem",
+   *   excerpt:
+   *     "Florença vai muito além da Galleria Uffizi e do Duomo. Os lugares que os florentinos amam estão nas ruas que os guias não cobrem.",
+   *   category: "Destinos",
+   *   author: "Spinhardi Turismo",
+   *   date: "2026-04-10",
+   *   body: "Este post será publicado em breve. Estamos finalizando os detalhes.",
+   *   thumbnail: null,
+   *   status: "publicado",
+   * },
+   */
+  /*
+   * Post temporariamente desativado — aguardando blog-thumb-05 da Amanda.
+   * Placeholder cinza no blog público é dívida visual (D031). Quando a thumb
+   * chegar, descomentar este objeto e definir thumbnail: "/blog-thumb-05.jpg".
+   *
+   * {
+   *   slug: "selecao-parceiros-locais",
+   *   title: "Como escolhemos os parceiros locais que entram nos nossos roteiros",
+   *   excerpt:
+   *     "Cada roteiro Spinhardi tem nomes próprios por trás. Não é o guia genérico que aparece no booking. É alguém que a gente conhece pelo nome.",
+   *   category: "Bastidores",
+   *   author: "Spinhardi Turismo",
+   *   date: "2026-04-12",
+   *   body: "Este post será publicado em breve. Estamos finalizando os detalhes.",
+   *   thumbnail: null,
+   *   status: "publicado",
+   * },
+   */
 ];

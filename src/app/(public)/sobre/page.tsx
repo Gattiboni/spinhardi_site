@@ -5,6 +5,7 @@ import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import Divider from "@/components/ui/Divider";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
+import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 
 export const metadata: Metadata = {
   title: "Sobre", // vira "Sobre | Spinhardi Turismo"
@@ -37,14 +38,36 @@ export default function Sobre() {
         </Container>
       </Section>
 
-      {/* Bloco 2 · Foto da equipe (placeholder) */}
+      {/* Bloco 2 · Sócias (Nina + Julia lado a lado) */}
       <Section spacing="md" className="bg-white">
         <Container>
-          <div className="flex aspect-[16/9] items-center justify-center rounded-md border border-dark/10 bg-dark/5">
-            <p className="px-4 text-center font-body text-sm uppercase tracking-wide text-dark/40">
-              Foto institucional da equipe Spinhardi
-              <br />A definir com Nina e Julia · 1920×1080 ou superior
-            </p>
+          <div className="mx-auto max-w-2xl">
+            <div className="grid grid-cols-2 gap-8 md:gap-12">
+              <figure className="flex flex-col items-center">
+                <SpinhardiImage
+                  src="/equipe-spinhardi-01-nina.jpg"
+                  alt="Angelina Saragiotto, sócia da Spinhardi Turismo"
+                  aspect="2/3"
+                  className="max-w-50 rounded-md"
+                  sizes="(max-width: 768px) 40vw, 200px"
+                />
+                <figcaption className="mt-4 font-display text-base text-dark">
+                  Angelina Saragiotto
+                </figcaption>
+              </figure>
+              <figure className="flex flex-col items-center">
+                <SpinhardiImage
+                  src="/equipe-spinhardi-02-julia.jpg"
+                  alt="Julia Scappini, sócia da Spinhardi Turismo"
+                  aspect="9/16"
+                  className="max-w-50 rounded-md"
+                  sizes="(max-width: 768px) 40vw, 200px"
+                />
+                <figcaption className="mt-4 font-display text-base text-dark">
+                  Julia Scappini
+                </figcaption>
+              </figure>
+            </div>
           </div>
         </Container>
       </Section>

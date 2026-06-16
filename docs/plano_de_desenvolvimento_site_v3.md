@@ -1,8 +1,28 @@
-# Plano de Desenvolvimento — Site Spinhardi v3
+# Plano de Desenvolvimento — Site Spinhardi v3.1
 
-**Versão:** 3.0 (substitui v2) **Stack:** Next.js 16 · TypeScript · Tailwind v4
-· Vercel · Supabase · Sanity **Preparado por:** Alan Gattiboni · Gattiboni
-Enterprises **Última atualização:** Abril 2026
+**Versão:** 3.1 (substitui v3.0 de abril 2026) **Stack:** Next.js 16 ·
+TypeScript · Tailwind v4 · Vercel · Supabase · Sanity **Preparado por:** Alan
+Gattiboni · Gattiboni Enterprises **Última atualização:** Junho 2026 (pós-Lote
+C)
+
+---
+
+## O que mudou da v3.0
+
+- **Fase 1.11 reescrita por completo.** A versão anterior descrevia tabelas
+  fictícias (`contact_submissions`, `user_profiles`, `admin_activity`) que
+  nunca refletiram a arquitetura real. A 1.11 agora descreve o que de fato foi
+  construído no Lote C (tabelas `contacts` e `contact_interactions`, RLS,
+  service role na Server Action), com referência às decisões D028, D029, D030
+- **Fase 1.7 ganhou nota explícita** sobre D021 (auth mock client-side é o
+  estado atual; Supabase Auth real foi adiado pra Fase 3)
+- **Fase 3 ganhou item bloqueador** `3.1.0 Supabase Auth real` referenciando
+  D030: pré-requisito de go-live, não mais "melhoria futura"
+- **Fase 4 ajustada:** o dashboard de contatos já é real pós-Lote C; o que
+  resta na Fase 4 são as integrações operacionais (Iddas, ClickMassa, Make)
+  e os cards reais que dependem delas
+- **Pendências técnicas atualizadas:** capture_origins/tags quando ligar
+  Configurações, `SECURITY_GO_LIVE.md` a criar, limpeza do `.gitignore`
 
 ---
 
@@ -24,6 +44,8 @@ Enterprises **Última atualização:** Abril 2026
 - **Quando faltar criatividade ou for inventar a roda, otimizar:** Perplexity
   Pro com prompt bem contextualizado, retorno trazido pra mesa, decisão tomada
   com dados.
+- **Investigar realidade antes de modelar** (D024). Schema sai do código real,
+  não de boas práticas genéricas.
 
 ---
 
@@ -38,7 +60,7 @@ tem dono implícito (Alan, salvo quando indicado).
   ajustes finais.
 - **Fase 3 — Produção:** contratar tudo que precisa pagar, ligar serviços,
   apontar DNS, go-live.
-- **Fase 4 — Pós-launch:** integrações IDAS/ClickMassa/Make, camada de IA,
+- **Fase 4 — Pós-launch:** integrações Iddas/ClickMassa/Make, camada de IA,
   melhorias contínuas.
 
 **Cada fase termina com checkpoint claro.** Não passa pra próxima sem fechar a
@@ -48,18 +70,22 @@ anterior.
 
 ## Fontes de verdade aprovadas
 
-| Documento                        | Localização                                      | O que define                            |
-| -------------------------------- | ------------------------------------------------ | --------------------------------------- |
-| Branding Book Lite v2            | Canva (Amanda)                                   | Identidade de marca, tom, valores       |
-| Identidade Visual                | `docs/identidade_visual.md`                      | Tokens Tailwind, paleta, tipografia     |
-| Arquitetura de Páginas           | `docs/arquitetura_v1.md`                         | Rotas e justificativa                   |
-| Mapa de Copies (aprovado Amanda) | `docs/mapa_de_copies_spinhardi_v1_ready.docx`    | Conteúdo textual da v1                  |
-| Mapa de Imagens                  | `docs/mapa_de_imagens_spinhardi_v1.docx`         | Specs técnicas e papel das imagens      |
-| Plano de Infraestrutura          | `docs/plano_de_infraestrutura_spinhardi_v1.docx` | Decisões de stack e custo               |
-| Wireframe HTML                   | `docs/spinhardi_wireframe.html`                  | Estrutura visual aprovada               |
-| Referências de design            | `docs/refs/`                                     | CSS extraído dos sites de referência    |
-| Decision Log                     | `docs/DECISION_LOG.md`                           | Histórico de decisões com racional      |
-| Changelog                        | `docs/CHANGELOG.md`                              | Eventos e entregas em ordem cronológica |
+| Documento                        | Localização                                        | O que define                            |
+| -------------------------------- | -------------------------------------------------- | --------------------------------------- |
+| Branding Book Lite v3            | `docs/bb_lite_v3_spinhardi_complete.pdf`           | Identidade de marca, tom, valores       |
+| Identidade Visual                | `docs/identidade_visual.md`                        | Tokens CSS, paleta, tipografia          |
+| Arquitetura de Páginas           | `docs/arquitetura_v1.md`                           | Rotas e justificativa                   |
+| Mapa de Copies (aprovado Amanda) | `docs/mapa_de_copies_spinhardi_v1_ready.docx`      | Conteúdo textual da v1                  |
+| Mapa de Imagens                  | `docs/mapa_de_imagens_spinhardi_v1.docx`           | Specs técnicas e papel das imagens      |
+| Plano de Infraestrutura          | `docs/plano_de_infraestrutura_spinhardi_v1.docx`   | Decisões de stack e custo               |
+| Wireframe HTML                   | `docs/spinhardi_wireframe.html`                    | Estrutura visual aprovada               |
+| Wireframe Lote B v3              | `docs/wireframe_lote_b_v3.md`                      | Estrutura do back office (Contatos)     |
+| Tipos do CRM                     | `src/lib/contacts/types.ts`                        | Shape de Contact, ContactInteraction    |
+| Iddas API                        | `docs/Iddas_Agência_-_Documentação_API.pdf`        | Endpoints REST do ERP (Fase 4)          |
+| ClickMassa API                   | `docs/ClickMassa_API.md`                           | Endpoints REST do WhatsApp CRM (Fase 4) |
+| Referências de design            | `docs/refs/`                                       | CSS extraído dos sites de referência    |
+| Decision Log                     | `docs/DECISION_LOG.md`                             | Histórico de decisões com racional      |
+| Changelog                        | `docs/CHANGELOG.md`                                | Eventos e entregas em ordem cronológica |
 
 ---
 
@@ -68,7 +94,8 @@ anterior.
 **Estado de saída:** projeto Next.js rodando em localhost, com design system
 aplicado, estrutura de pastas completa, todas as páginas públicas e do back
 office implementadas, blog funcional com posts mockados, dashboard híbrido
-operando com dados reais (Supabase) e mocks plausíveis (integrações).
+operando com dados reais (Supabase para contatos) e mocks plausíveis (cards de
+integração Iddas/ClickMassa).
 
 **Sem contratações pagas nesta fase.** Tudo local ou em tier gratuito de dev.
 
@@ -93,27 +120,26 @@ operando com dados reais (Supabase) e mocks plausíveis (integrações).
   ```
   src/                  # código-fonte da aplicação
     app/                # rotas (públicas e admin)
+      (public)/         # route group das páginas públicas (D022)
+      admin/            # route group do back office
     components/         # componentes reutilizáveis
       ui/               # componentes base (Button, Card, Section, etc)
       admin/            # componentes específicos do back office
     lib/                # utilitários, integrações, abstrações
       ai/               # camada de IA (preparada, não implementada)
-      auth/             # autenticação (Supabase Auth, roles, middleware)
+      auth/             # autenticação (mock client-side na Fase 1, Supabase real na Fase 3 — D021, D030)
       analytics/        # provider de analytics (mock e GA4)
       blog/             # acesso a posts (mock na Fase 1, Sanity na Fase 3)
+      contacts/         # acesso a contatos (Lote C: real via Supabase)
       email/            # e-mail transacional (mock na Fase 1, Resend na Fase 3)
-      integrations/     # IDAS, ClickMassa, Make (preparadas, não implementadas)
-      sanity/           # cliente Sanity (preparado, não implementado na Fase 1)
-      supabase/         # cliente Supabase
+      integrations/     # Iddas, ClickMassa, Make (stubs, real na Fase 4)
+      sanity/           # cliente Sanity (preparado, real na Fase 3)
+      supabase/         # cliente Supabase (server-only, service role — Lote C)
   public/               # assets estáticos
   ```
 - [x] Configurar branch strategy: branch local renomeada de `master` pra `main`.
-      Branch `staging` será criada na Fase 2, quando for usada pra revisão.
-      `feature/*` quando houver iteração em paralelo.
-- [x] Configurar ESLint 9 (já vem do `create-next-app`) + Prettier 3 (ver D013).
-      Husky e lint-staged descartados após reavaliação.
-- [x] Configurar import alias `@/` no `tsconfig.json` (já configurado pelo
-      `create-next-app` apontando pra `./src/*`)
+- [x] Configurar ESLint 9 + Prettier 3 (ver D013).
+- [x] Configurar import alias `@/` no `tsconfig.json`
 - [x] Documentar setup local no README (npm install, npm run dev, scripts de
       lint/format)
 
@@ -132,465 +158,318 @@ Refletir `docs/identidade_visual.md` no código.
   - Cores: `navy #1A2B4A`, `gold #AD8330`, `green #3F5B30` (verde-pinheiro
     oficial — ver D027), `dark #1E1E2E`, `white #FFFFFF`
   - Tipografia: Fraunces (display) + Montserrat (body) — ver D014
-  - Easings das referências: `--ease-smooth`, `--ease-out`
-  - Durações das referências: `--duration-short` (200ms), `--duration-medium`
-    (400ms), `--duration-long` (750ms)
-  - Tailwind v4 não usa mais `tailwind.config.ts`. Tokens vão direto no CSS via
-    `@theme inline`.
-  - Espaçamentos customizados, breakpoints e sombras adicionais entram conforme
-    necessidade no decorrer da Fase 1.2 — não pré-configurar tudo.
-- [x] Carregar fontes com `next/font/google` no `src/app/layout.tsx`:
-  - Fraunces: pesos 400, 500, 600 → CSS variable `--font-fraunces` → token
-    `--font-display`
-  - Montserrat: pesos 300, 400, 500, 600 → CSS variable `--font-montserrat` →
-    token `--font-body`
-  - Ambas com `display: "swap"` e `subsets: ["latin"]`
-- [x] Criar componentes base em `src/components/ui/`:
-  - [x] `Button` (variantes: primary, secondary, ghost; sizes sm/md/lg; estado
-        disabled e focus visível)
-  - [x] `Container` (max-width responsivo, prop `as` pra semântica — ver D015)
-  - [x] `Section` (padding vertical padrão, prop `spacing` sm/md/lg)
-  - [x] `ServiceCard` (número + título + descrição + link, hover via group,
-        prop `tone` light/dark)
-  - [x] `TestimonialCard` (blockquote com border-l gold e aspas decorativas,
-        prop `tone` light/dark)
-  - [x] `BlogCard` (imagem 16:9 + tag + título + data + excerpt com line-clamp)
-  - [x] `Divider` (prop `tone` light/dark)
+  - Easings e durações das referências
+- [x] Carregar fontes com `next/font/google`
+- [x] Criar componentes base em `src/components/ui/` (Button, Container,
+      Section, ServiceCard, TestimonialCard, BlogCard, Divider)
 - [x] Criar componente `Logo` com variações (clara, escura, ícone) — ver D017
-- [x] Criar componente `CTAWhatsApp` reutilizável com link parametrizado
-- [x] Criar `Header` e `Footer`:
-  - [x] `Header.tsx` (Client Component) — sticky dinâmico, detecta rota via
-        `usePathname` (ver D018)
-  - [x] `MobileMenu.tsx` (Client Component) — overlay full-screen com
-        focus-trap, ESC pra fechar, scroll-lock no body, ARIA completo
-  - [x] `Footer.tsx` (Server Component) — 4 colunas conforme mapa de copies
-- [x] Criar `src/lib/navigation.ts` — fonte única de verdade dos links
+- [x] Criar componente `CTAWhatsApp` reutilizável
+- [x] Criar `Header` (Client) com sticky dinâmico via `usePathname` (D018) e
+      `Footer` (Server)
+- [x] Criar `MobileMenu.tsx` com focus-trap, ESC, scroll-lock, ARIA
+- [x] Criar `src/lib/navigation.ts`
 - [x] Atualizar layout global em `src/app/layout.tsx`
 - [~] ~~Documentar design system em `docs/DESIGN_SYSTEM.md`~~ — descartado.
-  Página `/dev/components` cumpre essa função.
+      Página `/dev/components` cumpre essa função.
 
-**Checkpoint 1.2 ✅:** página `/dev/components` em
-http://localhost:3000/dev/components lista todos os componentes do design system
-(11 seções). Header e Footer renderizam globalmente em toda rota.
+**Checkpoint 1.2 ✅:** página `/dev/components` lista todos os componentes do
+design system. Header e Footer renderizam globalmente em toda rota.
 
 ---
 
 ## 1.3 Páginas públicas
 
-Implementar conforme arquitetura aprovada + wireframe HTML + copies aprovados
-em `docs/mapa_de_copies_spinhardi_v1_ready.docx`.
+Implementar conforme arquitetura aprovada + wireframe HTML + copies aprovados.
 
-**Rotas e progresso:**
+- [x] `/` (Home)
+- [x] `/sobre`
+- [x] `/viagens` (hub) — 2 cards grandes (Pacotes + Sob Medida), sem Passagens
+      Avulsas (ver D020)
+- [x] `/viagens/pacotes`
+- [x] `/viagens/sob-medida`
+- [x] `/contato` — formulário enriquecido (Fase 1.8); Server Action ligada no
+      Supabase no Lote C
+- [x] `not-found.tsx` (404) global
+- [x] `error.tsx` global
 
-- [x] `/` (Home) — concluída em 2026-05-31
-- [x] `/sobre` — concluída em 2026-05-31. Primeira página com fundo claro. D018
-      (LIGHT_ROUTES) validada em produção real.
-- [x] `/viagens` (hub) — concluída em 2026-05-31. 2 cards grandes (Pacotes + Sob
-      Medida), sem Passagens Avulsas (ver D020).
-- [x] `/viagens/pacotes` — concluída em 2026-05-31.
-- [x] `/viagens/sob-medida` — concluída em 2026-05-31.
-- [X] `/contato` — formulário com envio mockado (Supabase entra na 1.10)
-- [X] `not-found.tsx` (404) global
-- [X] `error.tsx` global
-
-Para cada página:
-
-- [X] Implementar estrutura conforme wireframe da sessão
-- [X] Aplicar copy aprovado pela Amanda (literal — sem reescrever)
-- [X] Sem imagens reais — fotos virão por indicação de Nina e Julia (ver Fase
-      1.13)
-- [X] CTAs WhatsApp funcionais via `CTAWhatsApp`
-- [X] Adicionar à `LIGHT_ROUTES` em `Header.tsx` se a página tem fundo claro
-      (ver D018)
-- [X] Responsivo testado em 380px (mobile) e 1440px (desktop)
-
-**Checkpoint 1.3:** todas as rotas públicas navegáveis em localhost. Visual fiel
-aos wireframes aprovados sessão a sessão. Copy idêntico ao mapa aprovado.
-`not-found.tsx` e `error.tsx` implementados.
+**Checkpoint 1.3 ✅:** todas as rotas públicas navegáveis em localhost. Copy
+idêntico ao mapa aprovado.
 
 ---
 
 ## 1.4 Blog público + Admin do blog (estrutura completa, sem Sanity ainda)
 
-Preparar a estrutura completa do blog com mocks. Sanity entra na Fase 3 e só
-substitui a implementação, sem refactor.
+Estrutura completa do blog com mocks. Sanity entra na Fase 3 e só substitui a
+implementação, sem refactor.
 
-- [X] Definir TypeScript interface para `Post`:
-  ```ts
-  interface Post {
-    slug: string;
-    title: string;
-    date: string;
-    category:
-      | "Destinos"
-      | "Bastidores"
-      | "Dicas de Viagem"
-      | "História da Agência";
-    excerpt: string;
-    thumbnail: string;
-    author: string;
-    body: string;
-    seoTitle: string;
-    seoDescription: string;
-    ogImage: string;
-  }
-  ```
-- [X] Criar mock de 3-4 posts em `lib/blog/mock-posts.ts`
-- [X] Criar abstração `lib/blog/index.ts` com `getPosts()`, `getPostBySlug()`,
-      `createPost()`, `updatePost()`, `deletePost()` — implementação mock agora,
-      vira Sanity na Fase 3 sem tocar nas páginas
-- [X] Implementar `/blog` (listagem com filtro de categoria funcional)
-- [X] Implementar `/blog/[slug]` (post individual com tipografia editorial,
-      navegação prev/next opcional)
+- [x] Interface `Post` em `src/lib/blog/types.ts`
+- [x] Mock de 3-4 posts em `lib/blog/mock-posts.ts`
+- [x] Abstração `lib/blog/index.ts` com CRUD mockado
+- [x] `/blog` (listagem com filtro de categoria)
+- [x] `/blog/[slug]` (post individual com tipografia editorial)
+- [x] `/admin/blog` (lista administrativa)
+- [x] `/admin/blog/novo` (form de criação, salva mostra alert "Sanity Fase 3")
+- [x] `/admin/blog/[id]` (form de edição, idem)
 
-**Admin do blog (UI completa, CRUD desativado na Fase 1):**
-
-- [X] Implementar `/admin/blog` (lista de posts no formato administrativo —
-      tabela com colunas: título, categoria, data, status, ações)
-- [X] Implementar `/admin/blog/novo` (formulário de criação)
-- [X] Implementar `/admin/blog/[id]` (formulário de edição)
-- [X] Formulários renderizam completos (título, slug, categoria, excerpt, body,
-      SEO fields, imagem) — botão "Salvar" mostra mensagem
-      "Implementação completa virá com Sanity (Fase 3)"
-- [X] Botão "Excluir" também mostra mensagem similar
-
-**Checkpoint 1.4:** blog público navegável com mocks. Filtros funcionando.
-Admin do blog tem UI completa, validada visualmente. Sanity (Fase 3) só pluga
-implementação real.
+**Checkpoint 1.4 ✅:** blog público navegável com mocks. Admin do blog com UI
+completa. Sanity (Fase 3) só pluga implementação real.
 
 ---
 
 ## 1.5 Abstrações para integrações futuras
 
 Criar as fronteiras de código pra que integrações pós-launch não exijam
-refatoração. Zero dívida técnica desde o dia 1.
+refatoração.
 
-- [X] Criar `lib/integrations/index.ts` como ponto único de entrada:
-  ```ts
-  export { idas } from "./idas";
-  export { clickmassa } from "./clickmassa";
-  export { make } from "./make";
-  ```
-- [X] Criar `lib/integrations/idas.ts` com interface (sem implementação real):
-  ```ts
-  export const idas = {
-    getReservations: async () => {
-      throw new Error("Not implemented in v1");
-    },
-  };
-  ```
-- [X] Mesmo padrão para `lib/integrations/clickmassa.ts` e
-      `lib/integrations/make.ts`
-- [X] Criar `lib/ai/` com abstração genérica:
-  ```ts
-  // lib/ai/provider.ts
-  export interface AIProvider {
-    ask(prompt: string, context?: object): Promise<string>;
-  }
-  ```
-- [X] Criar `lib/analytics/` com abstração:
-  ```ts
-  // lib/analytics/provider.ts
-  export interface AnalyticsProvider {
-    getVisits(period: Period): Promise<MetricResult>;
-    getWhatsAppClicks(period: Period): Promise<MetricResult>;
-    getConversions(period: Period): Promise<MetricResult>;
-  }
-  // lib/analytics/mock.ts (implementação retorna números plausíveis)
-  // lib/analytics/ga4.ts (implementação real — Fase 4)
-  // lib/analytics/index.ts (re-exporta provider ativo)
-  ```
-- [X] Criar `lib/auth/` com abstração:
-  ```ts
-  // lib/auth/provider.ts
-  export interface AuthProvider {
-    signIn(email: string): Promise<void>;  // magic link
-    signOut(): Promise<void>;
-    getUser(): Promise<User | null>;
-  }
-  // lib/auth/supabase.ts (implementação real)
-  // lib/auth/roles.ts (tipos Role + helper hasPermission)
-  // lib/auth/index.ts (re-exporta provider ativo)
-  ```
-- [X] Documentar cada abstração no próprio arquivo (JSDoc)
+- [x] `lib/integrations/index.ts` (entry point)
+- [x] `lib/integrations/iddas.ts` (stubs documentados de `createSolicitacao` e
+      `getStats`, retornando mock plausível)
+- [x] `lib/integrations/clickmassa.ts` (stubs de `createTicket` e `getStats`)
+- [x] `lib/integrations/make.ts` (stub)
+- [x] `lib/ai/` com abstração genérica (`AIProvider`)
+- [x] `lib/analytics/` com `AnalyticsProvider` (mock e ga4)
+- [x] `lib/auth/` com `AuthProvider` (mock client-side — D021, real na Fase 3
+      pela D030)
 
-**Checkpoint 1.5:** as páginas e o admin nunca importam direto de SDKs ou APIs
-externas. Tudo passa por `lib/`. Trocar provider de IA, auth, analytics ou
-adicionar nova integração não toca código de produto.
+**Checkpoint 1.5 ✅:** páginas e admin nunca importam direto de SDKs externos.
+Trocar provider de IA, auth, analytics ou adicionar integração não toca código
+de produto.
 
 ---
 
 ## 1.6 Formulário de contato (mockado)
 
-Construir formulário de `/contato` funcional, salvando em estrutura mockada
-local. Plug no Supabase real entra na Fase 1.10.
+Esta fase entregou o form básico. O enriquecimento completo (12 campos em 4
+grupos) veio na 1.8.
 
-- [X] Implementar formulário em `/contato` conforme wireframe
-- [X] Validação client-side (campos obrigatórios, formato de e-mail, telefone)
-- [X] Criar Server Action `submitContact()` que por enquanto salva em log
-      (`console.log` estruturado ou arquivo JSON local em dev)
-- [X] Envio de e-mail mockado:
-  ```ts
-  // lib/email/index.ts
-  export const email = {
-    send: async (to: string, subject: string, body: string) => {
-      console.log("[email mock] would send to", to);
-    },
-  };
-  ```
-- [X] Página de sucesso (`/contato/obrigado`) ou estado UI de confirmação
+- [x] Form em `/contato` conforme wireframe
+- [x] Validação client-side
+- [x] Server Action `submitContact()` (versão inicial, mock)
+- [x] E-mail mockado em `lib/email/index.ts`
+- [x] Página de sucesso ou estado UI de confirmação
 
-**Checkpoint 1.6:** formulário envia, mostra sucesso, e-mail real e
-persistência Supabase ficam pra 1.10.
+**Checkpoint 1.6 ✅:** formulário envia, mostra sucesso. Real entra com Lote C.
 
 ---
 
 ## 1.7 Back office estrutural
 
-**Estado de saída:** rota `/admin` existe, protegida por login. Login funciona
-com magic link. Layout do back office implementado. Usuário não-admin não
-consegue acessar.
+**Estado de saída:** rota `/admin` existe, layout do back office implementado,
+fluxo de login funcional.
 
-- [X] Implementar `lib/auth/provider.ts` (interface) e
-      `lib/auth/supabase.ts` (implementação) — preparação, ativação real na 1.10
-- [X] Implementar `lib/auth/roles.ts` com tipos `Role = "admin" | "editor"` e
-      helper `hasPermission(user, action)`
-- [X] Implementar `middleware.ts` na raiz do projeto (Next 16 middleware)
-      protegendo `/admin/*`:
-  - Não logado → redirect pra `/admin/login`
-  - Logado mas sem `user_profile` válido → tela de erro "sem permissão"
-  - Logado e válido → acesso liberado
-- [X] Criar `src/app/admin/login/page.tsx` — formulário simples (campo de
-      e-mail + botão "Enviar link de acesso")
-- [X] Criar `src/app/admin/login/verificar/page.tsx` — página intermediária
-      após clique no magic link (Supabase faz callback aqui)
-- [X] Criar `src/app/admin/layout.tsx` — layout do back office:
-  - Sidebar com navegação (Dashboard, Contatos, Blog, Usuários, Integrações,
-    Configurações)
-  - Header com nome do usuário logado + botão sair
-  - Visual distinto do site público (mais funcional, menos editorial) mas
-    usando os mesmos tokens
-- [X] Criar componente `AdminSidebar.tsx` com lista de links e indicação de
-      rota ativa
-- [X] Criar componente `AdminHeader.tsx` com info do usuário e logout
-- [X] Implementar logout (chamar `auth.signOut()` e redirecionar)
-- [X] Esconder itens da sidebar conforme role:
-  - Admin vê tudo
-  - Editor não vê "Usuários" nem "Integrações" nem "Configurações"
+**Nota sobre auth (D021):** o que de fato foi entregue neste lote é auth mock
+client-side via `localStorage`, com arquitetura idêntica a Supabase Auth (mesmo
+contrato de `AuthProvider`). Foi opção deliberada pra desbloquear o resto da
+Fase 1 sem depender de Supabase Pro (SMTP, magic link) e convites formais a
+Nina/Julia/Amanda (que só rolam na Fase 3). **Supabase Auth real virou item
+bloqueador da Fase 3** (ver 3.1.0 e D030).
 
-**Checkpoint 1.7:** acessar `/admin` sem login redireciona pra login. Layout
-do admin aparece após login. Sidebar mostra opções conforme role.
+- [x] `lib/auth/provider.ts` (interface) e `lib/auth/mock.ts` (implementação
+      mock client-side)
+- [x] `lib/auth/roles.ts` com tipos `Role = "admin" | "editor"` e helper
+      `hasPermission`
+- [x] `verifySession()` idempotente (D023, sobrevive a Strict Mode)
+- [x] Route Groups separando público de admin (D022): `src/app/(public)/` e
+      `src/app/admin/` com layouts independentes
+- [x] `src/app/admin/login/page.tsx`
+- [x] `src/app/admin/login/verificar/page.tsx`
+- [x] `src/app/admin/layout.tsx` com chrome próprio
+- [x] `AdminSidebar.tsx` (com role-aware: editor não vê Usuários nem
+      Configurações)
+- [x] `AdminHeader.tsx`
+- [x] Logout
+
+**Checkpoint 1.7 ✅:** acessar `/admin` sem login redireciona pra login. Layout
+aparece após login. Sidebar respeita role.
 
 ---
 
-## 1.8 Back office — Módulo Contatos unificado
+## 1.8 Back office — Módulo Contatos unificado (Lote B)
 
-**Estado de saída:** time consegue ver lista unificada de contatos (de todas
-as origens), filtrar, ver detalhe 360 com gestão interna e timeline.
+**Estado de saída:** time consegue ver lista unificada de contatos, filtrar,
+ver detalhe 360 com gestão interna e timeline. Tudo em mock TypeScript, pronto
+pra plugar Supabase no Lote C.
 
-**REESCOPO (registrado em D024):** após descoberta das APIs do Iddas
+**REESCOPO registrado em D024:** após descoberta das APIs do Iddas
 (`apiagencia.iddas.com.br`) e ClickMassa, decidiu-se tornar o Supabase nosso
 source of truth de contatos, com Iddas e ClickMassa como canais operacionais
-especializados. Esta fase materializa a estrutura completa do módulo em mock
-TypeScript, pronto pra plugar Supabase no Lote C.
+especializados.
 
-- [x] Criar `src/lib/contacts/types.ts` — interface `Contact` com ~50 campos
-      em 10 agrupamentos: identificação, dados pessoais, endereço,
-      qualificação, estágio interno (nosso funil), tags, espelho Iddas,
-      espelho ClickMassa, comportamento, metadados
-- [x] Criar `src/lib/contacts/mock-contacts.ts` — 8 contatos com diversidade
-      total (origens, estágios, status de sync) pra demonstrar UX completa
-- [x] Criar `src/lib/contacts/mock-interactions.ts` — timeline unificada com
-      25+ interações distribuídas
-- [x] Criar abstração `src/lib/contacts/index.ts` — `getContacts()`,
-      `getContactById()`, `getContactInteractions()`, `getContactStats()`,
-      stubs de mutação com mensagem clara sobre Lote C
-- [x] Criar `src/lib/integrations/iddas.ts` — stubs documentados de
-      `createSolicitacao()` e `getStats()` retornando mock plausível
-- [x] Criar `src/lib/integrations/clickmassa.ts` — stubs documentados de
-      `createTicket()` e `getStats()` retornando mock plausível
-- [x] Criar `src/app/admin/contatos/page.tsx` (Server) + `ContactsClient.tsx`
-      (Client) — lista unificada com:
-  - Busca por nome, WhatsApp, e-mail, tags
-  - 4 filtros (Estágio, Origem, Tags, Sync)
-  - Checkbox por linha + dropdown de "Ações em massa"
-  - Paginação 10 por página
-- [x] Criar `src/app/admin/contatos/[id]/page.tsx` + `ContactDetailClient.tsx`
-      — visão 360 em layout de 2 áreas (bloco principal + coluna lateral):
-  - Bloco principal com 3 colunas: Dados pessoais / Qualificação / Sistemas
-    externos (com IDs do Iddas e ClickMassa, links de abertura, status de
-    sync e botão "Forçar nova sync")
-  - Coluna lateral à direita com Gestão interna (estágio editável, próximo
-    follow-up, tags, notas internas) e Timeline de interações abaixo
-  - Timeline com ícone por tipo de evento (form, sync Iddas em laranja, sync
-    ClickMassa em verde, nota interna, mudança de estágio, tag, mensagens
-    WhatsApp), em ordem cronológica, com timestamp + autor
-  - Botão "Salvar alterações" em Gestão Interna → alert sobre Lote C
-  - Botão "Forçar nova sync" em Sistemas Externos → alert sobre Lote C
-  - Links "Abrir no Iddas →" / "Abrir no ClickMassa →" em nova aba
-- [x] Criar `src/app/admin/contatos/novo/page.tsx` — criação manual usando
-      mesmo form do site (sem mensagem de sucesso, redireciona pra lista —
-      mock por enquanto)
-- [x] Criar `src/components/admin/StageBadge.tsx` — badge colorido por estágio
-      (9 cores: gold, blue, indigo, purple, orange, green, teal, gray, red)
-- [x] Criar `src/components/admin/SyncBadge.tsx` — 2 ícones lado a lado
-      (Iddas + ClickMassa) com tooltip nativo
-- [x] Enriquecer formulário do site `src/components/ui/ContactForm.tsx` em 4
-      grupos visuais com 12 campos (6 obrigatórios) — Sobre você / Sobre a
-      viagem / Sobre o perfil / Observações
-- [x] Atualizar Server Action `src/app/(public)/contato/actions.ts` — recebe
-      payload enriquecido, loga em mock por enquanto (Promise.allSettled com
-      Iddas/ClickMassa vem no Lote C)
+- [x] `src/lib/contacts/types.ts` — interface `Contact` (53 campos em 10
+      agrupamentos), `ContactInteraction`, 8 enums
+- [x] `src/lib/contacts/mock-contacts.ts` — 8 contatos diversos
+- [x] `src/lib/contacts/mock-interactions.ts` — timeline com 25+ interações
+- [x] `src/lib/contacts/index.ts` — `getContacts()`, `getContactById()`,
+      `getContactInteractions()`, `getContactStats()` (substituídos no Lote C),
+      stubs de mutação
+- [x] `src/lib/integrations/iddas.ts` e `clickmassa.ts` com stubs
+- [x] `/admin/contatos` (lista com busca, 4 filtros, ações em massa, paginação)
+- [x] `/admin/contatos/[id]` (visão 360 em 2 áreas, timeline)
+- [x] `/admin/contatos/novo` (criação manual usando mesmo form do site)
+- [x] `StageBadge.tsx` (9 cores por estágio)
+- [x] `SyncBadge.tsx` (Iddas + ClickMassa com tooltip)
+- [x] Enriquecer `ContactForm.tsx` (4 grupos, 12 campos, 6 obrigatórios)
+- [x] Atualizar Server Action `/contato/actions.ts` (versão Lote B, mock)
 
-**Checkpoint 1.8:** lista navegável com 8 mocks, visão 360 completa de cada
-um, form do site enriquecido captura qualificação completa. Pronto pra plugar
-Supabase no Lote C com tradução direta dos tipos TypeScript pra SQL.
+**Checkpoint 1.8 ✅:** lista navegável com 8 mocks, visão 360 completa, form
+enriquecido. Pronto pra plugar Supabase no Lote C.
 
 ---
 
-## 1.9 Back office — Dashboard híbrido (real + integrações)
+## 1.9 Back office — Dashboard híbrido
 
-**Estado de saída:** ao entrar em `/admin`, time vê visão consolidada com
-métricas reais sobre nossa base + métricas dos sistemas externos via
-integração.
+**REESCOPO D025:** todos os cards são reais (não há "Em breve"). Divisão entre
+métricas internas (nossa base) e métricas de integração (Iddas/ClickMassa).
 
-**REESCOPO (registrado em D025):** após arquitetura travada em D024, todos os
-cards do dashboard são reais — não há mais cards "Em breve". A divisão é
-entre métricas internas (nossa base) e métricas de integração (Iddas /
-ClickMassa via API). Em mock por enquanto, com estrutura pronta pra fetch
-real no Lote C.
-
-- [x] Criar `src/app/admin/page.tsx` — substitui placeholder atual, faz
-      `Promise.all` dos stats em paralelo
-- [x] Criar `src/app/admin/DashboardClient.tsx` — Client Component com
-      saudação dinâmica (Bom dia / Boa tarde / Boa noite) + nome do user +
-      data formatada PT-BR
-- [x] Criar `src/components/admin/DashboardCard.tsx` — reutilizável com
-      props: `title`, `value`, `href?`, `tone?` ("default" | "warning")
-- [x] Dashboard renderiza em 3 grupos temáticos:
+- [x] `src/app/admin/page.tsx` (Server) com `Promise.all` de stats
+- [x] `DashboardClient.tsx` (Client) com saudação dinâmica + data PT-BR
+- [x] `DashboardCard.tsx` reutilizável
+- [x] 3 grupos:
   - **Hoje (3 cards):** Novos contatos, A fazer follow-up, Pendentes de sync
     (tone "warning" se >0)
   - **Este mês (3 cards):** Capturas totais, Em negociação, Fechados
-  - **Métricas de integração (4 cards):** Orçamentos no Iddas, Vendas no
-    Iddas, Tickets abertos no ClickMassa, Posts publicados (mock plausível
-    seedado por data, vira fetch real no Lote C)
-- [x] 3 botões de atalho: "Ver contatos", "Novo post", "Configurações"
+  - **Métricas de integração (4 cards):** Orçamentos Iddas, Vendas Iddas,
+    Tickets ClickMassa, Posts publicados
+- [x] 3 atalhos: Ver contatos, Novo post, Configurações
 
-**Checkpoint 1.9:** dashboard carrega em <1s. 10 cards distribuídos em 3
-grupos, todos consumindo mocks plausíveis. Pronto pra plugar dados reais no
-Lote C (contatos via Supabase) e Lote D (integrações Iddas/ClickMassa via
-API).
+**Checkpoint 1.9 ✅:** dashboard carrega em <1s. 10 cards distribuídos em 3
+grupos. **Pós-Lote C:** os 6 cards do bloco "Hoje" + "Este mês" agora consomem
+Supabase real; os 4 cards de "Métricas de integração" seguem mock plausível
+até a Fase 4.
 
 ---
 
 ## 1.10 Páginas administrativas auxiliares
 
-**REESCOPO (registrado em D026):** após D024, a página `/admin/integracoes`
-foi REMOVIDA porque seu conteúdo foi absorvido pela página
-`/admin/configuracoes`, que ganhou implementação real (visual) ao invés de
-placeholder.
+**REESCOPO D026:** `/admin/integracoes` removida, conteúdo absorvido por
+`/admin/configuracoes`.
 
 - [x] Remover `src/app/admin/integracoes/page.tsx`
-- [x] Atualizar `src/components/admin/AdminSidebar.tsx` — grupo "Admin"
-      agora tem 2 itens (Usuários, Configurações)
-- [x] Manter `src/app/admin/usuarios/page.tsx` como placeholder
-      ("Em breve · Fase 3")
-- [x] Implementar `src/app/admin/configuracoes/page.tsx` com conteúdo real:
-  - Card Integração Iddas (status, URL, link de solicitação, botão "Testar
-    conexão" → alert)
-  - Card Integração ClickMassa (status, modelo WABA, sessão, apiId, botão
-    "Testar conexão" → alert)
-  - Card Origens de captura (5 origens listadas: site_contato, google_ads,
-    instagram, indicacao, manual — botão "+ Adicionar" → alert)
-  - Card Mensagem padrão WhatsApp (textarea editável com mensagem mock,
-    botão "Salvar" → alert)
-  - Card Tags do sistema (tags mockadas listadas, botão "+ Nova tag" → alert)
+- [x] `AdminSidebar.tsx` com 2 itens no grupo Admin (Usuários, Configurações)
+- [x] `/admin/usuarios` placeholder ("Em breve · Fase 3")
+- [x] `/admin/configuracoes` com cards visuais (Iddas, ClickMassa, Origens,
+      Mensagem WhatsApp, Tags) — mutações via alert por enquanto
 
-**Checkpoint 1.10:** rotas existem, `/admin/integracoes` retorna 404,
-sidebar limpa, configurações com conteúdo visual real (mutações mostram
-alert sobre Lote C).
+**Checkpoint 1.10 ✅:** rotas existem, `/admin/integracoes` retorna 404,
+configurações com conteúdo visual real.
 
 ---
 
-## 1.11 Cliente Supabase e schema completo
+## 1.11 Lote C — `contacts` ligado ao Supabase real
 
-**Pré-requisito:** todas as páginas (públicas e admin) já construídas com
-mocks. Agora sabemos exatamente quais tabelas, colunas e relações precisamos.
+**Pré-requisito:** Lote B fechado (1.8 + 1.9 + 1.10) com mocks validados. O
+schema sai do `src/lib/contacts/types.ts` real, zero invenção. Decisões cravadas
+em D028 (schema/SQL), D029 (camada de acesso), D030 (risco de segurança no SSR).
 
-- [ ] Instalar `@supabase/supabase-js`
-- [ ] Criar `lib/supabase/client.ts` com cliente público (publishable key)
-- [ ] Criar `lib/supabase/server.ts` com cliente server-side (service role,
-      nunca exposta)
-- [ ] Adicionar variáveis ao `.env.local`:
-  ```
-  NEXT_PUBLIC_SUPABASE_URL=https://grjkqljucszoaujmhgpi.supabase.co
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_2TQ0BVyLarDosrwVSxX1IA_ctXqmNer
-  SUPABASE_SERVICE_ROLE_KEY=*** (não commitar, não logar)
-  ```
-- [ ] Documentar `.env.example` com placeholders
-- [ ] **Sessão dedicada de SQL em lote** — criar todas as tabelas, índices e
-      políticas RLS de uma vez:
+**Estado de saída:** form do site grava contato real no Supabase; admin lê,
+edita e cria contatos reais; dashboard de contatos reflete dados reais. Tudo
+ainda em preview local + Vercel preview, banco começa limpo.
 
-  Tabelas mínimas mapeadas:
+### SQL (executado no Supabase SQL editor antes do código)
 
-  ```sql
-  -- Submissões do formulário público
-  create table contact_submissions (
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz default now(),
-    name text not null,
-    email text not null,
-    phone text,
-    message text not null,
-    status text default 'novo',
-    notes text,
-    read_at timestamptz,
-    read_by uuid
-  );
+- [x] Função genérica `set_updated_at()`
+- [x] Tabela `contacts`: 53 colunas em 10 agrupamentos (identificação, dados
+      pessoais, endereço, qualificação, estágio interno, tags, espelho Iddas,
+      espelho ClickMassa, comportamento, metadados)
+  - Tradução TS→SQL: `snake_case` no banco / `camelCase` no TS, mapper isolado
+  - 9 CHECK constraints validando os enums (origem, destino_tipo,
+    orcamento_estimado, prazo_ideal, perfil_viajante, estagio, iddas_sync_status,
+    clickmassa_sync_status, status)
+  - Arrays nativos: `tags text[]`, `clickmassa_ticket_ids text[]`,
+    `clickmassa_tags_id integer[]`, `posts_lidos text[]`,
+    `campanhas_ativas text[]` (todos `not null default '{}'`)
+  - Defaults além do TS (decisões registradas em D028):
+    `status='ativo'`, `iddas_sync_status='pending'`,
+    `clickmassa_sync_status='pending'`, `estagio_atualizado_em=now()`,
+    `notas_internas=''`, `emails_abertos=0`
+  - 8 índices: status, estagio, origem, created_at desc, proximo_follow_up,
+    iddas_sync_status, clickmassa_sync_status, GIN em tags
+  - Trigger `trg_contacts_updated_at` (chama `set_updated_at()`)
+- [x] Tabela `contact_interactions`: 7 colunas
+  - FK `contact_id → contacts(id) ON DELETE CASCADE`
+  - CHECK constraint validando 13 valores de `tipo`
+  - `metadata jsonb not null default '{}'`
+  - Índice composto `(contact_id, criado_em)` pra timeline
+- [x] RLS ligada nas duas tabelas (`rowsecurity=true`)
+- [x] Policies `authenticated_all_contacts` e `authenticated_all_interactions`
+      (`for all to authenticated`). Anon sem policy (trancado). Service role
+      bypassa RLS por padrão
+- [~] **Não criadas neste lote (decisão de escopo D028):** `capture_origins` e
+  `tags`. Criar tabela sem código consumindo é dívida silenciosa. Entram no
+  passo de ligar a página de Configurações (que hoje é mock), com seus types TS
+  nascendo junto
 
-  -- Perfis de usuários do back office (estende auth.users)
-  create table user_profiles (
-    id uuid primary key references auth.users(id) on delete cascade,
-    email text not null unique,
-    name text,
-    role text not null default 'editor',
-    created_at timestamptz default now(),
-    invited_by uuid references auth.users(id)
-  );
+### Código (executado pelo Codinho após o SQL validado)
 
-  -- Log de atividade administrativa
-  create table admin_activity (
-    id uuid primary key default gen_random_uuid(),
-    user_id uuid references auth.users(id),
-    action text not null,
-    resource_type text,
-    resource_id text,
-    metadata jsonb,
-    created_at timestamptz default now()
-  );
+- [x] Instalar `@supabase/supabase-js@2.108.1`
+- [x] `src/lib/supabase/server.ts` — client `supabaseAdmin` server-side com
+      service role, `import 'server-only'` no topo (build quebra de propósito se
+      Client Component importar). **Sem client anon do browser:** auth ainda é
+      mock client-side, browser não tem sessão `authenticated`, então `anon`
+      cairia na RLS. Client anon entra junto com Supabase Auth real (3.1.0)
+- [x] `.env.local` (gitignored): `NEXT_PUBLIC_SUPABASE_URL` +
+      `SUPABASE_SERVICE_ROLE_KEY`. `.env.example` sem segredo
+- [x] `src/lib/contacts/mappers.ts` — mapper explícito snake↔camel pra `Contact`
+      e `ContactInteraction`, type-safe nas duas direções via `ContactRow` /
+      `ContactInsertRow`. **Por que explícito e não genérico:** um conversor
+      automático de chaves converteria também as chaves dentro do `metadata`
+      jsonb das interações, corrompendo o payload
+- [x] `src/lib/contacts/from-form.ts` — defaults compartilhados site/admin
+      (mesmo shape)
+- [x] `src/lib/contacts/index.ts` — `getContacts` / `getContactById` /
+      `getContactInteractions` / `getContactStats` agora consultam Supabase via
+      `supabaseAdmin` (mesmas assinaturas, código mock substituído).
+      `getContactStats` puxa ativos uma vez e conta em memória (volume boutique)
+- [x] Server Action `src/app/(public)/contato/actions.ts` — form do site grava
+      contato `origem=site_contato` + interação `form_submission`. Stubs Iddas e
+      ClickMassa não chamados; `sync_status` fica `pending` (sync real é Fase 4)
+- [x] Server Action `src/app/admin/contatos/novo/actions.ts` + ajuste em
+      `AdminContactForm.tsx` — criação manual grava `origem=manual`, redireciona
+      pra lista
+- [x] Server Action `src/app/admin/contatos/[id]/actions.ts` + ajuste em
+      `ContactDetailClient.tsx` — "Salvar alterações" da Gestão Interna persiste
+      estágio, follow-up e notas. `estagio_atualizado_em` bumpado apenas quando
+      o estágio muda
+- [x] `export const dynamic = "force-dynamic"` em `/admin`, `/admin/contatos`,
+      `/admin/contatos/[id]` — sem isso o Next prerenderia snapshot estático no
+      build e tentaria bater no banco em build time
 
-  -- Outras tabelas que emergirem da construção das páginas serão adicionadas
-  -- neste lote.
-  ```
+### Validação
 
-- [ ] Configurar RLS em cada tabela:
-  - `contact_submissions`: INSERT público, SELECT/UPDATE só authenticated com
-    role válido, DELETE só admin
-  - `user_profiles`: SELECT pelo próprio user; INSERT/UPDATE só admin
-  - `admin_activity`: SELECT só admin
+- [x] **SQL:** insert+rollback provou os defaults (Brasileira/Brasil/1/ativo/
+      pending/{}/created_at). Teste de CASCADE retornou `interacoes_orfas=0`.
+      RLS confirmada via `pg_tables.rowsecurity=true` e `pg_policies` retornando
+      as 2 policies
+- [x] **Código:** `npm run format`, `npm run lint`, `npx tsc --noEmit`,
+      `npm run build` — todos zero erros/warnings. Build passou com a
+      `service_role` key como placeholder, provando que nenhuma página consulta
+      banco em build time
+- [x] **End-to-end manual** (com service_role real em `.env.local`):
+  - Form `/contato` → 1 row em `contacts` (`origem=site_contato`,
+    `status=ativo`, `iddas_sync_status=pending`) + 1 row em
+    `contact_interactions` (`tipo=form_submission`) ✓
+  - Empty state da lista admin funcionou antes da primeira captura ✓
+  - Lista admin reflete contato criado ✓
+  - Visão 360 abre dados reais; Gestão Interna persiste edições após reload ✓
+  - Criação manual cria `origem=manual` e redireciona ✓
+  - Dashboard reflete contagens reais ✓
 
-- [ ] Plug do formulário público (`/contato`) no Supabase real (substituir mock
-      de log)
-- [ ] Plug do módulo Contatos do admin (`/admin/contatos`) no Supabase real
-      (substituir mock estático)
-- [ ] Plug do dashboard híbrido — cards de contatos passam de mock pra real
-- [ ] Plug do Supabase Auth no `lib/auth/supabase.ts` (ativação real do magic
-      link)
-- [ ] Validar RLS funcionando: editor pode ler/atualizar contatos mas não
-      deletar; admin pode tudo
+### Risco conhecido (D030, resolução obrigatória na Fase 3)
 
-**Checkpoint 1.11:** todo o sistema funciona com dados reais do Supabase. Login
-real funciona. Contatos enviados pelo formulário chegam no admin. Schema fechado.
+`force-dynamic` + auth mock client-side + service role no SSR fazem com que
+requests não-autenticados a `/admin/*` recebam HTML com dados dos contatos no
+payload (o redirect pra login acontece tarde demais, no client). Inócuo em
+preview com banco vazio. **Bloqueador pra produção.** Resolução em 3.1.0
+(Supabase Auth real com sessão em cookie HTTP-only).
+
+### Fora de escopo deste lote
+
+- Tabelas `capture_origins` e `tags` (entram com a página de Configurações)
+- Sincronização real com Iddas e ClickMassa (Fase 4)
+- Supabase Auth real (3.1.0, D030)
+
+**Checkpoint 1.11 ✅:** schema real de pé, código plugado, captura ponta a ponta
+funcionando, banco começa limpo. Lote C fechado.
 
 ---
 
@@ -608,8 +487,7 @@ real funciona. Contatos enviados pelo formulário chegam no admin. Schema fechad
   - Posts de blog (Article)
 - [ ] Validar com Google Rich Results Test (localmente via ngrok ou pós-deploy)
 
-**Checkpoint 1.12:** Lighthouse score 90+ em SEO (no mínimo) em todas as
-páginas públicas.
+**Checkpoint 1.12:** Lighthouse score 90+ em SEO em todas as páginas públicas.
 
 ---
 
@@ -627,9 +505,9 @@ páginas públicas.
 - [ ] Documentar padrão de commits em `docs/CONTRIBUTING.md`
 
 **Checkpoint Fase 1 COMPLETO:** site público funcional, back office estrutural
-completo (login + contatos + dashboard híbrido + placeholders), blog público
-+ admin com UI pronta, Supabase ligado com schema fechado, formulário real,
-métricas Lighthouse no target. **Pronto pra Fase 2.**
+completo, blog público + admin com UI pronta, **Supabase ligado pra contatos
+(Lote C)**, formulário grava real, métricas Lighthouse no target. **Pronto pra
+Fase 2.**
 
 ---
 
@@ -644,10 +522,11 @@ reais aplicadas e comentários de Nina endereçados, pronto pra ir pra produçã
 
 ## 2.1 Deploy preview na Vercel
 
-- [x] Criar projeto na Vercel conectado ao repo `Gattiboni/spinhardi_site`
-- [x] **Plano Hobby (free) temporariamente** — uso é de preview/staging
+- [x] Criar projeto na Vercel conectado ao repo `Gattiboni/spinhardi`
+- [x] **Plano Hobby (free) temporariamente**
 - [x] Configurar deploy automático: push em `main` → URL pública
-- [ ] Configurar variáveis de ambiente na Vercel (mesmas do `.env.local`)
+- [ ] Configurar variáveis de ambiente na Vercel (mesmas do `.env.local`,
+      incluindo `SUPABASE_SERVICE_ROLE_KEY`)
 - [x] URL ativa: `https://spinhardi-preview.vercel.app/`
 
 **Checkpoint 2.1:** site acessível em URL pública. Nina, Julia e Amanda
@@ -657,35 +536,29 @@ conseguem abrir no celular.
 
 ## 2.2 Endereçar comentários de revisão da Nina
 
-Comentários da Nina sobre a primeira versão do preview foram guardados durante
-o build e serão atacados em sessão dedicada.
-
 - [ ] Ler e categorizar comentários de Nina (texto, layout, navegação,
       conteúdo, outros)
 - [ ] Filtrar bloqueantes vs. melhorias incrementais
 - [ ] Implementar bloqueantes antes de continuar
-- [ ] Documentar decisões tomadas sobre cada comentário (aceito / rejeitado /
-      modificado) no DECISION_LOG ou em documento de iteração
+- [ ] Documentar decisões no DECISION_LOG ou documento de iteração
 - [ ] Re-enviar preview pra Nina validar correções
 
-**Checkpoint 2.2:** todos os comentários de Nina endereçados (implementados ou
+**Checkpoint 2.2:** todos os comentários endereçados (implementados ou
 explicitamente justificados como rejeitados).
 
 ---
 
 ## 2.3 Mapeamento e aplicação em batch das imagens reais
 
-Amanda forneceu orientação sobre as imagens. Aplicação será em sessão dedicada
-no final, em batch único, conforme princípio definido na sessão de construção.
+Amanda já entregou as imagens. Aplicação em sessão dedicada no final, em batch
+único.
 
-- [ ] Consolidar mapa de imagens — slots mapeados nas páginas + orientação da
-      Amanda + entrega de Nina e Julia
-- [ ] Receber pasta de imagens definitivas
+- [ ] Consolidar mapa de imagens (slots + entrega da Amanda)
 - [ ] Sessão dedicada: análise de cada imagem + placement nos slots corretos
 - [ ] Otimizar (próximo de 500KB cada, sRGB, formato WebP/AVIF)
 - [ ] Substituir placeholders por imagens reais com `next/image`
 - [ ] Validar visualmente em mobile e desktop
-- [ ] Validar alt text contextual em todas as imagens (acessibilidade + SEO)
+- [ ] Validar alt text contextual
 - [ ] Deploy
 
 **Checkpoint 2.3:** site visualmente idêntico ao que vai pra produção.
@@ -698,23 +571,47 @@ no final, em batch único, conforme princípio definido na sessão de construç�
 - [ ] Sessão de revisão final com Nina e Julia (validação operacional)
 - [ ] Aprovação explícita pra ir pra produção
 
-**Checkpoint 2.4:** aprovação explícita registrada. Pronto pra contratar
-serviços pagos e ir pra produção.
+**Checkpoint 2.4:** aprovação registrada. Pronto pra contratar serviços pagos.
 
 ---
 
 # FASE 3 — Produção
 
 **Estado de saída:** site no ar em `spinharditurismo.com.br`, todos os serviços
-pagos contratados e configurados, blog editável pela Amanda via Sanity,
-formulário enviando e-mail real, analytics rodando, back office com Nina,
-Julia e Amanda convidadas.
+pagos contratados, blog editável pela Amanda via Sanity, formulário enviando
+e-mail real, analytics rodando, back office com Nina, Julia e Amanda convidadas,
+**Supabase Auth real protegendo rotas admin server-side**.
 
 **Custo recorrente:** ~R$ 250/mês.
 
 ---
 
-## 3.1 Contratações (na ordem)
+## 3.1 Contratações e hardening (na ordem)
+
+### 3.1.0 Supabase Auth real (BLOQUEADOR de go-live, registrado em D030)
+
+O Lote C deixou o admin com auth mock client-side + SSR via service role. Em
+preview com banco vazio o risco é inócuo, mas em produção isso vaza dados de
+contatos em payload SSR pra qualquer request anônimo. Resolver é pré-requisito
+de go-live.
+
+- [ ] Habilitar Supabase Auth no projeto (email magic link como método inicial)
+- [ ] Configurar SMTP no Supabase Pro (depende de 3.1.2 abaixo)
+- [ ] Criar `src/lib/supabase/client.ts` (publishable key, anon, browser-side)
+      e `src/lib/auth/supabase.ts` (implementação real do `AuthProvider`)
+- [ ] Substituir `lib/auth/mock.ts` por `lib/auth/supabase.ts` no entry point
+      (`lib/auth/index.ts`)
+- [ ] **Proteção server-side** em `middleware.ts` ou em `src/app/admin/layout.tsx`
+      (Server Component): ler sessão de cookie HTTP-only, redirecionar 302 pra
+      `/admin/login` antes de renderizar dados sensíveis
+- [ ] Criar `src/lib/contacts/server-actions.ts` (ou refatorar as actions
+      existentes) pra checar sessão `authenticated` antes de usar
+      `supabaseAdmin`. Service role nunca executa pra request anônimo
+- [ ] Validar comportamento: `curl /admin/contatos` sem cookie de sessão
+      retorna 302 pra login, **sem dados no payload**
+- [ ] Criar `user_profiles` no Supabase (linka `auth.users` com role
+      `admin | editor`) — schema sai aqui, não antes
+- [ ] Criar `docs/SECURITY_GO_LIVE.md` com checklist de segurança pré-produção
 
 ### 3.1.1 Vercel Pro
 
@@ -727,8 +624,9 @@ Julia e Amanda convidadas.
 
 - [ ] Upgrade do projeto Supabase pra plano Pro ($25/mês)
 - [ ] Timing: uma semana antes do go-live (margem pra testes em Pro)
-- [ ] Validar que tudo funciona em Pro (auth, RLS, conexões)
+- [ ] Validar que tudo funciona em Pro (auth real, RLS, conexões, SMTP)
 - [ ] Configurar backups automáticos
+- [ ] Configurar SMTP (Resend ou alternativa) pra magic link funcionar
 
 ### 3.1.3 Sanity
 
@@ -759,10 +657,7 @@ Julia e Amanda convidadas.
 
 - [ ] Criar propriedade GA4 com a conta Google da Spinhardi
 - [ ] Configurar GA4 via Google Tag Manager
-- [ ] Configurar eventos de conversão:
-  - Clique no WhatsApp
-  - Envio de formulário de contato
-  - Clique em CTA principal
+- [ ] Configurar eventos de conversão (WhatsApp, formulário, CTA principal)
 - [ ] Adicionar Search Console à mesma conta Google
 - [ ] Verificar propriedade via DNS ou meta tag
 - [ ] Submeter sitemap.xml
@@ -775,13 +670,8 @@ Julia e Amanda convidadas.
 - [ ] Implementar `lib/sanity/client.ts` e `lib/sanity/queries.ts`
 - [ ] Atualizar `lib/blog/index.ts` pra consumir Sanity (`getPosts()`,
       `getPostBySlug()`)
-- [ ] Decisão sobre `/admin/blog` (Sanity próprio ou interface dentro do nosso
-      admin):
-  - **Opção A:** Amanda usa Sanity Studio diretamente (mais simples, menos
-    código nosso)
-  - **Opção B:** Nosso `/admin/blog` consome API do Sanity (mantém UX
-    consistente com o resto do back office)
-  - Decisão final será tomada nesta etapa com Amanda
+- [ ] Decisão sobre `/admin/blog` (Sanity Studio direto ou interface dentro do
+      nosso admin) — decidida com Amanda nesta etapa
 - [ ] Configurar webhook Sanity → Vercel para revalidar páginas no publish
 - [ ] Validar que páginas de blog renderizam conteúdo real do Sanity
 - [ ] Amanda publica 1 post teste
@@ -796,29 +686,45 @@ Julia e Amanda convidadas.
       Julia (editor)
 - [ ] Convidar via Supabase Auth (magic link enviado por e-mail)
 - [ ] Validar que cada uma consegue logar
-- [ ] Validar permissões funcionando (editor não vê Usuários/Integrações/
-      Configurações)
+- [ ] Validar permissões: editor não vê Usuários/Configurações
 
 **Checkpoint 3.3:** 4 contas ativas no back office.
 
 ---
 
-## 3.4 Configurar DNS e domínio
+## 3.4 Ligar `capture_origins` e `tags` no Supabase
 
-- [ ] Apontar DNS de `spinharditurismo.com.br` pra Vercel:
-  - Registro `A` apontando pro IP da Vercel
-  - Registro `CNAME` `www` apontando pro domínio
+Tarefa segurada deliberadamente do Lote C (D028): criar tabela sem código
+consumindo é dívida silenciosa. Quando a página de Configurações sair do mock,
+as tabelas nascem junto.
+
+- [ ] Criar `capture_origins` no Supabase (id uuid, slug único, nome, descricao,
+      ativo bool, campanha_ativa bool, criado_em)
+- [ ] Criar `tags` no Supabase (id uuid, slug único, nome, cor hex, grupo,
+      ativo bool — sem timestamp, decisão (a) em D028)
+- [ ] Criar types TS correspondentes em `src/lib/configuracoes/types.ts` (ou
+      similar)
+- [ ] Migrar a página `/admin/configuracoes` de mock pra Supabase real
+- [ ] Validar criação/edição/desativação de origens e tags
+
+**Checkpoint 3.4:** página de Configurações funcional, sem alerts.
+
+---
+
+## 3.5 Configurar DNS e domínio
+
+- [ ] Apontar DNS de `spinharditurismo.com.br` pra Vercel (registros A e CNAME)
 - [ ] Adicionar domínio customizado na Vercel
 - [ ] Validar HTTPS automático (Let's Encrypt via Vercel)
 - [ ] Configurar redirect `www` → `apex` (ou vice-versa)
 - [ ] Atualizar e-mail de contato do domínio no Registro.br
 - [ ] Aguardar propagação DNS (até 24h, geralmente 1h)
 
-**Checkpoint 3.4:** site acessível em `https://spinharditurismo.com.br`.
+**Checkpoint 3.5:** site acessível em `https://spinharditurismo.com.br`.
 
 ---
 
-## 3.5 Checklist final de go-live
+## 3.6 Checklist final de go-live
 
 - [ ] Revisão final de todos os textos (comparar com mapa de copies aprovado)
 - [ ] Todos os links funcionando (interno e externo)
@@ -833,27 +739,24 @@ Julia e Amanda convidadas.
 - [ ] Analytics capturando eventos
 - [ ] Backup do Supabase rodando
 - [ ] Back office acessível pelas 4 contas
+- [ ] **Teste de hardening D030:** `curl /admin/contatos` sem sessão retorna
+      302 pra login, payload sem dados de contatos
 - [ ] Tag `v1.0.0` no repositório
 - [ ] Commit final em `main` com mensagem
       `release: v1.0.0 — go-live spinharditurismo.com.br`
 
 ---
 
-## 3.6 Treinamento e documentação
+## 3.7 Treinamento e documentação
 
 - [ ] Loom: tour completo do back office pra Nina e Julia (10-15 min)
-  - Como ver contatos
-  - Como mudar status / deixar nota
-  - Como abrir WhatsApp direto
-  - Como ler o dashboard
-  - Como sair / problemas comuns
 - [ ] Loom curto: como Amanda publica um post (Sanity Studio ou nosso admin
       conforme decisão na 3.2)
 - [ ] Loom curto: monitoramento técnico pra Alan (Supabase, Vercel, logs)
 - [ ] Criar `docs/MANUTENCAO.md` — o que fazer quando algo quebrar
 - [ ] Atualizar README com URL de produção e links pros painéis
 - [ ] Atualizar CHANGELOG com entrada de go-live
-- [ ] Atualizar DECISION_LOG se tiver alguma decisão nova registrada na Fase 3
+- [ ] Atualizar DECISION_LOG com decisões da Fase 3
 
 **Checkpoint Fase 3 COMPLETO:** site no ar, operacional, monitorado,
 documentado, time treinado.
@@ -862,8 +765,9 @@ documentado, time treinado.
 
 # FASE 4 — Pós-launch / Roadmap
 
-**Estado de saída:** integrações operacionais, dashboard com dados reais,
-camada de IA com primeira aplicação real, melhorias contínuas em ciclos curtos.
+**Estado de saída:** integrações Iddas/ClickMassa operacionais, dashboard com
+métricas de integração reais (os cards de contatos já são reais desde o Lote
+C), camada de IA com primeira aplicação real, melhorias contínuas.
 
 **Sem prazo fixo.** Cada item entra quando faz sentido.
 
@@ -871,50 +775,62 @@ camada de IA com primeira aplicação real, melhorias contínuas em ciclos curto
 
 ## 4.1 Integrações operacionais
 
-### IDAS (sistema de reservas)
+### Iddas (ERP de viagens)
 
-- [ ] Implementar de verdade `lib/integrations/idas.ts`
-- [ ] REST polling pra puxar dados (sem webhooks nativos)
-- [ ] Tipagem TypeScript completa do schema IDAS
+- [ ] Implementar de verdade `lib/integrations/iddas.ts` (substituindo stubs)
+- [ ] OAuth Bearer + REST polling (sem webhooks nativos)
+- [ ] Tipagem TypeScript completa do schema Iddas
 - [ ] Documentar endpoints usados em `docs/INTEGRATIONS.md`
 
 ### ClickMassa (WhatsApp CRM)
 
-- [ ] Implementar `lib/integrations/clickmassa.ts`
+- [ ] Implementar `lib/integrations/clickmassa.ts` (substituindo stubs)
 - [ ] Mapear pipeline (11 stages) e tags (20) já configurados
 - [ ] Documentar uso em `docs/INTEGRATIONS.md`
 
-### Make (bridge IDAS ↔ ClickMassa)
+### Make (bridge Iddas ↔ ClickMassa, polling-based)
 
-- [ ] Criar cenário Make pra polling do IDAS e push pro ClickMassa
+- [ ] Criar cenário Make pra polling do Iddas e push pro ClickMassa
 - [ ] Automação de follow-up por estágio de pipeline
 - [ ] Documentar cenário em `docs/INTEGRATIONS.md`
 
-### Formulário de contato com roteamento inteligente
+### Religar Server Actions de contato com sync real
 
-- [ ] Webhook Make: formulário do site → ClickMassa (cria card) + e-mail
-      (Resend)
-- [ ] Tag automática no ClickMassa por origem (site, instagram, indicação)
+Hoje (pós-Lote C) o form do site e a criação manual gravam no Supabase com
+`sync_status='pending'`. Na Fase 4 essa camada vira ativa.
+
+- [ ] Religar `/contato/actions.ts` pra chamar `iddas.createSolicitacao()` e
+      `clickmassa.createTicket()` via `Promise.allSettled` após o insert no
+      Supabase
+- [ ] Atualizar `sync_status` pra `synced` ou `failed` conforme retorno; gravar
+      `iddas_pessoa_id`, `iddas_orcamento_id`, `clickmassa_contact_id` etc
+- [ ] Criar interações `sync_iddas` e `sync_clickmassa` na timeline
+- [ ] Botão "Forçar nova sync" na visão 360 passa a chamar de verdade
 
 ---
 
-## 4.2 Dashboard real
+## 4.2 Dashboard de integrações real
+
+Os 6 cards de contatos no dashboard já são reais desde o Lote C. Resta tornar
+reais os 4 cards de integração.
 
 - [ ] Implementar `lib/analytics/ga4.ts` consumindo Data API do GA4
 - [ ] Trocar provider ativo de mock pra GA4 real (1 linha em
       `lib/analytics/index.ts`)
-- [ ] Adicionar cards reais do ClickMassa (conversas ativas, novos contatos)
-- [ ] Adicionar cards reais do IDAS (reservas, faturamento do mês)
-- [ ] Dashboard híbrido vira dashboard 100% real
-- [ ] Remover badges "Mock" e "Em breve" do dashboard
+- [ ] Card "Orçamentos no Iddas" passa a chamar `iddas.getStats()` real
+- [ ] Card "Vendas no Iddas" idem
+- [ ] Card "Tickets abertos no ClickMassa" chama `clickmassa.getStats()` real
+- [ ] Card "Posts publicados" passa a contar via Sanity
+- [ ] Remover qualquer indicação de "mock" / "plausível" do dashboard
 
 ---
 
 ## 4.3 Conectar integrações ao back office
 
-- [ ] `/admin/integracoes` deixa de ser placeholder
-- [ ] `/admin/integracoes/idas` — config (API key, polling interval) + logs
-      últimas chamadas + botão "testar conexão"
+- [ ] Trazer de volta `/admin/integracoes` (foi removida em D026 enquanto era
+      placeholder) com tela funcional
+- [ ] `/admin/integracoes/iddas` — config (API key, polling interval) + logs
+      + botão "testar conexão"
 - [ ] `/admin/integracoes/clickmassa` — similar
 - [ ] `/admin/integracoes/make` — link pros cenários + status
 
@@ -925,10 +841,9 @@ camada de IA com primeira aplicação real, melhorias contínuas em ciclos curto
 - [ ] Implementar `lib/ai/anthropic.ts` (provider real)
 - [ ] Configurar `ANTHROPIC_API_KEY` em `.env.local` e Vercel
 - [ ] Definir schema de contexto Spinhardi (produtos, perfis de cliente,
-      destinos) — injetado em todos os prompts
-- [ ] **Primeira aplicação:** `/api/ai/suggest-itinerary`
-  - Recebe perfil de cliente (orçamento, interesse, tempo, perfil de viagem)
-  - Retorna sugestão estruturada de roteiro
+      destinos) injetado em todos os prompts
+- [ ] **Primeira aplicação:** `/api/ai/suggest-itinerary` (recebe perfil de
+      cliente, retorna sugestão estruturada de roteiro)
 - [ ] Cada nova função de IA é um módulo separado em `lib/ai/modules/`
 - [ ] Documentar arquitetura em `docs/AI_LAYER.md`
 
@@ -940,12 +855,11 @@ produto. Só muda a implementação do provider.
 ## 4.5 Página de Passagens Avulsas (interface operacional)
 
 Conforme D020, Passagens Avulsas vira interface de booking operacional na
-Fase 4, ligada ao IDAS.
+Fase 4, ligada ao Iddas.
 
 - [ ] Definir UX da interface (rota dedicada, ex.: `/passagens` ou `/reservas`)
-- [ ] Implementar consulta IDAS via `lib/integrations/idas.ts`
-- [ ] Atualizar link do ServiceCard 01 da Home (atualmente aponta pra `/viagens`,
-      vai apontar pra rota nova)
+- [ ] Implementar consulta Iddas via `lib/integrations/iddas.ts`
+- [ ] Atualizar link do ServiceCard 01 da Home
 
 ---
 
@@ -953,16 +867,14 @@ Fase 4, ligada ao IDAS.
 
 Lista aberta. Itens entram conforme priorização.
 
-- [ ] Página de Política de Privacidade e Termos de Uso (recomendado mesmo
-      simples)
+- [ ] Página de Política de Privacidade e Termos de Uso
 - [ ] Página de cases/portfólio (quando houver depoimentos reais + permissão)
 - [ ] Sistema de agendamento de posts no Sanity (plugin Scheduled Publishing)
 - [ ] Subdomínios criativos pra campanhas
 - [ ] Tradução EN-US (se houver demanda)
-- [ ] Newsletter (integração com ferramenta de e-mail marketing — não Resend)
-- [ ] Programa de indicação automatizado (ClickMassa + IDAS + Make)
+- [ ] Newsletter (integração com ferramenta de e-mail marketing)
+- [ ] Programa de indicação automatizado (ClickMassa + Iddas + Make)
 - [ ] Implementação real de `/admin/usuarios` (quando virar dor)
-- [ ] Implementação real de `/admin/configuracoes` (quando virar dor)
 
 ---
 
@@ -972,9 +884,9 @@ Lista aberta. Itens entram conforme priorização.
 - [x] Confirmar que `spinharditurismo.com.br` é da Spinhardi LTDA
 - [x] Criar cartão virtual e enviar dados pra Alan
 - [x] Aprovar preview inicial enviado em 2026-05-31
-- [ ] Comentários da Nina sobre o preview — endereçados na Fase 2.2
-- [ ] Indicação de imagens finais — aplicadas na Fase 2.3
-- [ ] Nina aprovar criação da conta Gmail da Spinhardi (apenas informativo)
+- [ ] Comentários da Nina sobre o preview pós-Lote B — endereçados na Fase 2.2
+- [ ] Indicação de imagens finais — aplicadas na Fase 2.3 (Amanda já entregou)
+- [ ] Nina aprovar criação da conta Gmail da Spinhardi (informativo)
 - [ ] Treinamento da Amanda no Sanity (agendar quando Fase 3 estiver próxima)
 - [ ] Validação da mensagem padrão do WhatsApp
 
@@ -984,36 +896,37 @@ Lista aberta. Itens entram conforme priorização.
 
 - [ ] Decidir formato exato dos `slug`s de blog (manter PT-BR, sem stop-words)
 - [ ] Decidir política de retenção de submissões do formulário no Supabase
-      (LGPD)
-- [ ] Decidir backup strategy do Sanity (export periódico ou só confiar no
-      SaaS)
+      (LGPD; impacta `status='anonimizado_lgpd'`)
+- [ ] Decidir backup strategy do Sanity (export periódico ou só confiar no SaaS)
 - [ ] **Refazer `public/logos/logo-icone.svg` como vetor real** (atualmente
       PNG raster embutido com 288 KB — ver D017). Prioridade: ALTA quando virar
-      favicon, porque impacta Core Web Vitals. Caminho sugerido: pedir ao
-      Codinho redesenhar o pássaro como SVG vetorial puro a partir da
-      referência visual existente.
-- [ ] **Refazer `public/logos/logo-clara.svg` e `public/logos/logo-escura.svg`
-      como vetor real** quando houver tempo de polimento. Prioridade:
-      MÉDIA-BAIXA.
-- [ ] **Manter `LIGHT_ROUTES` atualizada** (ver D018) — adicionar pathname de
-      novas páginas com fundo claro à constante em
-      `src/components/ui/Header.tsx`. Hoje contém `/dev/components`, `/sobre`,
-      `/viagens`. Quando criar `/contato` e `/blog`, adicionar.
+      favicon, porque impacta Core Web Vitals
+- [ ] **Refazer `public/logos/logo-clara.svg` e `logo-escura.svg` como vetor
+      real**. Prioridade: MÉDIA-BAIXA
+- [ ] **Manter `LIGHT_ROUTES` atualizada** (D018) — adicionar pathname de novas
+      páginas com fundo claro à constante em `src/components/ui/Header.tsx`
 - [ ] Decidir formato definitivo do admin de blog na 3.2 (Sanity Studio direto
       vs interface dentro do nosso admin)
+- [ ] **Criar `docs/SECURITY_GO_LIVE.md`** com checklist de hardening
+      pré-produção (D030)
+- [ ] **Limpar `.gitignore`:** resíduo de here-string PowerShell na linha 1
+      (`@'`) e na última (`'@ | Out-File ...`). Não quebra ignore do
+      `.env.local` (verificado), prioridade BAIXA
+- [ ] **Tabelas `capture_origins` e `tags` no Supabase** + types TS
+      correspondentes (entram com 3.4, página de Configurações real)
 
 ---
 
 # Critérios de "pronto"
 
-| Fase | Critério de "pronto"                                                                                                                                                              |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `npm run dev` roda. Site público completo. Back office completo (login + contatos + dashboard híbrido + placeholders). Blog público + admin com UI pronta. Supabase ligado.       |
-| 2    | Aprovação institucional (Amanda) e operacional (Nina e Julia) em URL pública. Imagens reais substituídas. Comentários de Nina endereçados.                                        |
-| 3    | Site no ar em `spinharditurismo.com.br` com HTTPS. Sanity ligado. Resend enviando. GA4 capturando. Back office com 4 contas ativas (Alan admin, Amanda admin, Nina editor, Julia editor). |
-| 4    | Em fluxo contínuo. Cada item tem seu próprio critério.                                                                                                                            |
+| Fase | Critério de "pronto"                                                                                                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `npm run dev` roda. Site público completo. Back office completo (login mock + contatos reais via Supabase + dashboard híbrido + placeholders). Blog público + admin com UI pronta. Schema Lote C de pé. Métricas Lighthouse no target. |
+| 2    | Aprovação institucional (Amanda) e operacional (Nina e Julia) em URL pública. Imagens reais substituídas. Comentários de Nina endereçados.                                                                                    |
+| 3    | Site no ar em `spinharditurismo.com.br` com HTTPS. **Supabase Auth real protegendo `/admin/*` server-side (D030).** Sanity ligado. Resend enviando. GA4 capturando. Back office com 4 contas ativas. Configurações reais (3.4). |
+| 4    | Em fluxo contínuo. Cada item tem seu próprio critério.                                                                                                                                                                       |
 
 ---
 
-_Plano de Desenvolvimento v3 · Substitui v2 · Gattiboni Enterprises para
-Spinhardi Turismo · Abril 2026_
+_Plano de Desenvolvimento v3.1 · Substitui v3.0 · Gattiboni Enterprises para
+Spinhardi Turismo · Junho 2026_

@@ -5,6 +5,7 @@ import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
+import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 
 export const metadata: Metadata = {
   title: "Viagens", // vira "Viagens | Spinhardi Turismo"
@@ -44,15 +45,13 @@ export default function Viagens() {
               href="/viagens/pacotes"
               className="group block overflow-hidden rounded-md border border-dark/10 bg-white transition-all duration-medium ease-smooth hover:border-gold/30 hover:shadow-lg"
             >
-              {/* Placeholder de imagem */}
-              <div className="flex aspect-[4/3] items-center justify-center border-b border-dark/10 bg-dark/5">
-                <p className="px-4 text-center font-body text-xs uppercase tracking-wide text-dark/40">
-                  Imagem ilustrativa
-                  <br />
-                  Pacotes e Roteiros
-                  <br />A definir com Nina e Julia
-                </p>
-              </div>
+              <SpinhardiImage
+                src="/destino-pacote-01.jpg"
+                alt="Destino de pacote de viagem Spinhardi"
+                aspect="3/2"
+                className="border-b border-dark/10"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
 
               {/* Conteúdo */}
               <div className="p-8 lg:p-10">
@@ -78,15 +77,13 @@ export default function Viagens() {
               href="/viagens/sob-medida"
               className="group block overflow-hidden rounded-md border border-dark/10 bg-white transition-all duration-medium ease-smooth hover:border-gold/30 hover:shadow-lg"
             >
-              {/* Placeholder de imagem */}
-              <div className="flex aspect-[4/3] items-center justify-center border-b border-dark/10 bg-dark/5">
-                <p className="px-4 text-center font-body text-xs uppercase tracking-wide text-dark/40">
-                  Imagem ilustrativa
-                  <br />
-                  Viagem Sob Medida
-                  <br />A definir com Nina e Julia
-                </p>
-              </div>
+              <SpinhardiImage
+                src="/destino-curadoria-01.jpg"
+                alt="Viagem sob medida desenhada pela Spinhardi"
+                aspect="3/2"
+                className="border-b border-dark/10"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
 
               {/* Conteúdo */}
               <div className="p-8 lg:p-10">

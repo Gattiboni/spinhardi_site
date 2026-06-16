@@ -15,6 +15,147 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-16 — Lote Fotos: imagens reais aplicadas + componente `<SpinhardiImage>`
+
+### Adicionado
+
+**Imagens em `public/`:**
+
+- 17 arquivos entregues pela Amanda (3 hero, 2 equipe Nina/Julia, 4
+  historia-1987, 2 destino-pacote, 2 destino-curadoria, 3 blog-thumb, 1
+  serra-negra-agencia)
+- 10 arquivos pesados (4× a 14× acima do limite de 500 KB do mapa) otimizados
+  pelo Claudinho: 40 MB → 5.8 MB total (86% de redução), JPG progressivo,
+  dimensão máxima 2400px pra heros e 1600-2000px pros demais, qualidade 78-82
+  calibrada por grupo, aspect ratios originais preservados (sem crop)
+- 7 arquivos leves preservados (já estavam bem otimizados pela Amanda)
+
+**Componente:**
+
+- `src/components/ui/SpinhardiImage.tsx` — wrapper único pra slots de imagem de
+  conteúdo. Container com aspect-ratio fixo (style inline pra escapar do
+  Tailwind v4 purge), `<Image fill>` dentro, `object-fit: cover` +
+  `objectPosition` configurável, `w-full` por default. Lei do projeto registrada
+  em JSDoc + D031.
+
+**Slots aplicados (9 ativos):**
+
+- **Home — Hero** (Cat C, construído): `hero-principal-01.jpg` com `priority`,
+  overlay `bg-navy/60` pra legibilidade do texto branco. Altura controlada
+  `lg:min-h-[70vh] lg:max-h-[80vh]`
+- **Home — Bloco Posicionamento** (Cat C, construído): grid 2 colunas, foto da
+  Nina (`equipe-spinhardi-01-nina`) à direita
+- **Home — Bloco História/Legado** (Cat C, construído): foto da fachada da
+  Spinhardi com logos de cias aéreas antigas (`historia-1987-02`) à esquerda +
+  numeral "1987" gold abaixo como caption (Variante A)
+- **`/sobre` — Sócias lado a lado** (Cat A, redesenhado): grid 2 colunas com
+  `<figure>`/`<figcaption>` "Angelina Saragiotto" e "Julia Scappini", retratos
+  `max-w-50` (~200px) centralizados
+- **`/viagens` — Card 01** (Cat A, troca direta): `destino-pacote-01`, aspect
+  3/2
+- **`/viagens` — Card 02** (Cat A, troca direta): `destino-curadoria-01`, aspect
+  3/2
+- **`/viagens/pacotes` — Coluna direita** (Cat C, construído):
+  `destino-pacote-02` acima do card sticky de CTA, aspect 3/2
+- **`/viagens/sob-medida` — Coluna direita** (Cat C, construído):
+  `destino-curadoria-02` acima do card sticky de CTA, aspect 4/5
+- **`/blog` — 3 thumbs reais** (Cat B, dados): `blog-thumb-01/02/03` nos 3 posts
+  publicáveis (preenchimento via `mock-posts.ts`)
+
+### Modificado
+
+- `src/app/(public)/page.tsx` — Hero ganhou altura controlada + foto de fundo
+  via `<SpinhardiImage absolute inset-0>` com overlay navy. Bloco Posicionamento
+  virou grid 2 colunas (texto à esquerda, foto da Nina à direita). Bloco
+  História/Legado ganhou foto + numeral
+- `src/app/(public)/sobre/page.tsx` — slot único da Julia virou grid 2 colunas
+  com Nina + Julia lado a lado, fotos pequenas, com nomes completos em
+  `<figcaption>` abaixo
+- `src/app/(public)/viagens/page.tsx` — placeholders dos 2 cards substituídos
+  por `<SpinhardiImage>`
+- `src/app/(public)/viagens/pacotes/page.tsx` — coluna direita ganhou foto acima
+  do card sticky
+- `src/app/(public)/viagens/sob-medida/page.tsx` — idem
+- `src/lib/blog/mock-posts.ts` — 3 posts ganharam `thumbnail` real; 2 posts
+  (`florenca-fora-do-circuito` e `selecao-parceiros-locais`) comentados em bloco
+  até a Amanda entregar `blog-thumb-04` e `-05`. Condição de reativação
+  documentada inline. Conteúdo preservado, nada deletado
+- `src/components/ui/SpinhardiImage.tsx` — wrapper ganhou `w-full` por default
+  após descoberta do bug de colapso de altura em CSS Grid (ver "Riscos
+  resolvidos" abaixo). JSDoc atualizado
+
+### Não modificado (decisão de escopo)
+
+- **Slots Categoria C "possíveis usos"**: `/sobre` linha do tempo e `/contato`
+  elemento contextual. Eram "possível uso" no mapa da Amanda, não exigência.
+  Descartados na decisão pré-aplicação. Arquivo `serra-negra-agencia-01.jpg`
+  fica em `public/` como referência futura
+- **`BlogCard.tsx`**: continua usando `<Image>` direto do `next/image`, não
+  `<SpinhardiImage>`. Exceção documentada em D031 (componente especializado com
+  `sizes` próprio, integração com `<Link>` parent, fallback de div quando
+  `thumbnail` é null, `alt=""` por regra WAI-ARIA)
+- **Logos, favicon, og-image**: fora deste lote. Lote separado quando a Amanda
+  entregar versões finais
+- **Sistema de drafts estrutural pra posts** (campo
+  `status: 'draft' | 'published'`): entra junto com Sanity na Fase 3, não agora.
+  Posts sem foto comentados no mock por enquanto
+
+### Validação
+
+- `npm run format` ✓, `npm run lint` ✓ (exit 0), `npx tsc --noEmit` ✓,
+  `npm run build` ✓ (21 páginas; `/blog/[slug]` agora gera 3 rotas em vez de 5,
+  refletindo os 2 posts comentados)
+- Otimização das imagens validada: inspeção amostral em `hero-principal-02`
+  (Portofino, foto mais agressivamente comprimida do lote) confirmou ausência de
+  artefatos JPG perceptíveis
+- Walkthrough visual end-to-end no `npm run dev` (após resolver lock do Windows
+  com limpeza do `.next`): todas as 9 fotos renderizam visíveis na viewport.
+  Hero com altura confortável, próximo bloco assomando no rodapé. Sócias lado a
+  lado em `/sobre` com nomes corretos. 3 cards de blog visíveis, 2 cards de
+  florença/parceiros ausentes
+- Confirmação técnica do fix de altura: wrappers dos `<SpinhardiImage>` servem
+  `class="relative w-full overflow-hidden ..."` em todos os 9 slots ativos
+
+### Decisões aplicadas
+
+- **D031** — `<SpinhardiImage>` é a forma única de exibir imagens de conteúdo
+  (lei do projeto)
+
+### Riscos resolvidos
+
+**Bug de colapso de altura em CSS Grid (descoberto e corrigido neste lote):** 6
+dos 9 slots renderizaram inicialmente com altura 0px (invisíveis na viewport
+apesar do `<img>` presente no DOM) porque o wrapper do `<SpinhardiImage>` não
+tinha `w-full` por default. Em contexto de grid item sem largura explícita do
+consumidor, o `aspect-ratio` calculava altura a partir da largura intrínseca —
+que colapsava pra 0 porque o único filho do wrapper era `<Image fill>` com
+`position: absolute` (contribuição zero pro conteúdo). Resultado: caixa de 0px,
+imagem renderizada num retângulo invisível. Smoke test HTTP inicial (Codinho)
+confirmou "marca-up presente" mas não cobriu "imagem visível na viewport"; bug
+pegou no walkthrough visual do Alan no browser. Investigação cirúrgica do
+Codinho ratificou a hipótese, fix aplicado (`w-full` por default no wrapper), e
+a especificação do componente agora inclui essa garantia. **Lição registrada em
+D031:** smoke test HTTP de código presente não confirma renderização. Pra
+trabalhos com layout novo, validação ponta-a-ponta visual no browser é
+obrigatória.
+
+### Pendências (fora do escopo deste lote)
+
+- Logos, favicon, og-image: lote separado quando a Amanda entregar versões
+  finais
+- `blog-thumb-04` e `blog-thumb-05` da Amanda (descomenta os 2 posts no
+  `mock-posts.ts` quando chegar)
+- Calibragem visual fina, se desejada: opacidade do overlay do hero (atualmente
+  `bg-navy/60`), altura precisa do hero (`lg:min-h-[70vh] lg:max-h-[80vh]`),
+  `max-w-50` (200px) dos retratos em `/sobre`, `gap-8 md:gap-12` entre eles.
+  Todos os valores atuais funcionam, ajuste só por preferência visual
+- Sistema de drafts estrutural (`status` no tipo `Post`): entra com Sanity na
+  Fase 3
+- Refazer `historia-1987-02.jpg` sem borda de mármore na próxima reotimização
+  (catch do Codinho na inspeção: a foto histórica foi fotografada sobre uma
+  bancada de mármore, e a borda do mármore pode aparecer dependendo do crop do
+  `object-cover` em telas grandes). Não bloqueia, é polimento futuro
+
 ## 2026-06-14 — Lote C: `contacts` ligado ao Supabase real
 
 ### Adicionado

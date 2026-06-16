@@ -4,6 +4,7 @@ import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
+import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 
 export const metadata: Metadata = {
   title: "Pacotes e Roteiros",
@@ -117,18 +118,27 @@ export default function Pacotes() {
               </div>
             </div>
 
-            {/* Coluna direita: card destacado navy sticky */}
-            <div className="lg:col-span-5">
-              <div className="lg:sticky lg:top-32 bg-navy text-white rounded-md p-8 lg:p-10">
-                <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">
-                  Próximos destinos disponíveis
-                </p>
-                <p className="font-display text-2xl lg:text-3xl leading-tight mb-8">
-                  Fale conosco para saber os destinos disponíveis
-                </p>
-                <CTAWhatsApp variant="primary" size="md" label="Quero saber mais" />
+            {/* Coluna direita: foto + card destacado navy, sticky juntos */}
+            <aside className="lg:col-span-5">
+              <div className="space-y-6 lg:sticky lg:top-32">
+                <SpinhardiImage
+                  src="/destino-pacote-02.jpg"
+                  alt="Destino popular curado pela Spinhardi"
+                  aspect="3/2"
+                  className="rounded-md"
+                  sizes="(max-width: 1024px) 100vw, 42vw"
+                />
+                <div className="bg-navy text-white rounded-md p-8 lg:p-10">
+                  <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">
+                    Próximos destinos disponíveis
+                  </p>
+                  <p className="font-display text-2xl lg:text-3xl leading-tight mb-8">
+                    Fale conosco para saber os destinos disponíveis
+                  </p>
+                  <CTAWhatsApp variant="primary" size="md" label="Quero saber mais" />
+                </div>
               </div>
-            </div>
+            </aside>
           </div>
         </Container>
       </Section>

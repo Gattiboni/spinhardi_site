@@ -28,6 +28,137 @@ Ordem: mais recente no topo.
 
 ---
 
+## D031 — `<SpinhardiImage>` é a forma única de exibir imagens de conteúdo
+
+**Contexto:** o lote de aplicação das primeiras imagens reais (junho 2026)
+revelou uma tensão estrutural com a realidade operacional da Spinhardi. As 17
+fotos entregues pela Amanda vinham em aspect ratios e orientações desencontradas
+do mapa que ela mesma escreveu: equipe pedida em paisagem (5:3) entregue em
+retrato (2:3 e 9:16), destinos pedidos em retrato (4:5) entregues em paisagem
+(3:2), blog thumb pedido em paisagem 16:9 entregue em retrato. Esse desencontro
+não é falha — é a realidade. Spinhardi não tem agência de produção fotográfica
+por trás escolhendo centenas de imagens com briefing técnico. Pega o que tem
+(foto de Nina na Toscana, foto da fachada antiga, foto de destino que veio do
+parceiro). Engessar slots por orientação fixa cria fricção operacional pra
+sempre: ou alguém vai ter que pedir crop, ou alguém vai descartar foto boa
+porque "tá no aspect errado".
+
+**Alternativas consideradas:**
+
+- (a) **Engessar o slot por orientação.** Cada slot exige foto em orientação
+  específica; quem entrega tem que adequar. Garante design previsível mas cria
+  atrito recorrente que a operação real não comporta.
+- (b) **Container adapta ao aspect da foto.** Layout muda conforme a foto chega.
+  Quebra previsibilidade do design e força refator de página a cada foto nova.
+- (c) **Aspect-ratio fixo no container do layout + imagem adapta via
+  `object-fit: cover` + `object-position` ajustável.** Slot mantém o desenho
+  previsto pelo layout, foto entra em qualquer orientação, crop dinâmico no
+  centro (ou em posição customizada caso o centro corte algo importante).
+
+**Decisão:** (c), encapsulada num componente único: `<SpinhardiImage>`, definido
+em `src/components/ui/SpinhardiImage.tsx`. Vira **lei do projeto** pra slots de
+imagem de conteúdo. Nenhum `<Image>` direto do `next/image`, nenhum `<img>`
+solto, nenhum `background-image` CSS pra foto de conteúdo.
+
+**API do componente:**
+
+```ts
+interface SpinhardiImageProps {
+  src: string;
+  alt: string; // "" pra decorativas
+  aspect: string; // ex: "5/3", "4/5", "16/9", "3/2"
+  objectPosition?: string; // default "center"
+  priority?: boolean; // true só pra above-the-fold (hero)
+  sizes?: string; // default "100vw"
+  className?: string; // wrapper recebe; max-w-* e similares passam aqui
+}
+```
+
+**Detalhes de implementação que viraram parte da especificação:**
+
+- `style={{ aspectRatio }}` inline, NÃO `aspect-[X/Y]` em className. Motivo:
+  Tailwind v4 purge não detecta classes geradas dinamicamente via template
+  string. Inline style é a forma segura pra valores dinâmicos.
+- `style={{ objectFit, objectPosition }}` inline pelo mesmo motivo.
+- `<Image fill>` (não `width`/`height`). Wrapper define o tamanho via
+  aspect-ratio + largura herdada do pai.
+- **`w-full` no wrapper por default.** Esse item não estava na especificação
+  inicial — virou parte dela após bug descoberto durante a aplicação (ver "Risco
+  descoberto" abaixo).
+
+**Casos onde `<Image>` direto do `next/image` continua permitido:** componentes
+especializados com responsabilidades próprias. Exemplo concreto: `BlogCard.tsx`
+mantém `<Image>` direto porque ele já encapsula `sizes` específico, integração
+com `<Link>` parent, fallback de div quando `thumbnail` é null, e `alt=""` por
+regra WAI-ARIA (thumbnail adjacente a título-link clicável). Refatorar pra
+`<SpinhardiImage>` ali seria substituir um componente especializado por outro
+mais genérico — perda de informação semântica, ganho zero. **`BlogCard` é a
+exceção documentada da lei.**
+
+**Casos proibidos sem exceção:**
+
+- `<img>` solto em qualquer lugar do site público
+- `background-image` CSS pra foto de conteúdo (escapa o otimizador do Next, fura
+  performance)
+
+**Racional:**
+
+- Tolerância a orientação reflete a realidade operacional, alinha com o
+  princípio "spinhardi não tem agência por trás escolhendo centenas de imagens,
+  o que tem é o que há"
+- Crop dinâmico no centro funciona em ~80% dos casos; os outros 20% têm
+  `objectPosition` customizado caso a caso (ex.: `"top"` pra retrato com rosto
+  no terço superior)
+- Componente único garante consistência: todo slot futuro nasce com a tolerância
+  embutida, sem precisar pensar em CSS de novo
+- Aspect-ratio no container (não na imagem) preserva previsibilidade do layout
+  pra design
+
+**Consequências:**
+
+- 9 slots aplicados com o componente na primeira rodada: Home (hero,
+  posicionamento com Nina, história/1987 com fachada da agência), `/sobre`
+  (Nina + Julia lado a lado), `/viagens` (2 cards), `/viagens/pacotes` e
+  `/sob-medida` (colunas direitas), `/blog` indiretamente via BlogCard com 3
+  thumbs preenchidas
+- Próximos slots seguem a lei. Adicionar `<img>` ou `<Image>` direto pra foto de
+  conteúdo passa a ser dívida
+- Imagens da Amanda entregues em qualquer orientação razoável aceitas sem
+  retrabalho operacional
+
+**Risco descoberto durante implementação (documentado pra honestidade):**
+
+O wrapper do `<SpinhardiImage>` inicialmente nasceu com
+`className="relative overflow-hidden"`, sem `w-full`. A premissa era que o pai
+(item de grid, flex, etc.) daria largura ao componente. Funcionou pros casos
+onde a className passada incluía largura (Julia em `/sobre` tinha `max-w-md`) ou
+onde a className tinha posicionamento absoluto (Hero da Home tinha
+`absolute inset-0 h-full w-full`). **Quebrou silenciosamente** pros 6 slots em
+CSS Grid onde o consumidor não passou largura explícita: o filho do wrapper é
+`<Image fill>` com `position: absolute`, contribuição zero pro conteúdo
+intrínseco; com o item de grid resolvendo largura por content-size em vez de
+track-size, a largura colapsou pra 0, e o `aspect-ratio` calculou altura em cima
+de 0. Resultado: caixa de 0px de altura, imagem renderizada invisível.
+
+O smoke test do Codinho inicialmente confirmou "marca-up presente no HTML" mas
+não cobriu "imagem visível na viewport". Bug pegou no walkthrough visual do Alan
+no browser. Investigação cirúrgica do Codinho ratificou a hipótese (largura
+colapsada em grid + aspect-ratio sem base = altura 0), e o fix foi adicionar
+`w-full` ao wrapper por default. Isso virou parte permanente da especificação do
+componente: o `<SpinhardiImage>` agora garante que vai ocupar 100% da largura do
+pai independente do contexto, e casos onde o consumidor quer menos seguem
+funcionando via `max-w-*` (que vence `width` quando menor) no className.
+
+**Lição registrada:** smoke test HTTP de código presente não confirma
+renderização. Pra mudanças de layout, validação ponta-a-ponta visual no browser
+é obrigatória. Próximos trabalhos com componente novo ou alteração de container
+devem incluir essa etapa explícita.
+
+**Responsável:** Claudinho (princípio + especificação técnica) + Alan Gattiboni
+(decisão estratégica de tolerância editorial, validação visual final) + Codinho
+(investigação do bug + implementação do componente e dos slots) **Status:**
+Ativa
+
 ## D030 — Auth mock client-side expõe dados via SSR; Supabase Auth real é pré-requisito de go-live
 
 **Contexto:** durante o Lote C, o Codinho aplicou

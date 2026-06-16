@@ -6,6 +6,7 @@ import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import Divider from "@/components/ui/Divider";
 import Section from "@/components/ui/Section";
 import ServiceCard from "@/components/ui/ServiceCard";
+import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 import TestimonialCard from "@/components/ui/TestimonialCard";
 
 /** Os 4 valores do Bloco 2 — dados inline, sem componente próprio. */
@@ -36,7 +37,21 @@ export default function Home() {
   return (
     <>
       {/* Bloco 1 · Hero */}
-      <Section spacing="lg" className="bg-navy text-white pt-32 lg:pt-40">
+      <Section
+        spacing="lg"
+        className="relative isolate overflow-hidden bg-navy text-white pt-32 lg:pt-40 lg:min-h-[70vh] lg:max-h-[80vh]"
+      >
+        {/* Foto de fundo (decorativa) — preenche a seção atrás do conteúdo */}
+        <SpinhardiImage
+          src="/hero-principal-01.jpg"
+          alt=""
+          aspect="3/2"
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-10 h-full w-full"
+        />
+        {/* Overlay navy para legibilidade do texto branco. Calibrar 50–80% no preview. */}
+        <div className="absolute inset-0 -z-10 bg-navy/60" aria-hidden="true" />
         <Container>
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
             Desde 1987 · Serra Negra, SP
@@ -65,20 +80,36 @@ export default function Home() {
         <Container>
           <Divider tone="light" className="mb-16" />
 
-          <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">Quem somos</p>
-          <h2 className="mb-6 max-w-3xl font-display text-4xl leading-tight md:text-5xl">
-            Uma agência que cresceu por indicação. Há quase quatro décadas.
-          </h2>
-          <p className="mb-8 max-w-3xl font-body text-base leading-relaxed text-white/80 lg:text-lg">
-            A Spinhardi vende mais do que pacote. Entrega a certeza de que tem alguém cuidando, do
-            primeiro contato ao retorno a casa. Atendemos desde o viajante que quer somente uma
-            passagem até quem quer delegar uma viagem inteira.
-          </p>
-          <Link href="/sobre">
-            <Button variant="ghost" size="md" className="text-white hover:text-gold">
-              Conheça a história →
-            </Button>
-          </Link>
+          <div className="grid gap-8 lg:grid-cols-3 lg:gap-12">
+            <div className="lg:col-span-2">
+              <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
+                Quem somos
+              </p>
+              <h2 className="mb-6 max-w-3xl font-display text-4xl leading-tight md:text-5xl">
+                Uma agência que cresceu por indicação. Há quase quatro décadas.
+              </h2>
+              <p className="mb-8 max-w-3xl font-body text-base leading-relaxed text-white/80 lg:text-lg">
+                A Spinhardi vende mais do que pacote. Entrega a certeza de que tem alguém cuidando,
+                do primeiro contato ao retorno a casa. Atendemos desde o viajante que quer somente
+                uma passagem até quem quer delegar uma viagem inteira.
+              </p>
+              <Link href="/sobre">
+                <Button variant="ghost" size="md" className="text-white hover:text-gold">
+                  Conheça a história →
+                </Button>
+              </Link>
+            </div>
+
+            <div className="lg:col-span-1">
+              <SpinhardiImage
+                src="/equipe-spinhardi-01-nina.jpg"
+                alt="Nina Spinhardi, sócia da agência"
+                aspect="2/3"
+                className="rounded-md"
+                sizes="(max-width: 1024px) 100vw, 33vw"
+              />
+            </div>
+          </div>
 
           <div className="mt-20 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4 lg:gap-12">
             {VALORES.map((valor) => (
@@ -140,9 +171,14 @@ export default function Home() {
         <Container>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-16">
             <div className="lg:col-span-2">
-              <p className="font-display text-7xl leading-none text-navy md:text-8xl lg:text-9xl">
-                1987
-              </p>
+              <SpinhardiImage
+                src="/historia-1987-02.jpg"
+                alt="Fachada da agência Spinhardi Turismo em seus primeiros anos, em Serra Negra"
+                aspect="3/4"
+                className="rounded-md"
+                sizes="(max-width: 1024px) 100vw, 40vw"
+              />
+              <p className="mt-4 font-display text-6xl leading-none text-gold lg:text-7xl">1987</p>
             </div>
 
             <div className="lg:col-span-3">
