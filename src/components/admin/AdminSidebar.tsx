@@ -10,6 +10,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin", label: "Dashboard", icon: "📊" },
       { href: "/admin/contatos", label: "Contatos", icon: "📧" },
+      { href: "/admin/funil", label: "Funil", icon: "🎯" },
       { href: "/admin/blog", label: "Blog", icon: "📝" },
     ],
   },

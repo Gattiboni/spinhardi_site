@@ -15,6 +15,249 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-18 — Arquitetura de camadas bronze/silver/gold formalizada (D041)
+
+### DECISÃO
+
+Adotado padrão de camadas lógicas pra todo dado externo no projeto. Inspirado na
+arquitetura medalion da Central de Dados RH J&T Express Brasil, adaptado pra
+escala Spinhardi.
+
+### Adicionado
+
+**Princípios cravados (não-negociáveis):**
+
+- Toda fonte externa entra primeiro em **bronze** (replica raw)
+- Bronze NÃO transforma, NÃO calcula, NÃO normaliza, NÃO faz JOIN
+- Bronze é JSONB + colunas-índice mínimas (`id`, `ingested_at`)
+- Bronze idempotente por id da source
+- Silver processa bronze + dados próprios em formato canônico
+- Gold gera a forma que o front precisa
+- Front consome APENAS silver ou gold, nunca bronze, nunca chama API externa
+  direto
+- Naming: prefixos `bronze_`, `silver_` (opcional), `gold_`. Schema único
+  `public`
+- Cada ingestão logga em `ingestion_log` (futuro)
+
+**Implementação inicial mapeada (a aplicar nos próximos lotes):**
+
+- Bronze pra ClickMassa: `bronze_clickmassa_opportunities`,
+  `bronze_clickmassa_contacts`, `bronze_clickmassa_pipeline_steps`,
+  `bronze_clickmassa_tags`, `bronze_clickmassa_users`,
+  `bronze_clickmassa_products`
+- Silver: `contacts` (com legacy fields, ver D049), `contact_interactions`,
+  `tags`, `capture_origins`, `user_profiles`
+- Gold: views Postgres OU queries especializadas em server components Next.js,
+  caso a caso
+
+### Impacto
+
+- Próximo lote (backfill ClickMassa → Supabase) implementa primeiro nível de
+  bronze
+- Refator de `contacts` pra silver puro fica como dívida documentada (D049)
+- Job de sync incremental (após backfill) usa o mesmo pipeline (bronze → silver
+  → gold)
+- Quando integração Iddas voltar: `bronze_iddas_*` no mesmo padrão
+
+### Ver também
+
+- D041 (arquitetura), D049 (`contacts` como silver com legacy fields)
+
+---
+
+## 2026-06-18 — Lote G: ClickMassa MVP — Kanban Funil + Sync Automático + Cache Resiliente
+
+### SITE
+
+Lote consolidado com 5 sub-passos: G.1 (UI base), G.2.a (camada sync), G.2.b
+(smoke + religação form), Turno A (descoberta API), Turno B (cache + bug fix +
+JOIN).
+
+### Adicionado
+
+**Camada lib `src/lib/integrations/clickmassa/`:**
+
+- `auth.ts` — getClickMassaAuthHeader() com JWT Bearer
+- `http.ts` — clickMassaFetch wrapper com timeout 10s, retry 1x após 2s pra
+  5xx/network errors, error tipado
+  `ClickMassaError { status, code, message, payload? }`
+- `types.ts` — interfaces TS pra Opportunity, PipelineStep, Tag, Product,
+  ExternalUser, SendMessageInput, CreateOpportunityInput, SyncContactInput,
+  SyncContactStatus, SyncContactResult
+- `index.ts` — funções públicas:
+  - `listPipelineSteps()` (delega pra resilient)
+  - `listOpportunities({ pipelineStepId } | { contactId })` (filtro obrigatório,
+    D047)
+  - `getOpportunity(id)`, `updateOpportunity(id, patch)`,
+    `updateOpportunityStatus(id, status, opts)`
+  - `listTags()`, `listProducts()`, `listUsers()` (Quirk 1: `/users/{apiId}`)
+  - `sendMessage(input)` — POST raiz (apiId já no URL base)
+  - `createOpportunity(input)` — POST `/opportunities`
+  - `syncContactFlow(input)` — orquestrador form → mensagem → opp
+  - Helpers: `normalizePhone()`, `buildWelcomeMessageBody()`
+- `pipeline-steps-cache.ts` — cache resiliente (D046):
+  - `getCachedPipelineSteps({ maxAgeMs })` lê do Supabase
+  - `refreshPipelineStepsCache()` chama API e UPSERT
+  - `listPipelineStepsResilient()` orquestra: cache fresh → API → stale-cache →
+    vazio
+
+**Routes `/admin/funil/*`:**
+
+- `/admin/funil/page.tsx` — Kanban: colunas horizontais por pipeline-step, cards
+  por opportunity. Promise.allSettled em `listOpportunities({ pipelineStepId })`
+  por stage. Aviso por coluna em falha. JOIN com `contacts` do Supabase pra
+  mostrar nome real (vs telefone do ClickMassa). Banner de stale-cache + estado
+  vazio com botão "Forçar sincronização"
+- `/admin/funil/[id]/page.tsx` — Detalhe + EditOpportunityForm +
+  StatusActionsBar (won/lost com motivo e nota)
+- `/admin/funil/[id]/actions.ts` — Server Actions `updateOpportunityAction`,
+  `updateOpportunityStatusAction`
+- `/admin/funil/actions.ts` — Server Action `forceRefreshPipelineStepsAction`
+
+**Sync automático no form `/contato/actions.ts`:**
+
+- Após `createContact()` no Supabase, dispara `syncContactFlow()`
+  fire-and-forget
+- Resultado gravado nos campos `clickmassa_*` do `contacts` via mapper
+- Registra `contact_interactions` tipo `sync_clickmassa` com `descricao`
+  humano-legível por status
+- UX do form não muda: usuário vê sucesso imediato, sync roda 1-3s em background
+- Texto da mensagem inicial:
+
+> Olá, {nome}! 🌎
+>
+> Aqui é da Spinhardi Turismo. Recebemos seu contato pelo site e já estamos com
+> a sua mensagem em mãos. Em instantes uma das nossas consultoras vai te chamar
+> pra entender sua viagem dos sonhos.
+>
+> Até já! ✨
+
+**Mappers `src/lib/contacts/clickmassa-mapper.ts`:**
+
+- `mapSyncStatusToDb(SyncContactStatus): 'synced' | 'pending' | 'failed'`
+  (D048):
+  - `opportunity_created` → `synced`
+  - `message_sent` → `pending`
+  - `blocked` → `failed`
+  - `failed` → `failed`
+- `syncResultToContactPatch(result)` — converte SyncContactResult em colunas
+  snake_case do contacts. IDs convertidos pra `String()` (D042: schema tem TEXT
+  em IDs). Preserva info detalhada do status em `clickmassa_sync_error` via
+  prefixo `[<status>]:`
+
+**Schema Supabase aplicado:**
+
+- Table `clickmassa_pipeline_steps` (id BIGINT PK, name, color, ordem,
+  is_active, synced_at) com RLS (`authenticated can read`,
+  `service_role can write`)
+- CHECK constraint `contacts_clickmassa_sync_status_check` confirmada
+  preexistente (não criada nesse lote, descoberta via glossário retroativo,
+  D042)
+
+**Sidebar e roles:**
+
+- Item "Funil 🎯" adicionado no `AdminSidebar`
+- `editor` ganha acesso a `/admin/funil/*` em `lib/auth/roles.ts`
+
+**Documentação operacional:**
+
+- `docs/clickmassa-endpoints.md` — mapa completo de endpoints (gerado via
+  openapi.json em `https://enterprise-352n.clickmassa.com.br/openapi.json`)
+- `docs/clickmassa-openapi.json` — spec bruto da API ClickMassa
+- `docs/glossario_clickmassa.md` — glossário operacional empírico (shapes
+  confirmados, quirks, gaps)
+- `docs/glossario_supabase.md` — glossário do schema Supabase (gerável via SQL
+  único)
+- Scripts em `scripts/`: `test-clickmassa-explore.ts`,
+  `test-clickmassa-sync.ts`, `test-clickmassa-glossary.ts`,
+  `test-pipeline-cache.ts`
+
+**Env vars novas em `.env.local`:**
+
+- `CLICKMASSA_API_URL` (URL base com apiId embutido)
+- `CLICKMASSA_API_KEY` (JWT, válido até 2028)
+- `CLICKMASSA_TEST_NUMBER` (smoke local)
+- `CLICKMASSA_DEFAULT_AGENT_ID` (id do agente padrão pras opps criadas via sync)
+
+### Alterado
+
+- `clickmassa.ts` stub antigo removido; reimplementado como diretório
+  `src/lib/integrations/clickmassa/` com `getStats()` mantido pra compat com
+  dashboard
+- `Opportunity.value` type ajustado pra `number | string | null` (API retorna
+  `"0.00"` em string, type estava mentindo; mapper converte)
+- `[id]/page.tsx` ganhou Number() na função brl() pra acompanhar type novo
+
+### Estado conhecido pós-lote
+
+- Kanban funcional. Atualmente mostra 1 opp (`8935` "Lead via Site - Alan Smoke
+  Test", criada nos smokes G.2.b)
+- Contato 109710 do smoke não tem match no Supabase (foi criado direto via API,
+  fora do form), card mostra fallback de telefone como nome
+- Quirk 2 do `/pipeline-steps` (HTTP 500 intermitente) mitigado por cache +
+  fallback stale-while-error
+- Módulo de Opportunities do ClickMassa funciona pra criação e listagem por
+  filtro (`?pipelineStepId=X`); GET sem filtro retorna
+  `ERR_CONTACT_PIPELINE_NOT_FOUND` por design (D047)
+
+### Pendências documentadas
+
+- Apagar opp 8935 do smoke (Alan testa manual depois)
+- Backfill de opportunities/contacts existentes no ClickMassa pra Supabase
+  (próximo lote, segue arquitetura D041)
+- Sync incremental (cron job ou webhook) — próximo lote depois do backfill
+- Tags, users, products do ClickMassa também devem ter cache local equivalente
+  (próximos lotes)
+- Drag-and-drop entre stages no kanban (micro-fix, Turno E futuro)
+- `await import` no top-level de `scripts/test-pipeline-cache.ts` (trocar por
+  import estático)
+
+### Ver também
+
+- D041 (arquitetura), D042 (schema retroativo), D043 (G.1 escopo), D044 (G.2
+  sync), D045 (quirks API), D046 (cache resiliente), D047 (filtro obrigatório),
+  D048 (mapper sync_status), D049 (`contacts` como silver)
+
+---
+
+## 2026-06-18 — Glossários auto-gerados como referência viva
+
+### DOC
+
+Convenção pra documentação de schemas (Supabase) e contratos externos (APIs)
+regenerável on-demand. Substitui doc manual desatualizada.
+
+### Adicionado
+
+- **`docs/glossario_supabase.md`** — gerado via SELECT único no Supabase (CTEs +
+  string_agg) que produz MD completo: tabelas, colunas, constraints, indexes,
+  RLS, policies, triggers, FKs, functions. Reusável: roda quando quiser
+  regenerar. Identifica `_nenhuma_` em ausências (sem NULL contaminado).
+- **`docs/glossario_clickmassa.md`** — gerado via script de sondagem read-only
+  que cataloga endpoints confirmados, shapes empíricos, quirks da API, gaps.
+  Reusável: `npx tsx scripts/test-clickmassa-glossary.ts`.
+
+### Impacto
+
+- Glossário Supabase virou referência viva: bate `select` quando quiser
+  regenerar, cola o MD output. Próximos prompts pro Codinho referenciam o
+  glossário ao invés de presumir paths/tipos. Fim das surpresas de "coluna já
+  existe".
+- Glossário ClickMassa documenta os quirks (D045) num só lugar; próximos lotes
+  consultam antes de bater na API.
+
+### Padrão estabelecido
+
+- Toda fonte de dado (interna ou externa) ganha glossário regenerável
+- Convenção de nome: `docs/glossario_<nome>.md`
+- Geração: SQL único (interno) ou script TypeScript de sondagem (externa)
+
+### Ver também
+
+- D041 (arquitetura), D042 (schema retroativo), D045 (quirks API)
+
+---
+
 ## 2026-06-17 — Lote E + E.1: Auth real, fluxo aprovação manual, configurações reais
 
 ### Adicionado

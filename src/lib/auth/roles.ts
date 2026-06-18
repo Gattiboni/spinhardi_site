@@ -14,7 +14,7 @@ export type Role = "admin" | "editor";
  */
 const PERMISSIONS: Record<Role, string[]> = {
   admin: ["*"],
-  editor: ["/admin", "/admin/blog/*", "/admin/contatos/*"],
+  editor: ["/admin", "/admin/blog/*", "/admin/contatos/*", "/admin/funil/*"],
 };
 
 export function hasPermission(role: Role, path: string): boolean {

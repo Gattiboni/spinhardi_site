@@ -1,0 +1,93 @@
+{
+  "success": true,
+  "data": {
+    "tasksCount": {
+      "countSchendule": 0,
+      "countDelayed": 0,
+      "countComplete": 0,
+      "countRequiredPending": 0
+    },
+    "id": 8935,
+    "tenantId": 28,
+    "contactId": 109710,
+    "userId": 164,
+    "responsibleId": 164,
+    "pipelineStepId": 73,
+    "gainOrLossReasonId": null,
+    "name": "Lead via Site - Alan Smoke Test",
+    "description": null,
+    "note": null,
+    "expectedCloseDate": "2026-07-17",
+    "closeDate": null,
+    "pipelineUpdatedAt": "2026-06-18",
+    "value": "0.00",
+    "status": "open",
+    "createdAt": "2026-06-18T05:54:35.358Z",
+    "updatedAt": "2026-06-18T05:54:35.358Z",
+    "contact": {
+      "profilePicUrl": "",
+      "address": {
+        "cep": null,
+        "pais": null,
+        "estado": null,
+        "cidade": null,
+        "bairro": null,
+        "logradouro": null,
+        "numero": null,
+        "complemento": null
+      },
+      "id": 109710,
+      "name": "5511983340447",
+      "number": "5511983340447",
+      "lid": "false",
+      "isNumber": true,
+      "email": null,
+      "pushname": null,
+      "observations": null,
+      "channel": "whatsapp",
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "deletedAt": null,
+      "negotiatedValue": null,
+      "leadStatusId": null,
+      "leadOriginId": null,
+      "queueId": null,
+      "tenantId": 28,
+      "birthDate": null,
+      "gender": null,
+      "company": null,
+      "cep": null,
+      "pais": null,
+      "estado": null,
+      "cidade": null,
+      "bairro": null,
+      "logradouro": null,
+      "numero": null,
+      "complemento": null,
+      "customFields": {},
+      "agentMemory": {},
+      "tags": [],
+      "firstConnection": 31,
+      "profilePicId": null,
+      "picIsObjectStorage": false,
+      "createdAt": "2026-06-18T05:54:35.008Z",
+      "updatedAt": "2026-06-18T05:54:35.075Z"
+    },
+    "user": {
+      "name": "Amanda Gattiboni",
+      "email": "branding@amandagattiboni.com"
+    },
+    "responsible": {
+      "name": "Amanda Gattiboni",
+      "email": "branding@amandagattiboni.com"
+    },
+    "pipelineStep": {
+      "name": "Primeiro contato",
+      "color": "#2196F3"
+    },
+    "gainOrLossReason": null,
+    "productsOpportunity": []
+  },
+  "message": "Oportunidade encontrada"
+}

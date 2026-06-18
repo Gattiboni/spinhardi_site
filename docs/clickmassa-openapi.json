@@ -1,0 +1,3659 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CHAT API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://apiwender.ngrok.app"
+    }
+  ],
+  "tags": [
+    {
+      "name": "General"
+    },
+    {
+      "name": "ChatFlow"
+    },
+    {
+      "name": "Tags"
+    },
+    {
+      "name": "Opportunities"
+    },
+    {
+      "name": "Products"
+    },
+    {
+      "name": "PipelineSteps"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "queryToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "MessageNote": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "body"
+            ]
+          },
+          {
+            "required": [
+              "mediaUrl"
+            ]
+          }
+        ]
+      },
+      "SendMessageBase": {
+        "type": "object",
+        "properties": {
+          "externalKey": {
+            "type": "string",
+            "description": "ID única do sistema cliente para correlacionar e consultar status via /messages/{externalKey}"
+          },
+          "onlyNote": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Se true, NÃO envia mensagem ao cliente; apenas cria nota interna (se note.body ou note.mediaUrl existirem)."
+          },
+          "note": {
+            "$ref": "#/components/schemas/MessageNote"
+          },
+          "forceTicketToUser": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Se true, força o ticket (novo/existente) para o userId."
+          },
+          "userId": {
+            "type": "number",
+            "nullable": true,
+            "description": "Id do usuário para receber o ticket. Só tem efeito se forceTicketToUser=true."
+          },
+          "queueId": {
+            "type": "number",
+            "nullable": true,
+            "description": "Opcional: força fila/departamento (depende da tua regra interna no FindOrCreateTicketService)."
+          },
+          "closingReasonId": {
+            "type": "number",
+            "nullable": true,
+            "description": "Opcional: motivo de fechamento (quando forçar fechamento)."
+          },
+          "forceTicketToDepartment": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Opcional: força ticket para departamento/fila (se suportado na tua lógica)."
+          },
+          "forceTicketToClosed": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Opcional: cria/força ticket como fechado e pode disparar rotina de handleClosedTicket."
+          }
+        },
+        "required": [
+          "externalKey"
+        ]
+      },
+      "MessageText": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SendMessageBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "number": {
+                "type": "string",
+                "description": "Número do contato. Para grupos com Baileys, aceita sufixo g.us (ex: 12345-67890@g.us)."
+              },
+              "mediaUrl": {
+                "type": "string",
+                "nullable": true,
+                "description": "Opcional: URL de mídia (alternativa ao upload via multipart)."
+              }
+            },
+            "required": [
+              "body",
+              "number",
+              "externalKey"
+            ]
+          }
+        ]
+      },
+      "CustomMedia": {
+        "type": "object",
+        "description": "Mídia personalizada do header informada NESTE envio (URL externa), diferente da templateMidia anexada ao template — e sem precisar anexá-la antes. Quando ausente, o header usa normalmente a templateMidia (TemplateMedia). Só sobrepõe o header (índice 0); cards de carrossel seguem com as mídias anexadas.",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL pública acessível pela Meta. Deve ser compatível com o formato do header aprovado (IMAGE/VIDEO/DOCUMENT)."
+          },
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "image",
+              "video",
+              "document"
+            ],
+            "description": "Opcional/informativo. O formato real do header é o do template aprovado na Meta."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "WabaTemplateMessage": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SendMessageBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "string"
+              },
+              "templateId": {
+                "type": "string"
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Valores das variáveis na ordem posicional: BODY (um por {{n}}) → LIMITED_TIME_OFFER → BUTTONS (na ordem dos botões). O header por mídia NÃO consome params. Para botões dinâmicos: URL consome só se a URL tiver {{n}} (sufixo dinâmico); QUICK_REPLY consome o payload; COPY_CODE o código. Cada valor aceita variáveis de contato/ticket (ex.: {{contato.nome}})."
+              },
+              "typeTemplate": {
+                "type": "string",
+                "nullable": true
+              },
+              "templateMediaId": {
+                "type": "string",
+                "nullable": true
+              },
+              "customMedia": {
+                "$ref": "#/components/schemas/CustomMedia"
+              }
+            },
+            "required": [
+              "number",
+              "templateId",
+              "externalKey"
+            ]
+          }
+        ]
+      },
+      "MessageStatus": {
+        "type": "object",
+        "description": "Modelo mínimo (depende do teu model Message).",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "externalKey": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "example": "#FF0000"
+          },
+          "userId": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tag",
+          "color"
+        ]
+      },
+      "OpportunityCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "number",
+            "example": 0
+          },
+          "expectedCloseDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "contactId": {
+            "type": "number"
+          },
+          "responsibleId": {
+            "type": "string"
+          },
+          "pipelineStepId": {
+            "type": "number"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "productsOpportunity": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "number"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "productId",
+                "amount",
+                "value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "contactId",
+          "responsibleId",
+          "pipelineStepId",
+          "userId"
+        ]
+      },
+      "OpportunityUpdateStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "won",
+              "lost"
+            ]
+          },
+          "pipelineStepId": {
+            "type": "number",
+            "nullable": true
+          },
+          "gainOrLossReasonId": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "userId"
+        ]
+      },
+      "ChatFlowCallbackAdvance": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "nullable": true,
+            "description": "Mensagem opcional ao cliente"
+          },
+          "mediaUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL opcional de mídia (alternativa ao upload multipart)"
+          },
+          "note": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "body": {
+                "type": "string",
+                "nullable": true
+              },
+              "mediaUrl": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "Whatsapp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "qrcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "plugged": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "tokenTelegram": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "wabaBSP": {
+            "type": "string",
+            "nullable": true
+          },
+          "tokenAPI": {
+            "type": "string",
+            "nullable": true
+          },
+          "fbPageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRejectCall": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "callRejectedMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "minutesInactivity": {
+            "type": "number",
+            "nullable": true
+          },
+          "inactivityClosingReasonId": {
+            "type": "number",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "archiveChat": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "uid": {
+            "type": "string",
+            "nullable": true
+          },
+          "container": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessHours": {
+            "type": "object",
+            "nullable": true,
+            "description": "Estrutura depende do model. Mantido como object."
+          },
+          "messageBusinessHours": {
+            "type": "string",
+            "nullable": true
+          },
+          "refuseComments": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "promptId": {
+            "type": "number",
+            "nullable": true
+          },
+          "phoneId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "messageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "ack": {
+            "type": "number",
+            "example": 0
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "pending",
+              "sended",
+              "received"
+            ]
+          },
+          "wabaMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "isDownload": {
+            "type": "boolean"
+          },
+          "fromMe": {
+            "type": "boolean"
+          },
+          "body": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalName": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "nullable": true
+          },
+          "previousBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaType": {
+            "type": "string",
+            "nullable": true
+          },
+          "broadcast": {
+            "type": "object",
+            "nullable": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "msgCreatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Campo virtual (getter) que retorna createdAt"
+          },
+          "quotedMsgId": {
+            "type": "string",
+            "nullable": true
+          },
+          "quotedMsg": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Message"
+              }
+            ],
+            "nullable": true,
+            "description": "Pode vir se a query incluir (aqui não inclui por padrão)"
+          },
+          "ticketId": {
+            "type": "number",
+            "nullable": true
+          },
+          "contactId": {
+            "type": "number",
+            "nullable": true
+          },
+          "userId": {
+            "type": "number",
+            "nullable": true
+          },
+          "scheduleDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sendType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "campaign",
+              "chat",
+              "external",
+              "schedule",
+              "bot",
+              "sync"
+            ]
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "tenantUid": {
+            "type": "string",
+            "nullable": true
+          },
+          "raw": {
+            "type": "object",
+            "nullable": true
+          },
+          "note": {
+            "type": "boolean"
+          },
+          "isObjectStorage": {
+            "type": "boolean"
+          },
+          "importStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isTransfer": {
+            "type": "boolean"
+          },
+          "externalKey": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "nullable": true
+          },
+          "templateMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "typeTemplate": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinationUserId": {
+            "type": "number",
+            "nullable": true
+          },
+          "destinationQueueId": {
+            "type": "number",
+            "nullable": true
+          },
+          "queueId": {
+            "type": "number",
+            "nullable": true
+          },
+          "vCardList": {
+            "type": "string",
+            "nullable": true
+          },
+          "mentions": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaUrl": {
+            "type": "string",
+            "description": "Campo virtual (getter). Se existir mídia, retorna URL final via FileManager.getMediaUrl(...). Caso contrário retorna string vazia."
+          },
+          "mediaName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Campo virtual. No model está retornando o mesmo dataValue de mediaUrl."
+          }
+        },
+        "required": [
+          "id",
+          "ack",
+          "read",
+          "isDownload",
+          "fromMe",
+          "body",
+          "createdAt",
+          "updatedAt",
+          "tenantId",
+          "externalKey",
+          "note",
+          "isObjectStorage",
+          "isTransfer",
+          "isDeleted"
+        ]
+      },
+      "TemplateMedia": {
+        "type": "object",
+        "description": "Modelo retornado via include: ['medias']. Ajuste os campos conforme teu model TemplateMedia.",
+        "properties": {
+          "id": {
+            "type": "number",
+            "nullable": true
+          },
+          "hsmId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "hsmId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "templateType": {
+            "type": "string"
+          },
+          "templateMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "example": "APPROVED"
+          },
+          "whatsappId": {
+            "type": "number"
+          },
+          "components": {
+            "type": "object",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "medias": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateMedia"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "hsmId",
+          "name",
+          "category",
+          "language",
+          "preview",
+          "templateType",
+          "status",
+          "whatsappId",
+          "tenantId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ExternalUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "profile": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "uid": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDisableAutodistribution": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "canViewDepartmentTickets": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tenantId"
+        ]
+      },
+      "ExternalUsersResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalUser"
+            }
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "users",
+          "count"
+        ]
+      },
+      "ExternalSendMessageJson": {
+        "oneOf": [
+          {
+            "title": "Enviar mensagem (onlyNote != true)",
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "string"
+              },
+              "externalKey": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "mediaUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "onlyNote": {
+                "type": "boolean",
+                "nullable": true,
+                "enum": [
+                  false
+                ]
+              },
+              "note": {
+                "$ref": "#/components/schemas/MessageNote"
+              },
+              "forceTicketToUser": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "userId": {
+                "type": "number",
+                "nullable": true
+              },
+              "queueId": {
+                "type": "number",
+                "nullable": true
+              },
+              "closingReasonId": {
+                "type": "number",
+                "nullable": true
+              },
+              "forceTicketToDepartment": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "forceTicketToClosed": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "templateId": {
+                "type": "string",
+                "nullable": true
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "description": "Valores das variáveis na ordem posicional: BODY (um por {{n}}) → LIMITED_TIME_OFFER → BUTTONS (na ordem dos botões). O header por mídia NÃO consome params. Para botões dinâmicos: URL consome só se a URL tiver {{n}}; QUICK_REPLY consome o payload; COPY_CODE o código. Aceita variáveis de contato/ticket (ex.: {{contato.nome}})."
+              },
+              "templateMediaId": {
+                "type": "string",
+                "nullable": true
+              },
+              "typeTemplate": {
+                "type": "string",
+                "nullable": true
+              },
+              "customMedia": {
+                "$ref": "#/components/schemas/CustomMedia"
+              },
+              "chatbotId": {
+                "type": "number",
+                "nullable": true,
+                "description": "ID do ChatFlow (bot) a ser armado no ticket após o envio. Quando presente, o bot inicia quando o lead responder. Conflita com onlyNote, forceTicketToClosed e forceTicketToUser. Use GET /v1/api/external/{apiId}/chat-flows para listar os bots disponíveis."
+              }
+            },
+            "required": [
+              "number",
+              "externalKey",
+              "body"
+            ]
+          },
+          {
+            "title": "Apenas nota interna (onlyNote=true)",
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "string"
+              },
+              "externalKey": {
+                "type": "string"
+              },
+              "onlyNote": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "note": {
+                "$ref": "#/components/schemas/MessageNote"
+              }
+            },
+            "required": [
+              "number",
+              "externalKey",
+              "onlyNote",
+              "note"
+            ]
+          }
+        ]
+      },
+      "ExternalSendMessageMultipart": {
+        "oneOf": [
+          {
+            "title": "Enviar mensagem (onlyNote!=true)",
+            "type": "object",
+            "properties": {
+              "media": {
+                "type": "string",
+                "format": "binary"
+              },
+              "number": {
+                "type": "string"
+              },
+              "externalKey": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "onlyNote": {
+                "type": "string",
+                "nullable": true,
+                "description": "Envie 'false' ou omita"
+              },
+              "mediaUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "forceTicketToUser": {
+                "type": "string",
+                "nullable": true
+              },
+              "userId": {
+                "type": "string",
+                "nullable": true
+              },
+              "queueId": {
+                "type": "string",
+                "nullable": true
+              },
+              "closingReasonId": {
+                "type": "string",
+                "nullable": true
+              },
+              "forceTicketToDepartment": {
+                "type": "string",
+                "nullable": true
+              },
+              "forceTicketToClosed": {
+                "type": "string",
+                "nullable": true
+              },
+              "templateId": {
+                "type": "string",
+                "nullable": true
+              },
+              "params": {
+                "type": "string",
+                "nullable": true,
+                "description": "JSON string de array. Ordem posicional: BODY → LIMITED_TIME_OFFER → BUTTONS. O header por mídia não consome params; botões dinâmicos (URL com {{n}}, QUICK_REPLY, COPY_CODE) consomem na ordem."
+              },
+              "templateMediaId": {
+                "type": "string",
+                "nullable": true
+              },
+              "typeTemplate": {
+                "type": "string",
+                "nullable": true
+              },
+              "customMedia": {
+                "type": "string",
+                "nullable": true,
+                "description": "JSON string do objeto CustomMedia, ex.: {\"url\":\"https://cdn.cliente.com/banner.jpg\",\"type\":\"image\"}. Header personalizado deste envio, sem depender da templateMidia anexada."
+              },
+              "noteBody": {
+                "type": "string",
+                "nullable": true
+              },
+              "noteMediaUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "chatbotId": {
+                "type": "string",
+                "nullable": true,
+                "description": "ID do ChatFlow (bot) a ser armado no ticket após o envio. Quando presente, o bot inicia quando o lead responder."
+              }
+            },
+            "required": [
+              "number",
+              "externalKey",
+              "body"
+            ]
+          },
+          {
+            "title": "Apenas nota interna (onlyNote=true)",
+            "type": "object",
+            "properties": {
+              "media": {
+                "type": "string",
+                "format": "binary"
+              },
+              "number": {
+                "type": "string"
+              },
+              "externalKey": {
+                "type": "string"
+              },
+              "onlyNote": {
+                "type": "string",
+                "enum": [
+                  "true"
+                ]
+              },
+              "noteBody": {
+                "type": "string",
+                "nullable": true
+              },
+              "noteMediaUrl": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "number",
+              "externalKey",
+              "onlyNote"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "noteBody"
+                ]
+              },
+              {
+                "required": [
+                  "noteMediaUrl"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ExternalSendMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "object",
+            "nullable": true,
+            "$ref": "#/components/schemas/Message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "WhatsappSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "qrcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "plugged": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "tokenTelegram": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagramKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "wabaBSP": {
+            "type": "string",
+            "nullable": true
+          },
+          "tokenAPI": {
+            "type": "string",
+            "nullable": true
+          },
+          "fbPageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRejectCall": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "callRejectedMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "minutesInactivity": {
+            "type": "number",
+            "nullable": true
+          },
+          "inactivityClosingReasonId": {
+            "type": "number",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "archiveChat": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "uid": {
+            "type": "string",
+            "nullable": true
+          },
+          "container": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessHours": {
+            "type": "object",
+            "nullable": true
+          },
+          "messageBusinessHours": {
+            "type": "string",
+            "nullable": true
+          },
+          "refuseComments": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "promptId": {
+            "type": "number",
+            "nullable": true
+          },
+          "phoneId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ChatFlowStepResponse": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "object",
+            "description": "Ticket retornado pelo ShowTicketService, com todos os campos do model Ticket e includes de contact, user, whatsapp e queue.",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "nullable": true
+              },
+              "contactId": {
+                "type": "number",
+                "nullable": true
+              },
+              "userId": {
+                "type": "number",
+                "nullable": true
+              },
+              "whatsappId": {
+                "type": "number",
+                "nullable": true
+              },
+              "queueId": {
+                "type": "number",
+                "nullable": true
+              },
+              "tenantId": {
+                "type": "number"
+              },
+              "chatFlowId": {
+                "type": "number",
+                "nullable": true
+              },
+              "awaitCallback": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "isGroup": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "channel": {
+                "type": "string",
+                "nullable": true
+              },
+              "lastMessage": {
+                "type": "string",
+                "nullable": true
+              },
+              "firstMessage": {
+                "type": "string",
+                "nullable": true
+              },
+              "answered": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "contact": {
+                "type": "object",
+                "nullable": true,
+                "description": "Contato completo com includes extraInfo, leadStatus, leadOrigin, wallets e firstConnectionModel"
+              },
+              "user": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "email": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "whatsapp": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "type": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "originalType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "editedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  },
+                  "tokenWaVoip": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "wabaBSP": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "queue": {
+                "type": "object",
+                "nullable": true,
+                "description": "Fila/departamento associado"
+              }
+            },
+            "required": [
+              "id",
+              "tenantId",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message",
+            "nullable": true
+          },
+          "messageNote": {
+            "$ref": "#/components/schemas/Message",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ticket"
+        ]
+      },
+      "TicketDetails": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "unreadMessages": {
+            "type": "number",
+            "nullable": true
+          },
+          "lastMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "answered": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isGroup": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isActiveDemand": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isCreatedAPI": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastInteractionBot": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastOutOfHoursMessage": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastOutOfAbsenseMessage": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "origem": {
+            "type": "string",
+            "nullable": true
+          },
+          "botRetries": {
+            "type": "number",
+            "nullable": true
+          },
+          "closedAt": {
+            "type": "number",
+            "nullable": true
+          },
+          "lastMessageAt": {
+            "type": "number",
+            "nullable": true
+          },
+          "startedAttendanceAt": {
+            "type": "number",
+            "nullable": true
+          },
+          "userId": {
+            "type": "number",
+            "nullable": true
+          },
+          "contactId": {
+            "type": "number",
+            "nullable": true
+          },
+          "whatsappId": {
+            "type": "number",
+            "nullable": true
+          },
+          "promptId": {
+            "type": "number",
+            "nullable": true
+          },
+          "autoReplyId": {
+            "type": "number",
+            "nullable": true
+          },
+          "stepAutoReplyId": {
+            "type": "number",
+            "nullable": true
+          },
+          "awaitCallback": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "chatFlowId": {
+            "type": "number",
+            "nullable": true
+          },
+          "stepChatFlow": {
+            "type": "string",
+            "nullable": true
+          },
+          "queueId": {
+            "type": "number",
+            "nullable": true
+          },
+          "closingReasonId": {
+            "type": "number",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "number"
+          },
+          "isTransference": {
+            "nullable": true
+          },
+          "isCreated": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "oldStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldUserId": {
+            "type": "number",
+            "nullable": true
+          },
+          "scheduledMessages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "nullable": true
+          },
+          "isCreatedPush": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "apiConfig": {
+            "type": "object",
+            "nullable": true
+          },
+          "variables": {
+            "type": "object",
+            "nullable": true
+          },
+          "externalKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "isFixed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "contactFunnelId": {
+            "type": "number",
+            "nullable": true
+          },
+          "unread": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "slaTime": {
+            "type": "number",
+            "nullable": true
+          },
+          "saleValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "sentiment": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentimentNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "mentionsCountChannel": {
+            "type": "number",
+            "nullable": true
+          },
+          "userMentions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "contact": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "number": {
+                "type": "string",
+                "nullable": true
+              },
+              "email": {
+                "type": "string",
+                "nullable": true
+              },
+              "profilePicUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "extraInfo": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "nullable": true
+              },
+              "leadStatus": {
+                "type": "object",
+                "nullable": true
+              },
+              "leadOrigin": {
+                "type": "object",
+                "nullable": true
+              },
+              "wallets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "email": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                },
+                "nullable": true
+              },
+              "firstConnectionModel": {
+                "type": "object",
+                "nullable": true
+              }
+            }
+          },
+          "user": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "email": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "whatsapp": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "type": {
+                "type": "string",
+                "nullable": true
+              },
+              "originalType": {
+                "type": "string",
+                "nullable": true
+              },
+              "editedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "tokenWaVoip": {
+                "type": "string",
+                "nullable": true
+              },
+              "wabaBSP": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "queue": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ChatFlowStepRequest": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "Mensagem enviada ao cliente após o callback do chatflow"
+          },
+          "mediaUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL de mídia que será baixada e enviada ao cliente"
+          },
+          "note": {
+            "type": "object",
+            "nullable": true,
+            "description": "Nota interna vinculada ao ticket",
+            "properties": {
+              "body": {
+                "type": "string",
+                "description": "Texto da nota interna"
+              },
+              "mediaUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "URL da mídia da nota interna"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/api/external/messages/{apiId}/{externalKey}": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Consultar status/mensagens por externalKey",
+        "description": "Retorna todas as mensagens por externalKey.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "externalKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Chave externa usada para correlacionar mensagens enviadas via API"
+          },
+          {
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Número da página para paginação dos resultados"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de mensagens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Message"
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 40,
+                      "description": "Quantidade de mensagens retornadas na página atual"
+                    },
+                    "hasMore": {
+                      "type": "boolean",
+                      "example": true,
+                      "description": "Indica se existem mais páginas disponíveis"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "externalKey não informada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingExternalKey": {
+                    "value": {
+                      "error": "externalKey não informada."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/template/{apiId}": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Listar Templates (WABA)",
+        "description": "Retorna templates com status APPROVED, incluindo medias.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de templates aprovados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Template"
+                  }
+                },
+                "examples": {
+                  "templates": {
+                    "summary": "Exemplo",
+                    "value": [
+                      {
+                        "id": 1,
+                        "hsmId": "uuid-hsm",
+                        "name": "boas_vindas",
+                        "category": "MARKETING",
+                        "language": "pt_BR",
+                        "preview": "Olá {{1}}, tudo bem?",
+                        "templateType": "TEXT",
+                        "templateMediaId": null,
+                        "status": "APPROVED",
+                        "whatsappId": 10,
+                        "components": {},
+                        "tenantId": 1,
+                        "deletedAt": null,
+                        "createdAt": "2026-03-05T12:00:00.000Z",
+                        "updatedAt": "2026-03-05T12:00:00.000Z",
+                        "medias": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/users/{apiId}": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Listar Usuários",
+        "description": "Retorna { users, count }. Ordenado por name ASC.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuários listados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalUsersResponse"
+                },
+                "examples": {
+                  "example": {
+                    "value": {
+                      "count": 1,
+                      "users": [
+                        {
+                          "id": 1,
+                          "name": "Admin",
+                          "phone": "5584999999999",
+                          "email": "admin@empresa.com",
+                          "profile": "admin",
+                          "tenantId": 1,
+                          "uid": "uuid-user-1",
+                          "isDisableAutodistribution": false,
+                          "canViewDepartmentTickets": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}": {
+      "post": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Enviar mensagem / criar nota interna",
+        "description": "Suporta WhatsApp e WABA. Suporta upload (multer) via multipart/form-data com campo 'media'.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalSendMessageJson"
+              },
+              "examples": {
+                "sendSimpleText": {
+                  "summary": "Enviar texto simples",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Olá! Seu atendimento foi iniciado com sucesso.",
+                    "externalKey": "CLIENTE-001"
+                  }
+                },
+                "Example WABA": {
+                  "summary": "Envio de template via WABA",
+                  "value": {
+                    "number": "559999999999",
+                    "templateId": "uuid-template",
+                    "params": [
+                      "João",
+                      "12345"
+                    ],
+                    "externalKey": "WABA-001"
+                  }
+                },
+                "Example WABA customMedia + botão": {
+                  "summary": "Template com mídia personalizada no header e variável em botão",
+                  "description": "customMedia substitui a templateMidia anexada apenas neste envio. O 3º item de params preenche o {{1}} de um botão URL dinâmico (body consome os 2 primeiros).",
+                  "value": {
+                    "number": "559999999999",
+                    "templateId": "uuid-template",
+                    "params": [
+                      "João",
+                      "Pedido #42",
+                      "rastreio-42"
+                    ],
+                    "customMedia": {
+                      "url": "https://cdn.cliente.com/banners/promo-junho.jpg",
+                      "type": "image"
+                    },
+                    "externalKey": "WABA-002"
+                  }
+                },
+                "sendWithMediaUrl": {
+                  "summary": "Enviar mensagem com midia via url",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Segue o arquivo solicitado.",
+                    "externalKey": "CLIENTE-002",
+                    "mediaUrl": "https://example.com/arquivo.pdf"
+                  }
+                },
+                "forceTicketToUser": {
+                  "summary": "Forçar ticket para usuário",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Seu atendimento foi direcionado para um responsável.",
+                    "externalKey": "CLIENTE-003",
+                    "forceTicketToUser": true,
+                    "userId": 183
+                  }
+                },
+                "forceTicketToDepartment": {
+                  "summary": "Forçar ticket para departamento",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Seu atendimento foi encaminhado para o departamento responsável.",
+                    "externalKey": "CLIENTE-004",
+                    "forceTicketToDepartment": true,
+                    "queueId": 435
+                  }
+                },
+                "forceTicketToClosed": {
+                  "summary": "Forçar ticket para fechado",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Seu atendimento foi concluído com sucesso.",
+                    "externalKey": "CLIENTE-005",
+                    "forceTicketToClosed": true,
+                    "closingReasonId": 123
+                  }
+                },
+                "onlyNoteWithoutMedia": {
+                  "summary": "Criar apenas nota interna sem mídia",
+                  "value": {
+                    "number": "559999999999",
+                    "externalKey": "CLIENTE-006",
+                    "onlyNote": true,
+                    "note": {
+                      "body": "Cliente pediu retorno amanhã pela manhã."
+                    }
+                  }
+                },
+                "onlyNoteWithMedia": {
+                  "summary": "Criar apenas nota interna com mídia",
+                  "value": {
+                    "number": "559999999999",
+                    "externalKey": "CLIENTE-007",
+                    "onlyNote": true,
+                    "note": {
+                      "body": "Segue comprovante enviado internamente.",
+                      "mediaUrl": "https://example.com/comprovante.pdf"
+                    }
+                  }
+                },
+                "sendTextWithInternalNote": {
+                  "summary": "Enviar texto e adicionar nota interna",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Recebemos sua solicitação e já estamos analisando.",
+                    "externalKey": "CLIENTE-008",
+                    "note": {
+                      "body": "Cliente informou urgência neste atendimento."
+                    }
+                  }
+                },
+                "sendAndArmChatbot": {
+                  "summary": "Enviar texto e armar ChatBot (inicia ao lead responder)",
+                  "value": {
+                    "number": "559999999999",
+                    "body": "Olá! Em instantes nosso assistente vai te ajudar. Responda com qualquer mensagem para iniciar.",
+                    "externalKey": "CLIENTE-009",
+                    "chatbotId": 42
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalSendMessageMultipart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK (retorna {message}. Quando onlyNote=true, message pode vir null)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSendMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Conflitos de parâmetros (chatbotId com onlyNote / forceTicketToClosed / forceTicketToUser) ou ChatFlow sem step inicial",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "chatbotWithOnlyNote": {
+                    "value": {
+                      "error": "ERR_CHATBOT_ID_CONFLICTS_WITH_ONLY_NOTE"
+                    }
+                  },
+                  "chatbotWithForceClosed": {
+                    "value": {
+                      "error": "ERR_CHATBOT_ID_CONFLICTS_WITH_FORCE_TICKET_CLOSED"
+                    }
+                  },
+                  "chatbotWithForceUser": {
+                    "value": {
+                      "error": "ERR_CHATBOT_ID_CONFLICTS_WITH_FORCE_TICKET_USER"
+                    }
+                  },
+                  "chatFlowNoStart": {
+                    "value": {
+                      "error": "ERR_CHAT_FLOW_HAS_NO_START_STEP"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erros de validações",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "apiNotFound": {
+                    "value": {
+                      "error": "ERR_API_NOT_FOUND"
+                    }
+                  },
+                  "noNumber": {
+                    "value": {
+                      "error": "ERR_NOT_CONTACT_NUMBER"
+                    }
+                  },
+                  "noteNotFound": {
+                    "value": {
+                      "error": "ERR_NOTE_NOT_FOUND"
+                    }
+                  },
+                  "insufficientCredit": {
+                    "value": {
+                      "error": "ERROR_INSUFFICIENT_CREDIT"
+                    }
+                  },
+                  "blacklisted": {
+                    "value": {
+                      "error": "ERR_CONTACT_BLACKLISTED"
+                    }
+                  },
+                  "sessionNotFound": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_FOUND"
+                    }
+                  },
+                  "waNumberNotFound": {
+                    "value": {
+                      "error": "ERR_NUMBER_WHATSAPP_ACCOUNT_NOT_FOUND"
+                    }
+                  },
+                  "chatFlowNotFound": {
+                    "value": {
+                      "error": "ERR_NO_CHAT_FLOW_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/{ticketId}/chat-flow-step": {
+      "post": {
+        "tags": [
+          "ChatFlow"
+        ],
+        "summary": "Avançar etapa do ChatFlow via callback",
+        "description": "Avança o ticket para a próxima etapa do fluxo quando ele estiver aguardando callback. Opcionalmente envia mensagem e/ou cria nota interna.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "ticketId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID do ticket"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatFlowStepRequest"
+              },
+              "examples": {
+                "sendText": {
+                  "summary": "Avançar fluxo enviando mensagem",
+                  "value": {
+                    "body": "Seu pagamento foi confirmado. Vamos prosseguir com o atendimento."
+                  }
+                },
+                "sendTextWithMedia": {
+                  "summary": "Avançar fluxo enviando mensagem com mídia",
+                  "value": {
+                    "body": "Segue o comprovante do processo.",
+                    "mediaUrl": "https://example.com/comprovante.pdf"
+                  }
+                },
+                "internalNote": {
+                  "summary": "Avançar fluxo adicionando nota interna",
+                  "value": {
+                    "note": {
+                      "body": "Callback confirmado manualmente pelo atendente."
+                    }
+                  }
+                },
+                "textAndNote": {
+                  "summary": "Avançar fluxo com mensagem e nota interna",
+                  "value": {
+                    "body": "Seu cadastro foi aprovado.",
+                    "note": {
+                      "body": "Cliente aprovado após validação interna."
+                    }
+                  }
+                },
+                "onlyAdvance": {
+                  "summary": "Apenas avançar etapa",
+                  "value": {}
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "media": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Arquivo opcional"
+                  },
+                  "body": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "mediaUrl": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "note": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "body": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "mediaUrl": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fluxo avançado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatFlowStepResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erro de validação/regra de negócio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "apiNotFound": {
+                    "value": {
+                      "error": "ERR_API_NOT_FOUND"
+                    }
+                  },
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  },
+                  "ticketIdMissing": {
+                    "value": {
+                      "error": "ERR_ID_TICKET_NOT_FOUND"
+                    }
+                  },
+                  "ticketNotFound": {
+                    "value": {
+                      "error": "ERR_TICKET_NOT_FOUND"
+                    }
+                  },
+                  "groupTicket": {
+                    "value": {
+                      "error": "ERR_CANNOT_SEND_MESSAGE_TO_GROUP_TICKET"
+                    }
+                  },
+                  "noChatFlow": {
+                    "value": {
+                      "error": "ERR_TICKET_NOT_HAS_CHATFLOW"
+                    }
+                  },
+                  "notWaitingCallback": {
+                    "value": {
+                      "error": "ERR_TICKET_IS_NOT_WAITING_CALLBACK"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/start-session": {
+      "post": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Iniciar sessão do canal",
+        "description": "Inicia a sessão do canal vinculado à API e retorna os dados da sessão.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração da API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessão iniciada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappSession"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Canal não encontrado ou erro ao iniciar sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "noWhatsapp": {
+                    "value": {
+                      "error": "ERR_NO_WAPP_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Listar tags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tags retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "tag": "Exemplo Tag 1",
+                    "color": "#FF5733",
+                    "isActive": true,
+                    "userId": 123,
+                    "tenantId": 456,
+                    "createdAt": "2025-01-01T12:00:00.000Z",
+                    "updatedAt": "2025-01-02T15:30:00.000Z"
+                  },
+                  {
+                    "id": 2,
+                    "tag": "Exemplo Tag 2",
+                    "color": "#33C1FF",
+                    "isActive": false,
+                    "userId": 789,
+                    "tenantId": 456,
+                    "createdAt": "2025-02-10T08:20:00.000Z",
+                    "updatedAt": "2025-02-11T10:45:00.000Z"
+                  }
+                ]
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Criar tags em lote",
+        "description": "O controller exige um ARRAY no body. Se não for array: ERR_TAG_NOT_ARRAY.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              },
+              "examples": {
+                "createTags": {
+                  "summary": "Criar tags",
+                  "value": [
+                    {
+                      "tag": "Exemplo Tag 1",
+                      "color": "#FF5733"
+                    },
+                    {
+                      "tag": "Exemplo Tag 2",
+                      "color": "#33C1FF"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tags criadas com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação ou requisição inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "notArray": {
+                    "summary": "Body não é array",
+                    "value": {
+                      "error": "ERR_TAG_NOT_ARRAY",
+                      "message": "O corpo da requisição deve ser um array"
+                    }
+                  },
+                  "validationError": {
+                    "summary": "Erro de validação Yup",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Erro na validação da tag \"Exemplo\": tag is a required field"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sessão inválida ou não autorizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "INTERNAL_SERVER_ERROR",
+                  "message": "Erro inesperado ao criar tags"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/tags/{tagId}": {
+      "delete": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Remover tag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "tagId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da tag a ser removida"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Tag removida com sucesso."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sessão inválida ou não autorizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tag não encontrada ou não pode ser removida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "notFound": {
+                    "summary": "Tag não encontrada",
+                    "value": {
+                      "error": "ERR_NO_TAG_FOUND",
+                      "message": "Tag não encontrada"
+                    }
+                  },
+                  "hasContacts": {
+                    "summary": "Tag vinculada a contatos",
+                    "value": {
+                      "error": "ERR_TAG_CONTACTS_EXISTS",
+                      "message": "Não é possível remover a tag pois ela está vinculada a contatos"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/opportunities": {
+      "post": {
+        "tags": [
+          "Opportunities"
+        ],
+        "summary": "Criar oportunidade",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpportunityCreate"
+              },
+              "example": {
+                "name": "Nova oportunidade",
+                "description": "Descrição da oportunidade",
+                "value": 1000,
+                "expectedCloseDate": "2025-12-31",
+                "contactId": 1,
+                "responsibleId": "10",
+                "pipelineStepId": 2,
+                "userId": "1",
+                "productsOpportunity": [
+                  {
+                    "productId": 1,
+                    "amount": 2,
+                    "value": 100
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Criado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "name": "Nova oportunidade",
+                    "status": "open",
+                    "value": 1000
+                  },
+                  "message": "Oportunidade criada com sucesso"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro validação",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {}
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado"
+          },
+          "500": {
+            "description": "Erro interno"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Opportunities"
+        ],
+        "summary": "Listar oportunidades",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": 1,
+                      "name": "Oportunidade exemplo",
+                      "status": "open",
+                      "value": 500
+                    }
+                  ],
+                  "count": 1,
+                  "hasMore": false,
+                  "message": "Oportunidades listadas com sucesso"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Filtro inválido"
+          },
+          "500": {
+            "description": "Erro interno"
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/opportunities/{opportunityId}": {
+      "get": {
+        "tags": [
+          "Opportunities"
+        ],
+        "summary": "Detalhar oportunidade",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "opportunityId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da oportunidade"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "name": "Oportunidade exemplo",
+                    "status": "open",
+                    "value": 500
+                  },
+                  "message": "Oportunidade encontrada"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Oportunidade não encontrada"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Opportunities"
+        ],
+        "summary": "Atualizar oportunidade",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "opportunityId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da oportunidade"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Atualizada",
+                "value": 1500,
+                "userId": "1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "name": "Atualizada"
+                  },
+                  "message": "Oportunidade atualizada com sucesso"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro validação"
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Oportunidade não encontrada"
+          },
+          "409": {
+            "description": "Tarefas pendentes"
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/opportunities/{opportunityId}/status": {
+      "put": {
+        "tags": [
+          "Opportunities"
+        ],
+        "summary": "Atualizar status",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          },
+          {
+            "in": "path",
+            "name": "opportunityId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da oportunidade"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "status": "lost",
+                "pipelineStepId": 3,
+                "gainOrLossReasonId": 1,
+                "note": "Cliente recusou",
+                "userId": "1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 1,
+                    "status": "lost"
+                  },
+                  "message": "Status da oportunidade atualizado com sucesso"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro validação"
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Oportunidade não encontrada"
+          },
+          "409": {
+            "description": "Tarefas pendentes"
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Listar produtos",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Produto A"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "Descrição do produto"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "example": true
+                          },
+                          "value": {
+                            "type": "number",
+                            "nullable": true,
+                            "example": 100.0
+                          },
+                          "duration": {
+                            "type": "integer",
+                            "nullable": true,
+                            "example": 30
+                          },
+                          "tenantId": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "userId": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2024-01-01T00:00:00.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2024-01-01T00:00:00.000Z"
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Produtos ativos listados com sucesso"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/pipeline-steps": {
+      "get": {
+        "tags": [
+          "PipelineSteps"
+        ],
+        "summary": "Listar etapas do funil",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Contato inicial"
+                          },
+                          "color": {
+                            "type": "string",
+                            "example": "#FF5733"
+                          },
+                          "order": {
+                            "type": "integer",
+                            "example": 1
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Pipeline steps listados com sucesso"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/external/{apiId}/chat-flows": {
+      "get": {
+        "tags": [
+          "ChatFlow"
+        ],
+        "summary": "Listar ChatFlows de atendimento (isServiceBot) ativos do tenant",
+        "description": "Retorna apenas flows de atendimento (`isServiceBot=true`) que estejam ativos. Use o `id` retornado no campo `chatbotId` do endpoint de envio de mensagem para armar o bot no ticket.",
+        "security": [
+          {
+            "bearerAuth": [],
+            "queryToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da configuração de API"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 42
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Atendimento - Boas-vindas"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "example": true
+                          },
+                          "isServiceBot": {
+                            "type": "boolean",
+                            "example": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Chat flows listados com sucesso"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "sessionInvalid": {
+                    "value": {
+                      "error": "ERR_SESSION_NOT_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API não encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "apiNotFound": {
+                    "value": {
+                      "error": "ERR_API_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

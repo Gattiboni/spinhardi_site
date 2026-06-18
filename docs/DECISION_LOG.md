@@ -26,6 +26,522 @@ Ordem: mais recente no topo.
 
 ## Decisões Registradas
 
+## D049 — Manter `contacts` como silver com legacy fields (vs migration limpa)
+
+**Contexto:** ao formalizar arquitetura de camadas bronze/silver/gold (D041), o
+schema `contacts` foi diagnosticado como Frankenstein: mistura campos de silver
+(name, whatsapp, perfil_viajante normalizado), bronze acoplados
+(clickmassa_contact_id, clickmassa_oportunidade_id, clickmassa_pipeline_step) e
+gold (status, posts_lidos, emails_abertos). Idealmente, dados de bronze viveriam
+em `bronze_clickmassa_*` e `contacts` seria silver puro. Mas migrar agora exige
+refator de várias camadas que já consomem `contacts`.
+
+**Alternativas consideradas:**
+
+- (a) **Migration limpa**: renomear `contacts` → `silver_contacts`, criar
+  tabelas `bronze_clickmassa_*` separadas, mover IDs de cross-reference pra
+  silver, atualizar todos consumidores (form, kanban, admin/contacts). Custo
+  alto, risco de quebra em produção, MVP pausa.
+- (b) **Manter `contacts` como silver com legacy fields**: aceitar que campos
+  clickmassa__/iddas__ em `contacts` são "pointers cacheados pra bronze" (não
+  duplicação). Bronze é fonte da verdade pro dado raw, `contacts` é silver
+  canônico. Front continua lendo de `contacts`. Backfill popula bronze primeiro,
+  depois deriva silver pra preencher `contacts`.
+
+**Decisão:** **(b)**. Pragmatismo MVP. Dívida pequena, contida, documentada.
+
+**Racional:** o projeto Spinhardi tem 5 tabelas e ~50 rows. Migration limpa traz
+mais churning do que ganho arquitetural imediato. As legacy fields em `contacts`
+são ponteiros (clickmassa_oportunidade_id, etc), não duplicação massiva de
+dados. O dado completo do ClickMassa vive em bronze quando bronze for criado.
+Quem precisa de tudo, faz JOIN bronze + silver. Quem precisa de lookup rápido,
+usa as legacy fields. A regra D041 continua válida: front lê silver/gold, nunca
+bronze.
+
+**Consequências:**
+
+- Tabelas `bronze_clickmassa_*` a criar (ver D041)
+- `contacts.clickmassa_*` ficam como pointers + cache de campos críticos pro
+  ETL/filter
+- Documentar essa hibridização na próxima revisão do schema
+  (`docs/glossario_supabase.md`)
+- Se a dívida começar a doer (campos divergindo entre bronze e silver, conflitos
+  de update), reavaliar e migrar via D041-compliance retroativa
+- Sem mudança imediata em código de produção
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D048 — Mapper SyncContactStatus → sync_status DB (5 valores lib → 3 valores DB)
+
+**Contexto:** schema `contacts.clickmassa_sync_status` tem CHECK constraint
+`IN ('synced', 'pending', 'failed')` — 3 valores. Camada
+`lib/integrations/clickmassa/` no Lote G.2 introduziu enum semanticamente mais
+rico:
+`SyncContactStatus = 'opportunity_created' | 'message_sent' | 'blocked' | 'failed'`
+(4 valores). Sem tradução explícita, INSERT/UPDATE estoura CHECK constraint e
+fire-and-forget engole o erro. Bug descoberto via glossário Supabase (D042).
+
+**Alternativas consideradas:**
+
+- (a) **Expandir CHECK constraint**: ADD valores `message_sent`,
+  `opportunity_created`, `blocked` no enum DB. Mantém semântica rica no banco
+  mas quebra coerência com `iddas_sync_status` (que tem só 3 valores).
+- (b) **Mapper explícito de tradução**: camada lib mantém 4 valores ricos pra
+  debug interno. Mapper traduz pra 3 valores aceitos pelo DB no momento do
+  write. Info detalhada vai pro `clickmassa_sync_error` com prefixo
+  (`[blocked]: <msg>`, `[message_sent]`, etc) pra preservar rastreabilidade.
+
+**Decisão:** **(b)**. Tradução explícita via `mapSyncStatusToDb()`:
+
+- `opportunity_created` → `synced`
+- `message_sent` → `pending` (ainda em processamento, opp não criada)
+- `blocked` → `failed` (módulo ClickMassa não configurado)
+- `failed` → `failed`
+
+**Racional:** schema foi projetado com 3 valores por intenção de coerência
+arquitetural com Iddas (D028 a). Expandir o enum pra ClickMassa quebra a
+simetria. Mapper preserva info detalhada onde precisa (camada lib pra lógica,
+error message pra rastreabilidade) sem violar contrato do DB. Mantém
+possibilidade futura de unificar enum se decidirmos refatorar a camada de
+status.
+
+**Consequências:**
+
+- `src/lib/contacts/clickmassa-mapper.ts` ganhou `mapSyncStatusToDb()`
+- `clickmassa_sync_error` carrega prefixo de status interno como
+  `[<status>]: <msg>`
+- Mesmo padrão aplicável a Iddas quando integração for retomada (D026 ainda
+  válida)
+- UI que consome `clickmassa_sync_status` lê só 3 valores: simples
+- Se quiser distinguir `message_sent` de `pending` na UI futuro, lê do prefixo
+  do `clickmassa_sync_error`
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D047 — `listOpportunities` exige filtro obrigatório; kanban faz N chamadas paralelas
+
+**Contexto:** Lote G.1 reportou que `GET /v1/api/external/{apiId}/opportunities`
+(sem query params) retorna `404 ERR_CONTACT_PIPELINE_NOT_FOUND`. Hipótese
+inicial: módulo bloqueado/feature paga. Lote G.2 invalidou: o módulo funciona
+(opp criada via POST com sucesso). Turno A (sondagem) confirmou empiricamente
+que o endpoint EXIGE um filtro contextual.
+
+**Alternativas consideradas:**
+
+- (a) **Aceitar erro e mostrar banner "indisponível"** (estado original do G.1).
+  Funcional mas não entrega o kanban.
+- (b) **Esperar API exposer endpoint de listagem geral**. Sem prazo, fora do
+  nosso controle.
+- (c) **N chamadas paralelas (uma por pipeline-step)**. A API aceita
+  `?pipelineStepId=X` e retorna opps daquele stage. 8 stages no funil Spinhardi
+  = 8 chamadas via `Promise.allSettled`.
+
+**Decisão:** **(c)**. Kanban consome
+`listOpportunities({ pipelineStepId: step.id })` em loop paralelo por stage.
+Função `listOpportunities` muda assinatura pra exigir filter obrigatório
+(`{ pipelineStepId } | { contactId }`).
+
+**Racional:** é a única forma técnica que funciona. Custo de N chamadas é
+aceitável: 8 stages, latência ~200-500ms cada em paralelo via
+`Promise.allSettled` = sub-segundo. Falha por coluna não derruba o kanban
+inteiro (cada coluna trata seu próprio erro). Compatível com paginação futura se
+a API expor.
+
+**Consequências:**
+
+- `listOpportunities()` no `lib/integrations/clickmassa/index.ts` exige
+  `filter: { pipelineStepId: number } | { contactId: number }`
+- Kanban `/admin/funil/page.tsx` faz
+  `Promise.allSettled(steps.map(s => listOpportunities({ pipelineStepId: s.id })))`
+- Aviso por coluna quando uma chamada específica falha (não banner global)
+- Paginação se a API expor: incluir como query params adicionais (Turno C
+  investigando se há)
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D046 — Cache resiliente de pipeline-steps em Supabase (vs hardcoding/memória)
+
+**Contexto:** Turno A confirmou que `GET /pipeline-steps` da API ClickMassa tem
+bug intermitente HTTP 500 (`JSON.parse` em objeto já parseado no backend deles).
+Em smoke do Lote G.1: 1 sucesso, 4 falhas em sequência. No smoke do Turno A: 2/2
+falhas com retry. Sem cache local, kanban morre quando o endpoint cai.
+
+**Alternativas consideradas:**
+
+- (a) **Cache em constante TS** (hardcoded snapshot dos 8 stages em
+  `lib/integrations/clickmassa/pipeline-steps-snapshot.ts`). Simples. Mas viola
+  princípio "zero dívida técnica, sem hardcoding de coisa mutável" (Alan,
+  decisão arquitetural).
+- (b) **Cache em memória do processo** (variável singleton no módulo lib).
+  Volátil, some em deploy/redeploy. Latência boa enquanto vive. Mas fragil.
+- (c) **Cache em Supabase** com TTL + stale-while-error fallback. Robusto,
+  persistente, alinhado com modularidade. Adiciona uma table + lógica de
+  orquestração.
+
+**Decisão:** **(c)**. Table `clickmassa_pipeline_steps` (no schema atual;
+futuramente migra pra `bronze_clickmassa_pipeline_steps` conforme D041). Função
+`listPipelineStepsResilient()`:
+
+1. Lê cache local. Se fresh (< 24h) e populado, retorna `source: 'cache'`.
+2. Se stale ou vazio, tenta API.
+3. API OK: UPSERT no cache, retorna `source: 'fresh'`.
+4. API falhou: se cache existe (mesmo stale), retorna `source: 'stale-cache'` +
+   error.
+5. Sem cache E API falhou: retorna `steps: []` + error (UI mostra estado
+   "Aguardando sincronização inicial").
+
+**Racional:** alinhado com D041 (camadas). Bronze pra dados externos. Sem
+hardcoding (incrementalidade + zero dívida). Resiliente em todos cenários (API
+fora + cache fresh = OK, API fora + cache stale = degrada graciosamente). TTL
+24h é arbitrário mas razoável: stages mudam raramente, refresh diário é mais que
+suficiente.
+
+**Consequências:**
+
+- Table criada: `clickmassa_pipeline_steps` (id BIGINT PK, name, color, ordem,
+  is_active, synced_at). Sem seed inicial pra evitar dívida (D041 prefere bronze
+  vazio que cresce com sync real)
+- Função `getCachedPipelineSteps()`, `refreshPipelineStepsCache()`,
+  `listPipelineStepsResilient()` em
+  `lib/integrations/clickmassa/pipeline-steps-cache.ts`
+- Server action `forceRefreshPipelineStepsAction()` exposta no UI pra Nina/Alan
+  acionar manualmente
+- Padrão a generalizar: tags, users, products do ClickMassa também deveriam ter
+  cache equivalente (próximos lotes)
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D045 — Quirks da API ClickMassa documentados como referência permanente
+
+**Contexto:** durante Lotes G.1, G.2 e Turno A, descobrimos 3 comportamentos
+atípicos da API ClickMassa que afetam toda integração. Sem documentação
+centralizada, próximos lotes (backfill, sync incremental, Make automation) podem
+cair nas mesmas armadilhas.
+
+**Decisão:** documentar como "Quirks" em `docs/clickmassa-endpoints.md` e
+`docs/glossario_clickmassa.md`. Todos os prompts do Codinho que mexem com
+ClickMassa incluem bloco "Quirks conhecidos" no topo.
+
+**Quirks confirmados:**
+
+- **Quirk 1: Path invertido em 3 endpoints**. A maioria dos endpoints segue
+  `/v1/api/external/{apiId}/<resource>` (apiId no MEIO). Mas 3 endpoints
+  documentados têm formato `/v1/api/external/<resource>/{apiId}` (apiId no
+  FINAL): `messages/{apiId}/{externalKey}`, `template/{apiId}`, `users/{apiId}`.
+  Pattern exclusivo desses 3, não se expande pra outros.
+- **Quirk 2: `GET /pipeline-steps` HTTP 500 intermitente**. Bug do backend
+  ClickMassa (`JSON.parse` em objeto já parseado). Manifesta randomicamente.
+  Mitigação: cache local com fallback stale-while-error (D046).
+- **Quirk 3: Convenção naming inconsistente**. Paths usam kebab-case
+  (`pipeline-steps`, `chat-flow-step`, `start-session`). Fields de body/response
+  usam camelCase (`gainOrLossReasonId`, `pipelineStepId`, `contactId`). Pra
+  endpoints especulativos não documentados, testar AMBAS variações antes de
+  descartar.
+- **Quirk 4: `listOpportunities` exige filtro**. Sem `?pipelineStepId=X` ou
+  `?contactId=Y`, retorna 404 `ERR_CONTACT_PIPELINE_NOT_FOUND` (não é bloqueio
+  de módulo). Detalhado em D047.
+
+**Racional:** glossário é referência viva (D041 + decisão de regenerar via SQL).
+Documentar quirks evita retrabalho de descoberta a cada novo lote. Próximos
+prompts pro Codinho referenciam o glossário, não reaprendem do zero.
+
+**Consequências:**
+
+- Template de prompt pro Codinho que toca ClickMassa inclui bloco "Quirks
+  conhecidos"
+- `docs/clickmassa-endpoints.md` mantém Quirks no topo
+- Glossários regeneráveis via script:
+  `npx tsx scripts/test-clickmassa-glossary.ts`
+- Quando ClickMassa corrigir o bug do `/pipeline-steps` (Quirk 2), atualizar o
+  doc
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D044 — Lote G.2: Sync automático form do site → ClickMassa (WhatsApp + Opportunity)
+
+**Contexto:** form de contato no site grava no Supabase desde Lote C (D024).
+Próximo passo natural: alimentar ClickMassa automaticamente pra
+Nina/Isaura/Angelina verem o lead na conversa de WhatsApp e no kanban. Mas
+ClickMassa não tem endpoint pra criar contact direto via API — contact é criado
+automaticamente quando uma mensagem é enviada via
+`POST /v1/api/external/{apiId}`. Sem mandar mensagem, sem `contactId`, sem
+opportunity.
+
+**Alternativas consideradas:**
+
+- (a) **Form grava só no Supabase, sync manual posterior**. Nina vê lead no
+  painel admin, copia dados, abre conversa no WhatsApp manualmente. Friction
+  alta, atraso de atendimento.
+- (b) **Webhook do Supabase → função externa → ClickMassa**. Mais infra. Mais
+  latência.
+- (c) **Server Action síncrona com fire-and-forget**: form submit grava no
+  Supabase + dispara em background `syncContactFlow()` que (1) manda mensagem
+  WhatsApp inicial pra criar contact + ticket, (2) captura IDs, (3) cria
+  Opportunity vinculada. Resultado gravado nos campos `clickmassa_*` do
+  `contacts`.
+
+**Decisão:** **(c)**. Texto da mensagem inicial cravado:
+
+> Olá, {nome}! 🌎
+>
+> Aqui é da Spinhardi Turismo. Recebemos seu contato pelo site e já estamos com
+> a sua mensagem em mãos. Em instantes uma das nossas consultoras vai te chamar
+> pra entender sua viagem dos sonhos.
+>
+> Até já! ✨
+
+Vocativo se nome existir, ou omite o nome se vier vazio. WhatsApp regular (não
+WABA), template não exigido.
+
+**Racional:**
+
+- Cliente recebe resposta imediata, sensação de atendimento rápido
+- Fluxo único: form → mensagem inicial + opp criada em background
+- Fire-and-forget: form retorna sucesso imediato pro usuário, sync roda 1-3s
+  depois sem bloquear
+- Falha no sync NÃO falha o form (lead fica gravado no Supabase,
+  sync_status='failed' permite retry futuro)
+- Defaults sensatos pra opp: name="Lead via Site - {nome}", value=0,
+  pipelineStepId=primeiro stage do funil,
+  responsibleId=`CLICKMASSA_DEFAULT_AGENT_ID` (env), expectedCloseDate=hoje+30d
+
+**Consequências:**
+
+- `src/lib/integrations/clickmassa/index.ts` ganha `sendMessage()`,
+  `createOpportunity()`, `syncContactFlow()`
+- `src/app/(public)/contato/actions.ts` ganha chamada fire-and-forget após
+  insert
+- `contacts.clickmassa_*` populado com IDs reais quando sync OK
+- `contact_interactions` ganha row tipo `sync_clickmassa` com `descricao`
+  humano-legível por status (D043 + interactions)
+- Env vars: `CLICKMASSA_DEFAULT_AGENT_ID` (id numérico do agente padrão) +
+  `CLICKMASSA_TEST_NUMBER` (smoke)
+- Limite: precisa de `CLICKMASSA_DEFAULT_AGENT_ID` configurado pra opp ser
+  criada. Sem ele, opp falha mas mensagem é enviada (status `message_sent`)
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D043 — Lote G.1: Kanban Funil ClickMassa MVP em `/admin/funil`
+
+**Contexto:** Nina pediu redução do número de painéis pra operar (ClickMassa +
+Iddas hoje, ela queria 1 só). Iddas bloqueado por permissão (precisa Nina ativar
+acesso admin). ClickMassa destravado: API funciona. Decisão arquitetural:
+back-office Spinhardi assume papel de "visão gerencial do funil", ClickMassa
+mantém papel de "conversa real". Operadora de marketing usa só ClickMassa nativo
+pra mensagens; gestão de funil migra pro back-office.
+
+**Alternativas consideradas:**
+
+- (a) **Iframe do ClickMassa dentro do back-office**. Visual ruim, dependência
+  de cookies cross-site, sem unificação real.
+- (b) **Espelhar todas funcionalidades do ClickMassa (chat ao vivo + funil +
+  tags + atendimentos)**. Overengineering. Replicar UX de chat WhatsApp é alto
+  risco operacional (mensagem perdida = cliente perdido).
+- (c) **Espelhar APENAS pipeline de Opportunities** (gerencial) dentro do
+  back-office. Conversa continua no ClickMassa. Operadora abre ClickMassa pra
+  atender, Nina/Alan abrem back-office pra ver funil.
+
+**Decisão:** **(c)**. Kanban read-mostly de Opportunities em `/admin/funil`.
+Detalhe + edit em `/admin/funil/[id]`. Sem chat ao vivo, sem replicar
+atendimentos.
+
+**Racional:**
+
+- API ClickMassa tem CRUD completo de Opportunities. Tickets/atendimentos NÃO
+  têm endpoint público.
+- Conversa em tempo real é o "core" do ClickMassa, replicar custaria meses de
+  trabalho e ALTO risco operacional
+- Pipeline gerencial é onde o back-office agrega valor: visão única de leads,
+  métricas, JOIN com contacts do Supabase pra mostrar nome real (D049 / mapper
+  de contato)
+- Iddas vai entrar no mesmo modelo quando destravar: cadastros + financeiro no
+  back-office, operação no ClickMassa, dashboards combinados em Lote futuro
+
+**Consequências:**
+
+- Camada `src/lib/integrations/clickmassa/` criada (auth, http, types, index)
+- Routes `/admin/funil` (kanban) e `/admin/funil/[id]` (detalhe + edit + change
+  status won/lost)
+- Estado vazio quando cache não populado: "Aguardando sincronização inicial" +
+  botão "Forçar sincronização"
+- JOIN com Supabase no kanban: cada card mostra `contact.name` do Supabase
+  quando há match via `clickmassa_contact_id`; fallback pro telefone do
+  ClickMassa quando não há (caso de opps criadas direto no ClickMassa, fora do
+  form do site)
+- Operadora de marketing continua usando ClickMassa nativo pra conversar
+- Quando módulo Iddas destravar: dashboard combinado (ClickMassa + Iddas + funil
+  cruzado) em Lote separado
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D042 — Schema preexistente em `contacts` (clickmassa__/iddas__) documentado retroativo
+
+**Contexto:** durante o Lote G.2.b, ao aplicar
+`ALTER TABLE contacts ADD COLUMN clickmassa_contact_id BIGINT`, SQL retornou
+erro "column already exists". SELECT do schema revelou que `contacts` JÁ tinha 8
+colunas `clickmassa_*` e 7 colunas `iddas_*` criadas em data desconhecida, fora
+do DECISION_LOG e CHANGELOG. Mesmo padrão pra constraint
+`clickmassa_sync_status_check` que tentamos ADD.
+
+**Alternativas consideradas:**
+
+- (a) **Ignorar e seguir** — assume o schema, joga decisões futuras em cima.
+  Risco de surpresa repetida.
+- (b) **Migrar pro schema "correto" que queríamos** — DROP colunas existentes +
+  CREATE com tipos/nomes que cravamos. Risco de quebra, churning alto.
+- (c) **Documentar retroativo + adaptar** — aceitar o schema existente como
+  ground truth, ajustar tipos/nomes do código pra bater com ele. Cravar
+  convenções pra todo uso futuro.
+
+**Decisão:** **(c)**. Schema atual de `contacts` é o canônico:
+
+- `clickmassa_contact_id` TEXT (não BIGINT)
+- `clickmassa_ticket_ids` TEXT[] (plural, ARRAY, suporta múltiplos tickets)
+- `clickmassa_oportunidade_id` TEXT (nome em PT)
+- `clickmassa_pipeline_step` TEXT (armazena ID como string, não nome)
+- `clickmassa_tags_id` INTEGER[] (IDs nativos, números)
+- `clickmassa_ultimo_sync` TIMESTAMPTZ
+- `clickmassa_sync_status` TEXT com CHECK `IN ('synced', 'pending', 'failed')`
+- `clickmassa_sync_error` TEXT
+- Análogos pra Iddas (pessoa_id, cotacao_code, orcamento_id, venda_id,
+  ultimo_sync, sync_status, sync_error)
+
+Convenções pra todo uso futuro:
+
+- IDs vindos das APIs (que são number) são convertidos pra `String(id)` no
+  mapper antes de gravar
+- Arrays usados pra entidades com cardinalidade > 1 (ticket_ids, tags_id)
+- Nomes em PT seguindo padrão do projeto (`oportunidade`, `ultimo_sync`) onde já
+  tem precedente
+
+**Racional:** schema foi criado por intenção de alguém em algum momento
+(provavelmente lote inicial Lote C ou anterior); migrar pra "ideal" gera dívida
+sem ganho real. Adaptar código é mais barato e respeita decisões anteriores não
+documentadas. Documentação retroativa pra evitar repetir surpresa.
+
+**Consequências:**
+
+- `docs/glossario_supabase.md` (regenerável via SQL) vira fonte da verdade do
+  schema
+- Mapper em `src/lib/contacts/clickmassa-mapper.ts` honra os tipos TEXT do DB
+- Próximos prompts pro Codinho referenciam o glossário, não presumem nomes/tipos
+- Decisão futura possível: alinhar `iddas_sync_status` e
+  `clickmassa_sync_status` com enum único quando integração Iddas voltar
+
+**Responsável:** Alan + Claudinho. **Status:** Ativa.
+
+---
+
+## D041 — Arquitetura de camadas bronze/silver/gold (padrão fundamental)
+
+**Contexto:** projeto Spinhardi cresce com múltiplas fontes externas (ClickMassa
+ativa, Iddas pendente, futuras integrações Make/Looker/analytics). Sem camadas
+claras, dados externos vazam pro front (kanban faz JOIN runtime com API
+ClickMassa via cache + DB), schema misturador silver + gold + bronze acoplados
+(D042 evidência: `contacts` tem campos das 3 camadas misturados). Risco
+crescente de dívida arquitetural e fragilidade operacional (API cai → UI morre).
+
+Inspiração: arquitetura medalion (Lakehouse) do projeto Central de Dados RH J&T
+Express Brasil (escala enterprise: 15 schemas, ~250 objetos, Postgres 18,
+Parquet, DQ Gates, data contracts versionados). Princípios universais, escala
+adaptada.
+
+**Alternativas consideradas:**
+
+- (a) **Não adotar camadas, manter ad hoc**. Curto prazo confortável, médio
+  prazo dívida exponencial.
+- (b) **Replicar estrutura J&T 1:1 (schemas físicos separados, Parquet,
+  manifest)**. Overengineering pra escala Spinhardi (5 tabelas, ~50 rows hoje).
+- (c) **Adotar princípios com naming convention** (prefixos `bronze_*`,
+  `silver_*`, `gold_*` no mesmo schema `public`). Modular, evolutivo, sem custo
+  de migração de schema.
+
+**Decisão:** **(c)**. Três camadas lógicas, um schema físico.
+
+**Regras não-negociáveis:**
+
+1. Toda fonte externa (ClickMassa, Iddas, futuras) entra primeiro em **bronze**.
+   Sem exceção.
+2. **Bronze NÃO transforma, NÃO calcula, NÃO normaliza, NÃO faz JOIN**. Replica
+   e ponto.
+3. Bronze é JSONB + colunas-índice mínimas (`id`, `ingested_at`,
+   `source_updated_at` se a API expuser). Não vira N colunas pra cada campo da
+   API.
+4. Bronze é idempotente por id da source (PRIMARY KEY = id externo).
+5. **Silver processa bronze + dados próprios** (form, manual entry) num formato
+   canônico.
+6. Silver pode ter pointers/IDs de bronze pra cross-reference, mas NÃO duplica
+   dados em massa.
+7. **Gold consome silver** (e bronze quando estritamente necessário pra leitura
+   de campo cru). Gold gera a forma que o front precisa.
+8. **Front consome APENAS silver ou gold**. Nunca bronze. Nunca chama API
+   externa direto.
+9. Mudança no shape da API quebra bronze; silver e gold continuam estáveis
+   porque o mapeamento é explícito.
+10. Backfill e sync incremental compartilham o mesmo pipeline (bronze → silver →
+    gold). A única diferença é o filtro de tempo/escopo.
+11. Cada ingestão logga em `ingestion_log` (table simples: source, run_id,
+    started_at, finished_at, rows_inserted, rows_updated, rows_failed, error).
+    Equivalente leve dos `ingestion_runs` da J&T.
+12. Naming: prefixos `bronze_`, `silver_` (opcional, ou nome canônico como
+    `contacts`), `gold_`. Schema único `public`.
+
+**Implementação inicial:**
+
+- Bronze mínimo pra ClickMassa: `bronze_clickmassa_opportunities`,
+  `bronze_clickmassa_contacts`, `bronze_clickmassa_pipeline_steps` (renomear
+  `clickmassa_pipeline_steps` existente em lote futuro),
+  `bronze_clickmassa_tags`, `bronze_clickmassa_users`,
+  `bronze_clickmassa_products`
+- Silver continua como `contacts`, `contact_interactions`, `tags`,
+  `capture_origins`, `user_profiles` (D049 mantém estado atual com legacy
+  fields, refator futuro condicional)
+- Gold pode ser view Postgres OU query especializada em server component
+  Next.js. Pra MVP, mistura: views pra coisas reusadas (kanban, dashboard),
+  queries em server components pra coisas únicas
+
+**Racional:**
+
+- Princípios universais aplicam a qualquer escala. Spinhardi NÃO precisa de
+  Parquet/DQ Gates formais, mas precisa da separação lógica
+- Sem bronze, debug vira arqueologia (não temos snapshot quando API muda ou cai)
+- Sem regra "front não toca bronze", kanban fica acoplado direto na API e
+  qualquer instabilidade derruba UI (já vimos com Quirk 2 do `/pipeline-steps`)
+- JSONB em bronze ao invés de colunas N → flexibilidade pra mudanças no shape da
+  API sem migration
+- ETL bronze → silver → gold é o MESMO pipeline pra backfill e sync incremental,
+  só muda filtro de escopo
+
+**Consequências:**
+
+- Próximo lote (backfill) cria tabelas `bronze_clickmassa_*` antes de fazer ETL
+  pra silver
+- Tabelas `bronze_*` ganham trigger automático? Não. Atualização via ETL
+  explícito.
+- Refactor de `contacts` pra ser silver puro fica como dívida documentada (D049)
+- Job de sync incremental (próximo lote depois de backfill) usa mesma
+  arquitetura: bronze → silver → gold
+- `docs/arquitetura_camadas.md` documenta a regra; todo prompt do Codinho que
+  tocar dados externos referencia
+- Quando Iddas voltar: `bronze_iddas_*` no mesmo padrão
+
+**Responsável:** Alan + Claudinho. Inspirado em arquitetura da Central de Dados
+RH J&T Express Brasil. **Status:** Ativa. Padrão arquitetural fundamental.
+
 ---
 
 ## D040 — Pull-before-Codinho ao migrar de máquina (lição operacional)
