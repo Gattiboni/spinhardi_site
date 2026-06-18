@@ -28,6 +28,390 @@ Ordem: mais recente no topo.
 
 ---
 
+## D040 — Pull-before-Codinho ao migrar de máquina (lição operacional)
+
+**Contexto:** durante o dia 2026-06-17, Alan migrou do GitHub Codespaces (de
+onde ontem rodou o Lote D, com push pro origin/main) pra máquina local. Chamou
+Codinho local pra rodar Lote E + E.1 sem antes ter feito `git pull origin
+main`.
+O working tree local começou em estado pré-Lote D. Codinho trabalhou correto
+internamente mas em base errada. Quando tentou commitar, o `git push` foi
+rejeitado ("remote contains work that you do not have locally"). Tentativa
+inicial de rebase revelou que o trabalho local desconhecia Sanity, Resend,
+robots.ts e OG metadata do Lote D, e ia deletá-los do remoto se commitasse.
+Recuperação levou ~90 minutos de zigzag.
+
+**Alternativas consideradas:**
+
+- (a) **Recovery via cópia manual do trabalho** — copiar working tree, reset
+  hard, recolar peça por peça. Tentado parcialmente, gerou imports quebrados
+  porque arquivos modificados em ambos os lotes (`.env.example`, `package.json`)
+  precisavam merge manual com risco humano alto.
+- (b) **Recovery via Codinho re-rodar em base certa** — reset hard pra
+  origin/main + clean -fd + entregar pro Codinho UM prompt consolidado pedindo
+  Lote E + E.1 em cima da base Lote D limpa, com backup como referência mas
+  adaptando ao filesystem real. Funcionou em ~10 minutos sem conflito de
+  conteúdo.
+
+**Decisão:** **(b)**. E mais importante: adotar protocolo **sempre rodar
+`git pull origin main` antes de invocar Codinho em qualquer máquina**, e
+**confirmar `git status --branch` mostra "up to date with origin/main"** no
+início de toda sessão de trabalho que vá tocar código. Se o repo local não tá
+sincronizado, qualquer trabalho que Codinho fizer vai estar em base errada,
+independente de quão bem ele execute.
+
+**Racional:** Codinho é determinístico no escopo que recebe. Não tem awareness
+de que o working tree local pode estar atrás do remote. O custo de verificar
+sincronia antes é 2 segundos. O custo de descobrir desincronia depois é limpeza
+cirúrgica de várias horas e risco real de destruir trabalho em produção. Reset +
+Codinho rerodar é mais limpo que merge manual porque Codinho lê o filesystem
+real, detecta conflitos sutis (resend já instalado, imports diferentes, paths
+diferentes) e adapta.
+
+**Consequências:**
+
+- Adicionar pré-sessão checklist ao protocolo do trio:
+  `git fetch && git
+  status` antes de qualquer prompt pro Codinho
+- Quando o `git status` mostrar diverged: NÃO chamar Codinho até resolver
+- Backup físico (`Copy-Item -Recurse`) antes de qualquer reset destrutivo,
+  sempre. Pelo menos um nível de segurança fora do alcance do git
+- Aspas multi-linha do PowerShell são um modo recorrente de falha em git commit.
+  Adotar pattern de arquivo temp lido com `git commit -F`
+
+**Responsável:** Alan Gattiboni (incidente) + Claudinho (diagnóstico e condução
+do recovery). **Status:** Ativa.
+
+---
+
+## D039 — Webhook Sanity → Vercel via `/api/revalidate` com HMAC dual-format
+
+**Contexto:** o blog público (Lote D) consome Sanity com ISR de 1 minuto em
+`/blog` e SSG estática em `/blog/[slug]`. Amanda publica um post no Studio e o
+site só atualiza após o cache expirar (até 1 minuto na listagem, indeterminado
+na página individual até nova build). Pra publicação instantânea, precisamos de
+webhook Sanity → Vercel disparando `revalidatePath()`.
+
+**Alternativas consideradas:**
+
+- (a) **`revalidateTag` com cache tags por documento** — mais granular, dá pra
+  invalidar só o post que mudou. Custo: requer marcar todos os fetches do Sanity
+  com `next: { tags: [...] }`, e o endpoint precisa parsear o payload do Sanity
+  pra extrair `_id`. Mais código, mais ponto de falha.
+- (b) **`revalidatePath` global no `/blog`** — invalida a listagem toda toda vez
+  que qualquer post muda. Custo: regera a listagem inteira mesmo se só um post
+  mudou. Em escala de blog com 50+ posts, pode ser caro. No estado atual (3
+  posts), inócuo.
+- (c) **`revalidatePath` em duas linhas: `/blog` (literal) + `/blog/[slug]`
+  (page type)** — invalida listagem e todas instâncias do dynamic route. Cobre
+  publish e edit de qualquer post.
+
+**Decisão:** **(c)**, com nota técnica importante (descoberta pelo Codinho): o
+`revalidatePath` com tipo `'page'` em route com segmento dinâmico precisa
+incluir o **route group** no path. Implementação final usa
+`revalidatePath('/(public)/blog/[slug]', 'page')`, não `/blog/[slug]` puro. Doc
+do Next 16 sobre revalidatePath cobre esse detalhe (linha 148 citada pelo
+Codinho).
+
+**Sobre assinatura:** a especificação inicial dizia "HMAC-SHA256 do body". O
+Codinho descobriu que os webhooks GROQ do Sanity assinam no formato `t=,v1=`,
+onde sig é HMAC-SHA256 de `${timestamp}.${body}` em base64url. Não o body cru.
+Implementação final aceita **dois formatos**: o oficial Sanity (`t=`/`v1=`) com
+fallback pra HMAC puro do body. Pros: funciona out-of-the-box com a config
+padrão do painel Sanity e com qualquer teste manual via curl. Contras: ~15
+linhas a mais de código. Segurança não fica pior porque ambos os formatos
+validam contra o mesmo secret.
+
+**Outros pontos cravados:**
+
+- Endpoint path: `/api/revalidate` (convenção Next + Sanity)
+- Header da assinatura: `sanity-webhook-signature`
+- Comparação time-constant (`crypto.timingSafeEqual`) contra timing attacks
+- Filter no GROQ do webhook: `_type == "post"` (endpoint não precisa filtrar)
+- Status codes: 200 sucesso, 401 signature inválida/ausente, 400 body
+  malformado, 500 inesperado ou env var faltando
+- Runtime: Node (não Edge, porque crypto nativo)
+
+**Racional:** dual-format de assinatura é pragmatismo defensivo. A spec da
+Sanity sobre webhook signature não é trivialmente óbvia, e ter fallback evita
+investigação noturna se algum dia mudarem o formato. Comparação time-constant é
+boilerplate de segurança. Route group no path é descoberta operacional do Next
+16 que ficaria como gotcha invisível se cravássemos só `/blog/[slug]`.
+
+**Responsável:** Alan Gattiboni (decisão de produto) + Claudinho (spec
+técnica) + Codinho (correções operacionais sobre route group e dual-format).
+**Status:** Ativa.
+
+---
+
+## D038 — UI de Configurações com 2 editores especializados (origens ≠ tags)
+
+**Contexto:** o Lote E inicial entregou Configurações com editor único genérico
+(`SettingItem` com id/name/slug/color) compartilhado por `capture_origins` e
+`tags`. Lote E.1 restaurou o schema cravado: origens ganharam `descricao` e
+`campanha_ativa`, tags ganharam `cor` (obrigatória) e `grupo`. As duas tabelas
+pararam de ter shape comum.
+
+**Alternativas consideradas:**
+
+- (a) **Editor único com campos condicionais** — mantém componente único, mas
+  ele renderiza ou não cada campo conforme o tipo. Menos código, mais espaguete
+  de condicional.
+- (b) **Dois editores especializados** — `CaptureOriginEditor` e `TagEditor`,
+  cada um com seus campos próprios, primitivos compartilhados
+  (Toggle/Badge/Card). Mais arquivos, mas cada um é simples e focado.
+
+**Decisão:** **(b)**. Editor único com condicional vira fonte de bug sutil
+(campo aparece em contexto errado, validação fora de lugar). Dois editores
+especializados são lineares de ler e modificar.
+
+**Racional:** zero dívida técnica não é só sobre o código de hoje, é sobre o
+código que vai mexer nele em 6 meses. Editor único com if-else pra cada campo
+gera tensão recorrente. Separar agora é barato; consolidar depois é caro.
+
+**Responsável:** Codinho (decisão técnica durante o Lote E.1), confirmada por
+Claudinho. **Status:** Ativa.
+
+---
+
+## D037 — Módulo `src/lib/configuracoes/` seguindo pattern D029 com mapper identity explícito
+
+**Contexto:** no Lote E inicial, os tipos `CaptureOrigin` e `Tag` viviam inline
+em `configuracoes/actions.ts` como `SettingItem` genérico, e a leitura do banco
+era direta na page (sem camada de abstração). Não seguia o padrão D029 do Lote
+C. No Lote E.1, o Codinho criou módulo
+`src/lib/configuracoes/{types,mappers,index}.ts` espelhando o pattern.
+
+**Sobre o mapper identity:** o naming dos campos no domínio TS coincide com o
+naming no DB (`is_active`, `cor`, `descricao`, etc., naming misto preservado do
+projeto). O mapper `rowToCaptureOrigin` e `rowToTag` ficaria cópia 1:1. Tentação
+de pular o mapper foi descartada.
+
+**Alternativas consideradas:**
+
+- (a) **Pular o mapper** quando naming bate 1:1 — código mais enxuto, menos
+  arquivos.
+- (b) **Manter mapper identity explícito** — o compilador cobra todos os campos,
+  drift detection se um dia o domínio divergir do DB, consistência com pattern
+  D029.
+
+**Decisão:** **(b)**. Mantém o mapper mesmo sendo identity.
+
+**Racional:** drift entre TS e SQL acontece em silêncio. Hoje o naming bate,
+amanhã alguém adiciona `display_order` no DB e esquece de propagar pro TS; sem
+mapper explícito, o compilador não cobra. Com mapper, o compilador cobra todos
+os campos no momento do build. O custo do código duplicado é trivial. Honrar o
+pattern D029 também elimina "qual jeito a gente usa pra X" como discussão
+recorrente.
+
+**Responsável:** Codinho (execução), Claudinho (pattern enforcement).
+**Status:** Ativa.
+
+---
+
+## D036 — Route group `(painel)` protegido vs auth flat (`login`, `solicitar-acesso`, `aguardando`, `aprovar`)
+
+**Contexto:** no fluxo de aprovação manual, o back office tem dois grupos de
+rotas com requisitos opostos:
+
+- Rotas que **exigem sessão ativa**: dashboard, contatos, blog, configurações,
+  usuários
+- Rotas que **rodam sem sessão** (ou com sessão pending): login, solicitar
+  acesso, página de "aguardando aprovação", endpoint público de aprovação via
+  token signed
+
+Se o layout admin valida sessão pra todas, as rotas de auth quebram. Se não
+valida pra nenhuma, as protegidas vazam.
+
+**Alternativas consideradas:**
+
+- (a) **Validação por página** — cada page protegida chama `requireSession()` no
+  topo. Repetitivo, falha em silêncio se algum dia alguém esquecer.
+- (b) **Middleware/proxy faz tudo** — só o proxy decide. Funciona mas o layout
+  não sabe o usuário, e Server Components não conseguem renderizar chrome
+  (header, sidebar) com info de sessão sem ir buscar de novo.
+- (c) **Route group `(painel)/` com layout server-component que valida sessão**
+  — todas as rotas protegidas vivem dentro, layout valida uma vez, renderiza
+  chrome com info de sessão pros filhos. Rotas de auth ficam flat fora do
+  `(painel)/` e não passam pelo layout.
+
+**Decisão:** **(c)**. URLs não mudam (`(painel)/` é transparente pro Next).
+Organização interna do filesystem fica clara: o que é protegido vs o que é
+público dentro de `/admin/*`.
+
+**Racional:** Next 13+ route groups foram desenhados pra exatamente esse caso de
+uso. Custo de adotar: zero. Ganho: separação clara, layout pode servir como gate
+única, chrome pode usar `getSession()` server-side sem re-fetch.
+
+**Responsável:** Codinho (decisão durante o Lote E), confirmada por Claudinho.
+**Status:** Ativa.
+
+---
+
+## D035 — `admin.createUser({ email_confirm: true })` em vez de `signUp` no fluxo de aprovação manual
+
+**Contexto:** o fluxo de aprovação manual tem 3 estados: (1) usuário solicita
+acesso, (2) admin aprova ou rejeita via email signed, (3) usuário loga (se
+aprovado). O Supabase oferece dois caminhos pra criar usuário:
+
+- `supabase.auth.signUp({ email, password })` — cria com
+  `email_confirmed_at:
+  null`. Se "Confirm email" tá ligado no painel, usuário
+  precisa clicar link de confirmação antes de logar.
+- `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm:
+  true })`
+  — cria já confirmado, via service role.
+
+**Alternativas consideradas:**
+
+- (a) **`signUp` + desligar "Confirm email" no painel** — código simples, mas
+  depende de setting de painel pra funcionar; alguém pode religar o toggle sem
+  perceber e quebrar o fluxo.
+- (b) **`signUp` + manter "Confirm email" ligado + dual gate (confirm email do
+  Supabase + status='pending' no nosso `user_profiles`)** — adiciona uma etapa
+  pro usuário (confirmar email) antes do gate de aprovação manual. Ruído.
+- (c) **`admin.createUser({ email_confirm: true })` no service role** — cria
+  user já confirmado no Supabase Auth, gate de aprovação manual fica 100% no
+  nosso `status='pending'`. Independente do setting do painel.
+
+**Decisão:** **(c)**. Elimina dependência de setting de painel e elimina etapa
+redundante. O portão real (aprovação manual via email signed) é o nosso
+`user_profiles.status`.
+
+**Racional:** dois portões pro mesmo propósito (confirmar identidade do usuário)
+é ruído. O portão que importa é o de aprovação manual, e ele já tá implementado.
+O `email_confirm` do Supabase virou só uma feature operacional opcional ("se eu
+quiser desligar, posso, sem quebrar nada").
+
+**Responsável:** Codinho (decisão técnica durante o Lote E), confirmada por
+Claudinho. **Status:** Ativa.
+
+---
+
+## D034 — Next 16: `middleware` renomeado pra `proxy` + descoberta de que `middleware.ts` raiz nunca rodou
+
+**Contexto:** o Lote E precisava de proteção server-side em `/admin/*` pra matar
+o D030. A implementação ia usar `middleware.ts` na raiz do projeto. Codinho
+descobriu duas coisas:
+
+1. **Next 16 renomeou `middleware` pra `proxy`**. Arquivo deve ser
+   `src/proxy.ts` (ou `proxy.ts` na raiz, depende da estrutura). Build emite
+   warning de convenção deprecada se usar `middleware.ts`.
+2. **O `middleware.ts` que existia no projeto na raiz nunca rodou.** O app vive
+   em `src/app/`. Pra o Next ativar o middleware, o arquivo precisa estar na
+   **raiz do diretório do projeto** quando o app está na raiz, ou em `src/`
+   quando o app está em `src/app/`. O `middleware.ts` raiz com app em `src/app/`
+   é inerte. Toda a "proteção" do back office antes do Lote E era 100%
+   client-side.
+
+**Consequência retroativa:** D030 era mais grave do que estava registrado. Não
+era "auth mock + SSR vaza dados na payload anônimo". Era "back office sem
+proteção server-side de qualquer tipo".
+
+**Decisão:**
+
+- Usar `src/proxy.ts` (convenção Next 16, vai pra `src/` pra acompanhar o app)
+- Deletar `middleware.ts` raiz
+- Proxy aplica gate em `/admin/*` exclusivamente, sem afetar rotas públicas
+- Runtime do proxy é Node (Next 16 default; opção `runtime` lança erro se setada
+  explicitamente)
+
+**Racional:** convenção do Next 16 é convenção. Sobre o "middleware raiz nunca
+rodou": catch importante e silencioso, exatamente o tipo de coisa que justifica
+ter Codinho como camada de execução com awareness de filesystem real e doc
+oficial.
+
+**Responsável:** Codinho (descoberta), Claudinho (escopo final). **Status:**
+Ativa.
+
+---
+
+## D033 — `reply_to` forçado no Resend em vez de forwarding via Registro.br
+
+**Contexto:** durante o Lote D (Resend ligado ao form de contato), surgiu a
+pergunta de como rotear respostas aos leads que chegam pelo formulário.
+Alternativas operacionais:
+
+- Configurar forwarding no Registro.br: emails enviados pra
+  `contato@spinharditurismo.com.br` vão automaticamente pra uma caixa real (ex.:
+  `spinhardi.turismo@gmail.com`).
+- Não configurar forwarding, e usar `reply_to:` em todo email enviado via
+  Resend. Quem responder o email vai direto pro Gmail real, sem precisar de
+  caixa institucional ativa.
+
+**Alternativas consideradas:**
+
+- (a) **Forwarding via Registro.br** — caixa institucional fica "viva" no DNS;
+  qualquer email enviado pra `contato@...` chega no Gmail. Mais geral, mas
+  precisa de config DNS adicional e dependência do provedor.
+- (b) **`reply_to` no Resend** — cada email enviado força `reply_to:` no header.
+  Quem clica reply responde pro Gmail. Mais simples, 100% controlado por código.
+
+**Decisão:** **(b)**. Em todos os emails enviados via Resend (form de contato do
+Lote D, fluxo de aprovação manual do Lote E), o `reply_to` aponta pro Gmail
+institucional da Spinhardi.
+
+**Racional:** simplicidade operacional. Sem dependência de config no
+Registro.br. Se um dia a Spinhardi quiser caixa institucional real, configura
+forwarding/imap depois sem precisar mexer no código. Reversível com baixo custo.
+
+**Responsável:** Alan Gattiboni (operacional) + Claudinho (técnico). **Status:**
+Ativa.
+
+---
+
+## D032 — Billing per-cliente (Vercel team, Supabase org, Sanity org, Resend account separadas pra Spinhardi)
+
+**Contexto:** o engagement Gattiboni Enterprises → Spinhardi Turismo precisa de
+separação de billing. Gattiboni paga as contas dos próprios SaaS pra projetos
+internos. Cada cliente paga as próprias. Quando o engagement Spinhardi foi pra
+fase 3 (produção, custo recorrente), foi necessário decidir como arquitetar as
+contas.
+
+**Alternativas consideradas:**
+
+- (a) **Tudo dentro da conta Gattiboni** — Vercel, Supabase, Sanity, Resend
+  todos sob a conta pessoal do Alan. Cobrar Spinhardi via repasse mensal.
+  Operacionalmente simples, mas mistura billing, e quando o engagement
+  terminar/migrar, é trabalho transferir.
+- (b) **Conta dedicada Spinhardi por SaaS, ownership Alan** — em cada SaaS,
+  criar entidade dedicada pra Spinhardi (Vercel team "Spinhardi Turismo",
+  Supabase org "Spinhardi Turismo", Sanity org "Spinhardi Turismo", Resend
+  account com email da Spinhardi). Billing separado. Cartão da Spinhardi.
+  Ownership atual com Alan, transferência futura quando Spinhardi for assumir
+  diretamente.
+
+**Decisão:** **(b)** desde o início da Fase 3. Cada SaaS tem entidade dedicada
+pra Spinhardi. Cartão virtual da Spinhardi cobra cada um diretamente. Ownership
+administrativo segue com Alan (Gattiboni) até handoff formal.
+
+**Implementação:**
+
+- **Vercel**: team "Spinhardi Turismo" (separada da conta pessoal Alan), projeto
+  `spinhardi` lá dentro, cartão Spinhardi
+- **Supabase**: org "Spinhardi Turismo" (separada), projeto
+  `grjkqljucszoaujmhgpi` lá dentro, cartão Spinhardi
+- **Sanity**: org "Spinhardi Turismo", projeto `wtc1swpj`
+- **Resend**: account com email `spinhardi.turismo@gmail.com`
+
+**Racional:** separação de billing desde o nascedouro evita complicação contábil
+no Gattiboni (despesas misturadas) e na Spinhardi (gastos com SaaS não
+rastreáveis). E garante que transferência de propriedade técnica no fim do
+engagement é viável (basta transferir ownership de cada entidade, sem precisar
+migrar projetos entre contas).
+
+**Consequências:**
+
+- Transferência de propriedade técnica no handoff é trabalho real (~1 dia
+  estimado pra todas as 4 plataformas). Cláusula contratual sugerida.
+- Cada SaaS tem dois "owners conceituais": o operacional (Alan/Gattiboni
+  enquanto consultoria, depois Nina/Julia) e o financeiro (Spinhardi sempre).
+
+**Responsável:** Alan Gattiboni. **Status:** Ativa.
+
+````
+---
+
 ## D031 — `<SpinhardiImage>` é a forma única de exibir imagens de conteúdo
 
 **Contexto:** o lote de aplicação das primeiras imagens reais (junho 2026)
@@ -72,7 +456,7 @@ interface SpinhardiImageProps {
   sizes?: string; // default "100vw"
   className?: string; // wrapper recebe; max-w-* e similares passam aqui
 }
-```
+````
 
 **Detalhes de implementação que viraram parte da especificação:**
 

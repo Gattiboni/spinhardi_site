@@ -15,6 +15,211 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-17 — Lote E + E.1: Auth real, fluxo aprovação manual, configurações reais
+
+### Adicionado
+
+**Schema Supabase (aplicado em produção via SQL editor):**
+
+- `user_profiles` (id, name, email, status `pending|approved|rejected`, role
+  `admin|editor`, created_at, updated_at, approved_at, approved_by com
+  `ON DELETE SET NULL`) — RLS habilitada com policy "users can read own profile"
+  (`auth.uid() = id`); trigger `touch_updated_at`
+- `capture_origins` (id, name, slug único, descricao nullable, is_active default
+  true, campanha_ativa default false, created_at, updated_at) — RLS habilitada
+  com policy SELECT pra authenticated; trigger `touch_updated_at`; seed inicial
+  de 4 origens (Site, WhatsApp, Indicação, Instagram)
+- `tags` (id, name, slug único, cor NOT NULL sem default, grupo nullable,
+  is_active default true; **sem timestamps**, decisão (a) do D028) — RLS com
+  policy SELECT pra authenticated; sem trigger; nasce vazia
+- Função compartilhada `public.touch_updated_at()`
+
+**Código:**
+
+- `@supabase/ssr` + `jose` instalados (registrados em `package.json`); `resend`
+  já vinha do Lote D
+- `src/proxy.ts` — proxy server-side cirúrgico em `/admin/*`, runtime Node (Next
+  16 default; `middleware` foi renomeado pra `proxy` na versão; ver D034)
+- `src/lib/supabase/client.ts` — client browser (`@supabase/ssr`)
+- `src/lib/supabase/env.ts` — resolver da chave pública com fallback
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY ?? NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `src/lib/auth/session.ts` — `getSession()`, `requireSession()`,
+  `requireRole()`
+- `src/lib/auth/approval-token.ts` — JWT HMAC-SHA256 (jose), validade 7 dias
+- `src/lib/email/approval-request.ts` — render do email com 3 botões (Aprovar
+  Admin / Aprovar Editor / Rejeitar), dispatch via Resend
+- `src/lib/configuracoes/{types,mappers,index}.ts` — pattern D029 honrado;
+  mapper identity explícito mesmo quando naming domínio = naming DB (ver D037)
+- `src/app/admin/login/actions.ts` — Server Action de login com email/senha
+- `src/app/admin/solicitar-acesso/{page,actions}.tsx|ts` — formulário público de
+  solicitação + Server Action que usa
+  `admin.createUser({ email_confirm: true })` (ver D035), insere `user_profiles`
+  com `status='pending'`, dispara email
+- `src/app/admin/aguardando/page.tsx` — landing pra usuários pending
+- `src/app/admin/aprovar/[token]/page.tsx` — endpoint público que valida HMAC do
+  token signed e aplica decisão (admin / editor / rejeitar)
+- `src/app/admin/(painel)/...` — todas as rotas protegidas dentro do route group
+  (painel/); layout server-component valida sessão antes de renderizar
+- `src/app/admin/(painel)/configuracoes/{page,actions,ConfiguracoesClient}.tsx|ts`
+  — UI com 2 editores especializados (ver D038): origens (descricao + 2 toggles)
+  e tags (cor + grupo + 1 toggle); CRUD via Server Actions com
+  `requireRole('admin')`
+
+### Modificado
+
+- `src/lib/supabase/server.ts` — `supabaseAdmin()` (função) + `supabaseServer()`
+  (sessão-aware)
+- `src/lib/contacts/index.ts` — `supabaseAdmin` (constante) → `supabaseAdmin()`
+  (chamada)
+- `src/lib/auth/index.ts` — barrel enxuto (só roles), sem mock provider
+- `src/components/admin/AdminHeader.tsx` — `signOut()` real via
+  `supabaseClient`, sem role-swap mock
+- `src/components/admin/AdminContactForm.tsx` — import do novo caminho
+  `(painel)/contatos/novo/actions`
+- `src/app/admin/login/page.tsx` — formulário email + senha (sem magic link)
+- `src/app/admin/(painel)/{DashboardClient,page}.tsx` — nome via sessão real
+- `src/app/admin/(painel)/usuarios/page.tsx` — `requireRole('admin')` no topo
+- `src/app/admin/(painel)/contatos/[id]/actions.ts` e
+  `src/app/admin/(painel)/contatos/novo/actions.ts` — `requireSession()`
+- `.env.example` — seção Lote E com `APPROVAL_HMAC_SECRET`,
+  `APPROVAL_NOTIFICATION_EMAIL`, `NEXT_PUBLIC_SITE_URL`
+
+### Deletado (zero dívida)
+
+- `middleware.ts` raiz — convenção deprecada no Next 16 + descoberta de que esse
+  arquivo na raiz nunca rodou enquanto o app está em `src/app/` (ver D034). A
+  proteção do back office era 100% client-side antes deste lote
+- `src/lib/auth/mock.ts` — provider client-side
+- `src/lib/auth/provider.ts` — barrel do mock
+- `src/lib/auth/supabase.ts` — stub
+- `src/app/admin/login/verificar/page.tsx` — rota do magic link experimental,
+  descartada em favor do email + senha
+- Versões antigas dos arquivos em `src/app/admin/` que viraram
+  `src/app/admin/(painel)/` (renames detectados pelo git, exceto `layout.tsx` e
+  `configuracoes/page.tsx` que mudaram de conteúdo o suficiente pra git tratar
+  como new file + delete)
+
+### Configuração externa aplicada
+
+- Vercel (Production / All Environments): `APPROVAL_HMAC_SECRET`,
+  `APPROVAL_NOTIFICATION_EMAIL`, `NEXT_PUBLIC_SITE_URL`, `RESEND_API_KEY` (ver
+  "Incidentes resolvidos")
+- Supabase → Authentication → Providers → Email: toggle "Confirm email"
+  desligado (não obrigatório por D035, mas operacionalmente mais seguro)
+- SQL bloco único aplicado no Supabase SQL editor; SELECT de verificação com 13
+  checks retornou todos `true`
+
+### Validação
+
+- `npm run format` ✓ (escopado nos arquivos do lote; repo-wide foi descartado
+  por causa do CRLF do Lote D, anotação operacional pendente)
+- `npm run lint` ✓ exit 0
+- `npx tsc --noEmit` ✓ exit 0
+- `npm run build` ✓ 24 rotas (3 a mais que o build do Codinho no Codespaces:
+  `/robots.txt`, `/blog` ISR 1m, `/blog/[slug]` SSG via Sanity, todos do Lote D)
+- Smoke test end-to-end em produção (com email `alangattiboni@yahoo.com.br`):
+  `/solicitar-acesso` → email Resend com 3 botões → Aprovar como Admin →
+  `/admin/login` → `/admin` (dashboard) → `/admin/configuracoes` (criou, editou
+  e desativou origem e tag)
+
+### Decisões aplicadas
+
+- D028 (schema TEXT+CHECK, tags sem timestamps decisão (a))
+- D029 (mapper explícito Row/Insert/Update)
+- **D030 — RESOLVIDA por este lote**
+- D034, D035, D036, D037, D038 (novas, ver DECISION_LOG)
+
+### Incidentes resolvidos
+
+**Trabalho local em base desatualizada (incidente operacional).** Codinho rodou
+Lote E e E.1 no VS Code local enquanto o repo local estava pré-Lote D (push do
+Codespaces de ontem nunca foi puxado). Resultado: working tree consistente
+internamente, mas o `git push` falharia ou apagaria Sanity + Resend + robots +
+OG do remoto. Detectado durante a tentativa de commit quando `git pull --rebase`
+revelou divergência. Recuperação: `git reset --hard
+origin/main` +
+`git clean -fd` + Codinho re-rodar Lote E + E.1 em cima da base Lote D (com
+awareness do filesystem real, detectou `resend` já instalado, não tocou em
+arquivos do Lote D). Registrado em D040.
+
+**RESEND_API_KEY não estava na Vercel.** Lote D adicionou `RESEND_FROM_EMAIL` e
+`RESEND_TO_EMAIL` mas omitiu a `RESEND_API_KEY`. Sintoma: tela de "Solicitação
+enviada" aparece (Server Action try/catch grava `user_profiles` mas suprime erro
+de envio do email), email nunca chega. Log de runtime confirmou
+`Error: Missing API key`. Adicionada na Vercel + redeploy.
+
+**Aspas multi-linha do PowerShell engoliram a primeira mensagem de commit.** O
+título do commit `dca7515` (depois descartado) ficou literalmente
+`git commit -m "feat:..."`. Pattern adotado: arquivo temporário `commit-msg.txt`
+lido via `git commit -F`.
+
+**APPROVAL_HMAC_SECRET exposto no chat durante o setup.** Rotacionado via
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e
+substituído em `.env.local` + Vercel antes do push final.
+
+### Pendências (fora do escopo deste lote)
+
+- Treinamento Sanity da Amanda (Loom + sessão dedicada)
+- Tag `v1.0.0` (Fase 3.6 do plano, quando go-live formal)
+- `docs/MANUTENCAO.md` (operacional pós-go-live)
+- `docs/SECURITY_GO_LIVE.md` (cravado em D030, agora pode ser escrito como
+  retrospectiva)
+- Adicionar `commit-msg.txt` ao `.gitignore`
+- Normalização CRLF/LF dos arquivos do Lote D (lote dedicado, sem urgência)
+- CHECK constraint de formato hex em `tags.cor` (cosmético, sem urgência)
+
+---
+
+## 2026-06-17 — Lote F: Webhook Sanity → Vercel pra revalidação on-publish
+
+### Adicionado
+
+- `src/app/api/revalidate/route.ts` — route handler POST, runtime Node,
+  validador HMAC-SHA256 dual-format (oficial Sanity `t=`/`v1=` com fallback HMAC
+  puro), chama `revalidatePath('/blog')` e
+  `revalidatePath('/(public)/blog/[slug]', 'page')` em sucesso (ver D039 sobre o
+  route group no path); usa `crypto.timingSafeEqual` contra timing attacks;
+  crypto nativo do Node, sem dependência nova
+- Env var nova: `SANITY_REVALIDATE_SECRET` (`.env.local` + Vercel All
+  Environments, gerada com `openssl rand -hex 32` equivalente em Node)
+- Webhook GROQ-powered configurado no manage do Sanity (project `wtc1swpj`): URL
+  `https://www.spinharditurismo.com.br/api/revalidate`, trigger
+  create/update/delete, filter `_type == "post"`, secret cravado no painel com o
+  mesmo valor da env
+
+### Modificado
+
+- `.env.example` — seção LOTE F com `SANITY_REVALIDATE_SECRET=`
+
+### Validação
+
+- `prettier` escopado ✓, `npm run lint` ✓ exit 0, `npx tsc --noEmit` ✓ exit 0
+- `npm run build` ✓ — `/api/revalidate` registra como ƒ (dynamic), blog intacto
+- Smoke test produção:
+  - Post "Teste webhook revalidação" criado e publicado no Studio
+  - `/blog` (listagem) atualizou imediato com o post;
+    `/blog/teste-webhook-revalidacao` renderizou completo
+  - Attempt log Sanity: `resultCode: 200`,
+    `resultBody:
+    {"revalidated":true,"now":1781750313157}`,
+    `duration: 1318ms`, `isFailure: false`
+  - Unpublish do mesmo post: `/blog` removeu imediato; segundo attempt log com
+    `resultCode: 200`, `duration: 389ms`
+
+### Decisões aplicadas
+
+- D039 (novo)
+
+### Pendências (fora do escopo)
+
+- Estender filter GROQ pra `author` e `category` quando o schema do Sanity
+  ganhar tipos adicionais
+- Avaliar `revalidateTag` em vez de `revalidatePath` se vier a usar fetch tags
+  pra controle mais granular
+
+```
+---
+
 ## 2026-06-16 — Lote Fotos: imagens reais aplicadas + componente `<SpinhardiImage>`
 
 ### Adicionado
@@ -1219,3 +1424,4 @@ meses) ou R$ 12.000 à vista.
 
 _Atualizar este arquivo a cada evento relevante, por menor que pareça. O log é
 memória do projeto._
+```
