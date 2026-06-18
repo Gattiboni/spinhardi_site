@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createContact } from "@/lib/contacts";
 import { draftContactFromForm, type ContactFormInput } from "@/lib/contacts/from-form";
+import { requireSession } from "@/lib/auth/session";
 
 export type CreateContactResult = {
   success: boolean;
@@ -18,6 +19,7 @@ export type CreateContactResult = {
  */
 export async function createManualContact(data: ContactFormInput): Promise<CreateContactResult> {
   try {
+    await requireSession();
     const draft = draftContactFromForm(data, { origem: "manual", hadInteraction: false });
     await createContact(draft);
     revalidatePath("/admin/contatos");

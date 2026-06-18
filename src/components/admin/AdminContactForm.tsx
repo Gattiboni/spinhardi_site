@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import { createManualContact } from "@/app/admin/contatos/novo/actions";
+import { createManualContact } from "@/app/admin/(painel)/contatos/novo/actions";
 import {
   type DestinoTipo,
   type PrazoIdeal,

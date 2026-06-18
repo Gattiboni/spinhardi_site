@@ -34,7 +34,7 @@ export async function getContacts(opts?: {
   search?: string;
   status?: "ativo" | "arquivado";
 }): Promise<Contact[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin()
     .from("contacts")
     .select("*")
     .eq("status", opts?.status ?? "ativo")
@@ -90,7 +90,7 @@ export async function getContacts(opts?: {
 }
 
 export async function getContactById(id: string): Promise<Contact | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin()
     .from("contacts")
     .select("*")
     .eq("id", id)
@@ -104,7 +104,7 @@ export async function getContactById(id: string): Promise<Contact | null> {
 }
 
 export async function getContactInteractions(contactId: string): Promise<ContactInteraction[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin()
     .from("contact_interactions")
     .select("*")
     .eq("contact_id", contactId)
@@ -124,7 +124,7 @@ export async function getContactInteractions(contactId: string): Promise<Contact
 export async function createContact(
   data: Omit<Contact, "id" | "createdAt" | "updatedAt">,
 ): Promise<Contact> {
-  const { data: inserted, error } = await supabaseAdmin
+  const { data: inserted, error } = await supabaseAdmin()
     .from("contacts")
     .insert(contactToInsertRow(data))
     .select("*")
@@ -139,7 +139,7 @@ export async function createContact(
 
 export async function updateContact(id: string, patch: Partial<Contact>): Promise<Contact> {
   // `updated_at` fica de fora do patch — o trigger do banco cuida dele.
-  const { data: updated, error } = await supabaseAdmin
+  const { data: updated, error } = await supabaseAdmin()
     .from("contacts")
     .update(contactPatchToRow(patch))
     .eq("id", id)
@@ -157,7 +157,7 @@ export async function addInteraction(
   contactId: string,
   data: Omit<ContactInteraction, "id" | "contactId" | "criadoEm">,
 ): Promise<ContactInteraction> {
-  const { data: inserted, error } = await supabaseAdmin
+  const { data: inserted, error } = await supabaseAdmin()
     .from("contact_interactions")
     .insert(interactionToInsertRow({ contactId, ...data }))
     .select("*")

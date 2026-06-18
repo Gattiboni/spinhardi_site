@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Usuários · Admin",
 };
 
-export default function AdminUsuarios() {
+export default async function AdminUsuarios() {
+  await requireRole("admin");
   return (
     <div>
       <h1 className="font-display text-3xl text-navy mb-4">Usuários</h1>

@@ -1,16 +1,10 @@
-import { mockAuth } from "./mock";
-// import { supabaseAuth } from "./supabase"; // ATIVAR NO LOTE C
-
 /**
- * Provider de auth ativo.
+ * Barrel de auth.
  *
- * Fase 1: mock via localStorage (sem dependência externa).
- * Fase 1.11 (Lote C): trocar pra supabaseAuth quando Supabase
- *                     for configurado.
+ * `roles` é puro (sem dependências de server/client) e pode ser importado de
+ * qualquer lugar — inclusive Client Components (AdminSidebar). As funções de
+ * sessão vivem em `./session` (server-only) e devem ser importadas diretamente
+ * de `@/lib/auth/session` para não arrastar `server-only` pro bundle do browser.
  */
-export const auth = mockAuth;
-
-export type { User, AuthProvider } from "./provider";
 export type { Role } from "./roles";
 export { hasPermission } from "./roles";
-export { setRoleOverride } from "./mock";

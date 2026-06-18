@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import Button from "@/components/ui/Button";
 import DashboardCard from "@/components/admin/DashboardCard";
 
@@ -31,6 +30,7 @@ type DashboardClientProps = {
   iddasStats: IddasStats;
   clickmassaStats: ClickmassaStats;
   postsCount: number;
+  userName: string;
 };
 
 function saudacaoPorHora(hora: number): string {
@@ -59,24 +59,23 @@ export default function DashboardClient({
   iddasStats,
   clickmassaStats,
   postsCount,
+  userName,
 }: DashboardClientProps) {
-  // Saudação e data dependem da hora local e do usuário logado — calculadas
-  // após o mount pra evitar mismatch de hidratação.
+  // Saudação e data dependem da hora local — calculadas após o mount pra evitar
+  // mismatch de hidratação. O nome vem por prop (sessão real, lado servidor).
   const [saudacao, setSaudacao] = useState("Olá");
   const [hoje, setHoje] = useState("");
-  const [nome, setNome] = useState("");
+  const nome = userName.split(" ")[0];
 
   useEffect(() => {
-    // Tudo dentro do callback async pra não chamar setState de forma síncrona
-    // no corpo do efeito (evita cascading renders / regra set-state-in-effect).
+    // Deferido num microtask pra não chamar setState de forma síncrona no corpo
+    // do efeito (regra set-state-in-effect / evita cascading renders).
     const agora = new Date();
     const saud = saudacaoPorHora(agora.getHours());
     const data = dataFormatada(agora);
-
-    auth.getUser().then((u) => {
+    Promise.resolve().then(() => {
       setSaudacao(saud);
       setHoje(data);
-      if (u) setNome(u.name.split(" ")[0]);
     });
   }, []);
 

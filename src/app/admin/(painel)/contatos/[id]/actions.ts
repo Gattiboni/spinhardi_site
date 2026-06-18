@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContactById, updateContact } from "@/lib/contacts";
+import { requireSession } from "@/lib/auth/session";
 import type { Contact, EstagioFunil } from "@/lib/contacts/types";
 
 export type SaveGestaoInternaResult = {
@@ -21,6 +22,7 @@ export async function saveGestaoInterna(
   data: { estagio: EstagioFunil; proximoFollowUp: string | null; notasInternas: string },
 ): Promise<SaveGestaoInternaResult> {
   try {
+    await requireSession();
     const current = await getContactById(id);
     if (!current) {
       return { success: false, error: "Contato não encontrado." };
