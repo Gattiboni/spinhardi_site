@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": {
+    "id": "177659",
+    "identificador": "3owkt",
+    "nome": "<redacted-nome>",
+    "email": "<redacted-email>",
+    "telefone": "<redacted-phone>",
+    "origem": "Brasil",
+    "destino": "Itália",
+    "data_ida": "2026-06-01",
+    "data_volta": "2026-06-13",
+    "adultos": "2",
+    "criancas": "0",
+    "bagagem_despachada": "2",
+    "possui_flexibilidade": "S",
+    "observacao": "",
+    "adicional": [],
+    "data_solicitacao": "2026-06-01 18:00:25"
+  }
+}

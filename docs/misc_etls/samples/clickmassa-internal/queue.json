@@ -1,0 +1,32 @@
+[
+  {
+    "id": 30,
+    "queue": "Atendimento",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "messageDefaultContact": null,
+    "createdAt": "2025-11-10T19:26:56.854Z",
+    "updatedAt": "2025-11-10T19:26:56.854Z"
+  },
+  {
+    "id": 31,
+    "queue": "Financeiro",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "messageDefaultContact": null,
+    "createdAt": "2025-11-10T19:26:56.852Z",
+    "updatedAt": "2025-11-10T19:26:56.852Z"
+  },
+  {
+    "id": 32,
+    "queue": "Pós venda",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "messageDefaultContact": null,
+    "createdAt": "2025-11-10T19:26:56.858Z",
+    "updatedAt": "2025-11-10T19:26:56.858Z"
+  }
+]

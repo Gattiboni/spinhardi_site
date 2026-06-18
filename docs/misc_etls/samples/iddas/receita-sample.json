@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "id": "1194524",
+    "pessoa": "558909",
+    "conta": "7702",
+    "categoria": "37015",
+    "descricao": "Aéreo <redacted-vendor>",
+    "lancamento": "2025-09-01",
+    "vencimento": "2025-09-01",
+    "pagamento": "2025-09-01",
+    "forma_lancamento": "N",
+    "valor": "<redacted-valor>",
+    "forma_pagamento": "1",
+    "observacao": null
+  }
+}

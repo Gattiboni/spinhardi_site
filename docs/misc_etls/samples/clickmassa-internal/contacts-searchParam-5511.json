@@ -1,0 +1,56 @@
+{
+  "contacts": [
+    {
+      "id": 37172,
+      "name": ".",
+      "number": "5511967625177",
+      "email": null,
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": null,
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2025-12-20T16:43:36.877Z",
+      "updatedAt": "2025-12-29T13:17:04.086Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [
+        "Trafego e sem resposta"
+      ],
+      "leadStatus": "Lead novo",
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "222835872153838",
+      "isBlacklisted": false
+    },
+    {
+      "id": 84647,
+      "name": "551125282456",
+      "number": "551125282456",
+      "email": "",
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": "551125282456",
+      "isUser": true,
+      "isWAContact": true,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2026-03-13T16:04:23.158Z",
+      "updatedAt": "2026-03-13T16:04:42.787Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [],
+      "leadStatus": null,
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "190705171489011",
+      "isBlacklisted": false
+    }
+  ],
+  "count": "139",
+  "hasMore": true
+}

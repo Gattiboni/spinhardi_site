@@ -1,0 +1,90 @@
+[
+  {
+    "id": 206,
+    "key": "botTicketActive",
+    "value": "",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2023-05-22T18:35:08.474Z"
+  },
+  {
+    "id": 207,
+    "key": "userCreation",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2020-12-12T19:08:45.354Z"
+  },
+  {
+    "id": 208,
+    "key": "NotViewTicketsQueueUndefined",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2020-12-12T19:08:45.354Z"
+  },
+  {
+    "id": 209,
+    "key": "NotViewTicketsChatBot",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2020-12-12T19:08:45.354Z"
+  },
+  {
+    "id": 210,
+    "key": "NotViewAssignedTickets",
+    "value": "enabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2020-12-12T19:08:45.354Z"
+  },
+  {
+    "id": 211,
+    "key": "DirectTicketsToWallets",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2023-05-22T18:35:04.915Z"
+  },
+  {
+    "id": 212,
+    "key": "ignoreGroupMsg",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2020-12-12T19:08:45.354Z",
+    "updatedAt": "2022-07-02T00:10:02.076Z"
+  },
+  {
+    "id": 228,
+    "key": "viewOpenedTicket",
+    "value": "enabled",
+    "tenantId": 28,
+    "createdAt": "2025-11-11T17:54:42.849Z",
+    "updatedAt": "2025-11-11T17:54:42.849Z"
+  },
+  {
+    "id": 229,
+    "key": "drawerRightOpen",
+    "value": "enabled",
+    "tenantId": 28,
+    "createdAt": "2025-11-11T17:54:49.152Z",
+    "updatedAt": "2025-11-11T17:54:49.152Z"
+  },
+  {
+    "id": 351,
+    "key": "treatGroupTicketsAsCommon",
+    "value": "disabled",
+    "tenantId": 28,
+    "createdAt": "2026-01-26T13:45:00.000Z",
+    "updatedAt": "2026-01-26T13:45:00.000Z"
+  },
+  {
+    "id": 392,
+    "key": "onlyAdminCanDeleteContacts",
+    "value": "enabled",
+    "tenantId": 28,
+    "createdAt": "2026-02-03T21:40:00.000Z",
+    "updatedAt": "2026-02-03T21:40:00.000Z"
+  }
+]

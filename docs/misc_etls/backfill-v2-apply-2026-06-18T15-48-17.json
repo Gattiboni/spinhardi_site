@@ -1,0 +1,1290 @@
+{
+  "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+  "mode": "apply",
+  "started_at": "2026-06-18T15:47:43.926Z",
+  "finished_at": "2026-06-18T15:48:17.067Z",
+  "duration_ms": 32852,
+  "status": "partial",
+  "resources": {
+    "tags": {
+      "fetched": 20,
+      "mapped": 20,
+      "would_insert": 20,
+      "sample": {
+        "id": 320,
+        "name": "Africa/Asia",
+        "color": "#0000a3",
+        "is_active": true,
+        "tenant_id": 28,
+        "user_id": 60,
+        "source_created_at": "2025-12-10T22:54:52.875Z",
+        "source_updated_at": "2025-12-10T22:55:38.366Z",
+        "raw_payload": {
+          "id": 320,
+          "tag": "Africa/Asia",
+          "color": "#0000a3",
+          "isActive": true,
+          "userId": 60,
+          "tenantId": 28,
+          "createdAt": "2025-12-10T22:54:52.875Z",
+          "updatedAt": "2025-12-10T22:55:38.366Z"
+        },
+        "ingested_at": "2026-06-18T15:47:44.724Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 20
+    },
+    "users": {
+      "fetched": 4,
+      "mapped": 4,
+      "would_insert": 4,
+      "sample": {
+        "id": 164,
+        "name": "Amanda Gattiboni",
+        "email": "branding@amandagattiboni.com",
+        "phone": "5548996850657",
+        "profile": "admin",
+        "profile_pic": "",
+        "uid": null,
+        "tenant_id": null,
+        "is_disable_autodistribution": false,
+        "can_view_department_tickets": true,
+        "raw_payload": {
+          "expiredPassword": false,
+          "profilePic": "",
+          "name": "Amanda Gattiboni",
+          "id": 164,
+          "email": "branding@amandagattiboni.com",
+          "profile": "admin",
+          "mensagemAusencia": "",
+          "lastLogout": null,
+          "lastLogin": "2026-06-18T03:20:10.780Z",
+          "isOnline": true,
+          "phone": "5548996850657",
+          "isDisableAutodistribution": false,
+          "profileId": null,
+          "lastPasswordChange": "2026-06-15T18:06:19.574Z",
+          "passwordMustChange": false,
+          "canViewDepartmentTickets": true,
+          "maxActiveChats": null,
+          "welcomeMessage": "",
+          "queues": [
+            {
+              "id": 31,
+              "queue": "Financeiro",
+              "UsersQueues": {
+                "id": 1368,
+                "queueId": 31,
+                "userId": 164,
+                "createdAt": "2026-06-15T17:51:18.423Z",
+                "updatedAt": "2026-06-15T17:51:18.423Z"
+              }
+            },
+            {
+              "id": 32,
+              "queue": "Pós venda",
+              "UsersQueues": {
+                "id": 1367,
+                "queueId": 32,
+                "userId": 164,
+                "createdAt": "2026-06-15T17:51:18.423Z",
+                "updatedAt": "2026-06-15T17:51:18.423Z"
+              }
+            },
+            {
+              "id": 30,
+              "queue": "Atendimento",
+              "UsersQueues": {
+                "id": 1366,
+                "queueId": 30,
+                "userId": 164,
+                "createdAt": "2026-06-15T17:51:18.423Z",
+                "updatedAt": "2026-06-15T17:51:18.423Z"
+              }
+            }
+          ],
+          "connections": [
+            {
+              "id": 31,
+              "name": "Spinhardi Turismo",
+              "UsersConnection": {
+                "id": 930,
+                "whatsappId": 31,
+                "userId": 164,
+                "createdAt": "2026-06-15T17:51:18.437Z",
+                "updatedAt": "2026-06-15T17:51:18.437Z"
+              }
+            }
+          ],
+          "tenant": {
+            "uid": "e02335db-d5cf-40ad-b9d5-4b9b2ac64b2a"
+          },
+          "groups": []
+        },
+        "ingested_at": "2026-06-18T15:47:45.513Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 4
+    },
+    "queues": {
+      "fetched": 3,
+      "mapped": 3,
+      "would_insert": 3,
+      "sample": {
+        "id": 30,
+        "queue": "Atendimento",
+        "is_active": true,
+        "tenant_id": 28,
+        "user_id": 60,
+        "message_default_contact": null,
+        "source_created_at": "2025-11-10T19:26:56.854Z",
+        "source_updated_at": "2025-11-10T19:26:56.854Z",
+        "raw_payload": {
+          "id": 30,
+          "queue": "Atendimento",
+          "isActive": true,
+          "userId": 60,
+          "tenantId": 28,
+          "messageDefaultContact": null,
+          "createdAt": "2025-11-10T19:26:56.854Z",
+          "updatedAt": "2025-11-10T19:26:56.854Z"
+        },
+        "ingested_at": "2026-06-18T15:47:46.013Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 3
+    },
+    "settings": {
+      "fetched": 11,
+      "mapped": 11,
+      "would_insert": 11,
+      "sample": {
+        "id": 206,
+        "key": "botTicketActive",
+        "value": "",
+        "tenant_id": 28,
+        "source_created_at": "2020-12-12T19:08:45.354Z",
+        "source_updated_at": "2023-05-22T18:35:08.474Z",
+        "raw_payload": {
+          "id": 206,
+          "key": "botTicketActive",
+          "value": "",
+          "tenantId": 28,
+          "createdAt": "2020-12-12T19:08:45.354Z",
+          "updatedAt": "2023-05-22T18:35:08.474Z"
+        },
+        "ingested_at": "2026-06-18T15:47:46.502Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 11
+    },
+    "whatsapp": {
+      "fetched": 1,
+      "mapped": 1,
+      "would_insert": 1,
+      "sample": {
+        "id": 31,
+        "name": "Spinhardi Turismo",
+        "number": "5519997761226",
+        "status": "CONNECTED",
+        "type": "whatsapp",
+        "is_active": true,
+        "is_default": true,
+        "provider": "baileys",
+        "uid": "2c268f51-43ac-4a91-b4ef-88a05678bee6",
+        "tenant_id": 28,
+        "source_created_at": "2025-11-11T18:10:56.668Z",
+        "source_updated_at": "2026-06-01T11:51:52.847Z",
+        "raw_payload": {
+          "UrlWabaWebHook": "https://enterprise-352api.clickmassa.com.br/wabahooks/null/null",
+          "UrlMessengerWebHook": "https://enterprise-352api.clickmassa.com.br/fb-messenger-hooks/null",
+          "id": 31,
+          "name": "Spinhardi Turismo",
+          "session": "",
+          "qrcode": "",
+          "status": "CONNECTED",
+          "battery": null,
+          "plugged": null,
+          "isActive": true,
+          "enableSentimentAnalysis": true,
+          "disableBotAfterAbsence": false,
+          "refuseComments": false,
+          "isRejectCall": false,
+          "callRejectedMessage": null,
+          "isDeleted": false,
+          "retries": 0,
+          "pid": null,
+          "isDefault": true,
+          "monitoring": true,
+          "archiveChat": false,
+          "isSyncOldMessages": true,
+          "isProcessGroupEvents": true,
+          "remoteAuth": false,
+          "tokenTelegram": "",
+          "instagramUser": "",
+          "instagramKey": "",
+          "fbPageId": null,
+          "phoneId": null,
+          "fbObject": null,
+          "url": "https://wa-28-go.clickmassa.com.br",
+          "container": "wa-28-go",
+          "type": "whatsapp",
+          "restartAt": null,
+          "number": "5519997761226",
+          "minutesInactivity": 0,
+          "phone": null,
+          "balance": null,
+          "tenantId": 28,
+          "wabaBSP": null,
+          "credentials": null,
+          "channelMeta": null,
+          "emailProvider": null,
+          "commentTab": "all",
+          "provider": "baileys",
+          "tokenAPI": "",
+          "uid": "2c268f51-43ac-4a91-b4ef-88a05678bee6",
+          "tokenHook": null,
+          "fluxoId": null,
+          "originalType": null,
+          "editedAt": null,
+          "businessHours": [
+            {
+              "day": 0,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Domingo"
+            },
+            {
+              "day": 1,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Segunda-Feira"
+            },
+            {
+              "day": 2,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Terça-Feira"
+            },
+            {
+              "day": 3,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Quarta-Feira"
+            },
+            {
+              "day": 4,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Quinta-Feira"
+            },
+            {
+              "day": 5,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Sexta-Feira"
+            },
+            {
+              "day": 6,
+              "hr1": "08:00",
+              "hr2": "12:00",
+              "hr3": "14:00",
+              "hr4": "18:00",
+              "type": "O",
+              "label": "Sábado"
+            }
+          ],
+          "messageBusinessHours": null,
+          "enableActiveSearchControl": false,
+          "tokenWaVoip": null,
+          "activeSearchLimit": 30,
+          "currentAmountOfActiveSearch": 0,
+          "lid": "153781689929788",
+          "createdAt": "2025-11-11T18:10:56.668Z",
+          "updatedAt": "2026-06-01T11:51:52.847Z",
+          "chatFlowId": null,
+          "inactivityClosingReasonId": null,
+          "defaultQueueId": 30,
+          "promptId": null,
+          "automationComments": []
+        },
+        "ingested_at": "2026-06-18T15:47:46.997Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 1
+    },
+    "api-config": {
+      "fetched": 1,
+      "mapped": 1,
+      "would_insert": 1,
+      "sample": {
+        "id": "b14c6651-0f00-4e64-973e-392f82691951",
+        "name": "Spinhardi Site - Back Office",
+        "session_id": 31,
+        "is_active": true,
+        "ticket_action": "OT",
+        "queue_id": null,
+        "user_id": 164,
+        "tenant_id": 28,
+        "webhook_url": null,
+        "source_created_at": "2026-06-18T03:44:53.624Z",
+        "source_updated_at": "2026-06-18T03:44:53.624Z",
+        "raw_payload": {
+          "id": "b14c6651-0f00-4e64-973e-392f82691951",
+          "sessionId": 31,
+          "name": "Spinhardi Site - Back Office",
+          "isActive": true,
+          "authToken": null,
+          "urlServiceStatus": null,
+          "urlMessageStatus": null,
+          "ticketAction": "OT",
+          "queueId": null,
+          "redirectUserId": null,
+          "closingReasonId": null,
+          "userId": 164,
+          "createdAt": "2026-06-18T03:44:53.624Z",
+          "updatedAt": "2026-06-18T03:44:53.624Z",
+          "tenantId": 28,
+          "isNewTicket": false,
+          "isStartedTicket": false,
+          "isFinishedTicket": false,
+          "isUpdateOnTicket": false,
+          "isTransferOfTicket": false,
+          "isNewMessage": false,
+          "isAckMessage": false,
+          "isNewContact": false,
+          "isUpdateContact": false,
+          "isConnectionStatusUpdate": false,
+          "isOpportunity": false,
+          "isFinishedTicketHistoricMessages": false,
+          "webhookUrl": null,
+          "queue": null,
+          "redirectUser": null
+        },
+        "ingested_at": "2026-06-18T15:47:47.502Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 1
+    },
+    "funnels": {
+      "fetched": 1,
+      "mapped": 1,
+      "would_insert": 1,
+      "sample": {
+        "id": 24,
+        "name": "Recuperação",
+        "action": "R",
+        "session_id": 31,
+        "queue_id": 30,
+        "user_id": 60,
+        "tenant_id": 28,
+        "schedule_enabled": false,
+        "total_contacts": 1,
+        "source_created_at": "2025-12-10T20:22:34.013Z",
+        "source_updated_at": "2025-12-10T20:22:34.013Z",
+        "raw_payload": {
+          "id": 24,
+          "name": "Recuperação",
+          "action": "R",
+          "sessionId": 31,
+          "userId": 60,
+          "deletedBy": null,
+          "queueId": 30,
+          "tenantId": 28,
+          "deletedAt": null,
+          "scheduleEnabled": false,
+          "scheduleStartHour": null,
+          "scheduleEndHour": null,
+          "scheduleDays": null,
+          "scheduleTimezone": "America/Sao_Paulo",
+          "createdAt": "2025-12-10T20:22:34.013Z",
+          "updatedAt": "2025-12-10T20:22:34.013Z",
+          "totalContacts": "1",
+          "session": {
+            "UrlWabaWebHook": "https://enterprise-352api.clickmassa.com.br/wabahooks/null/null",
+            "UrlMessengerWebHook": "https://enterprise-352api.clickmassa.com.br/fb-messenger-hooks/null",
+            "id": 31,
+            "name": "Spinhardi Turismo",
+            "session": "",
+            "qrcode": "",
+            "status": "CONNECTED",
+            "battery": null,
+            "plugged": null,
+            "isActive": true,
+            "enableSentimentAnalysis": true,
+            "disableBotAfterAbsence": false,
+            "refuseComments": false,
+            "isRejectCall": false,
+            "callRejectedMessage": null,
+            "isDeleted": false,
+            "retries": 0,
+            "pid": null,
+            "isDefault": true,
+            "monitoring": true,
+            "archiveChat": false,
+            "isSyncOldMessages": true,
+            "isProcessGroupEvents": true,
+            "remoteAuth": false,
+            "tokenTelegram": "",
+            "instagramUser": "",
+            "instagramKey": "",
+            "fbPageId": null,
+            "phoneId": null,
+            "fbObject": null,
+            "url": "https://wa-28-go.clickmassa.com.br",
+            "container": "wa-28-go",
+            "type": "whatsapp",
+            "restartAt": null,
+            "number": "5519997761226",
+            "minutesInactivity": 0,
+            "phone": null,
+            "balance": null,
+            "tenantId": 28,
+            "wabaBSP": null,
+            "credentials": null,
+            "channelMeta": null,
+            "emailProvider": null,
+            "commentTab": "all",
+            "provider": "baileys",
+            "tokenAPI": "",
+            "uid": "2c268f51-43ac-4a91-b4ef-88a05678bee6",
+            "tokenHook": null,
+            "fluxoId": null,
+            "originalType": null,
+            "editedAt": null,
+            "businessHours": [
+              {
+                "day": 0,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Domingo"
+              },
+              {
+                "day": 1,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Segunda-Feira"
+              },
+              {
+                "day": 2,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Terça-Feira"
+              },
+              {
+                "day": 3,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Quarta-Feira"
+              },
+              {
+                "day": 4,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Quinta-Feira"
+              },
+              {
+                "day": 5,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Sexta-Feira"
+              },
+              {
+                "day": 6,
+                "hr1": "08:00",
+                "hr2": "12:00",
+                "hr3": "14:00",
+                "hr4": "18:00",
+                "type": "O",
+                "label": "Sábado"
+              }
+            ],
+            "messageBusinessHours": null,
+            "enableActiveSearchControl": false,
+            "tokenWaVoip": null,
+            "activeSearchLimit": 30,
+            "currentAmountOfActiveSearch": 0,
+            "lid": "153781689929788",
+            "createdAt": "2025-11-11T18:10:56.668Z",
+            "updatedAt": "2026-06-01T11:51:52.847Z",
+            "chatFlowId": null,
+            "inactivityClosingReasonId": null,
+            "defaultQueueId": 30,
+            "promptId": null
+          },
+          "queue": {
+            "id": 30,
+            "queue": "Atendimento",
+            "isActive": true,
+            "userId": 60,
+            "tenantId": 28,
+            "messageDefaultContact": null,
+            "createdAt": "2025-11-10T19:26:56.854Z",
+            "updatedAt": "2025-11-10T19:26:56.854Z"
+          },
+          "steps": [
+            {
+              "id": 52,
+              "message": "Olá! Aqui é da Spinhardi Turismo* *🌍Notei que conversamos sobre a sua viagem, mas não concluímos. Se ainda tiver interesse, posso verificar novas opções ou promoções para você. ",
+              "templateId": null,
+              "mediaId": null,
+              "typeTemplate": null,
+              "params": [],
+              "minutesLater": 5,
+              "order": 1,
+              "funnelId": 24,
+              "leadStatusId": null,
+              "tags": [],
+              "userId": 60,
+              "tenantId": 28,
+              "createdAt": "2025-12-10T20:22:34.021Z",
+              "updatedAt": "2026-03-11T20:13:50.090Z",
+              "totalContacts": "0",
+              "totalSents": "3",
+              "medias": []
+            },
+            {
+              "id": 54,
+              "message": "Estamos com algumas oportunidades bem interessantes. Quer que eu te envie algumas sugestões atualizadas? ✈✨",
+              "templateId": null,
+              "mediaId": null,
+              "typeTemplate": null,
+              "params": [],
+              "minutesLater": 7200,
+              "order": 2,
+              "funnelId": 24,
+              "leadStatusId": null,
+              "tags": [],
+              "userId": 60,
+              "tenantId": 28,
+              "createdAt": "2025-12-10T20:22:34.022Z",
+              "updatedAt": "2026-03-11T20:13:50.090Z",
+              "totalContacts": "1",
+              "totalSents": "1",
+              "medias": []
+            },
+            {
+              "id": 53,
+              "message": "Posso verificar condições especiais ou alternativas de dados/valores caso você ainda queira viajar. Me avise e prepare tudo para você! 😊",
+              "templateId": null,
+              "mediaId": null,
+              "typeTemplate": null,
+              "params": [],
+              "minutesLater": 4320,
+              "order": 3,
+              "funnelId": 24,
+              "leadStatusId": null,
+              "tags": [],
+              "userId": 60,
+              "tenantId": 28,
+              "createdAt": "2025-12-10T20:22:34.022Z",
+              "updatedAt": "2026-03-11T20:13:50.090Z",
+              "totalContacts": "0",
+              "totalSents": "1",
+              "medias": []
+            }
+          ]
+        },
+        "ingested_at": "2026-06-18T15:47:48.008Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 1
+    },
+    "funnel_steps": {
+      "fetched": 3,
+      "mapped": 3,
+      "would_insert": 3,
+      "sample": {
+        "id": 52,
+        "funnel_id": 24,
+        "tenant_id": 28,
+        "user_id": 60,
+        "step_order": 1,
+        "message": "Olá! Aqui é da Spinhardi Turismo* *🌍Notei que conversamos sobre a sua viagem, mas não concluímos. Se ainda tiver interesse, posso verificar novas opções ou promoções para você. ",
+        "minutes_later": 5,
+        "lead_status_id": null,
+        "total_contacts": 0,
+        "total_sents": 3,
+        "source_created_at": "2025-12-10T20:22:34.021Z",
+        "source_updated_at": "2026-03-11T20:13:50.090Z",
+        "raw_payload": {
+          "id": 52,
+          "message": "Olá! Aqui é da Spinhardi Turismo* *🌍Notei que conversamos sobre a sua viagem, mas não concluímos. Se ainda tiver interesse, posso verificar novas opções ou promoções para você. ",
+          "templateId": null,
+          "mediaId": null,
+          "typeTemplate": null,
+          "params": [],
+          "minutesLater": 5,
+          "order": 1,
+          "funnelId": 24,
+          "leadStatusId": null,
+          "tags": [],
+          "userId": 60,
+          "tenantId": 28,
+          "createdAt": "2025-12-10T20:22:34.021Z",
+          "updatedAt": "2026-03-11T20:13:50.090Z",
+          "totalContacts": "0",
+          "totalSents": "3",
+          "medias": []
+        },
+        "ingested_at": "2026-06-18T15:47:48.008Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 3
+    },
+    "lead-status": {
+      "fetched": 11,
+      "mapped": 11,
+      "would_insert": 11,
+      "sample": {
+        "id": 63,
+        "status": "Aguardando resposta",
+        "color": "#1c97da",
+        "active": true,
+        "user_id": 60,
+        "tenant_id": 28,
+        "funnel_id": null,
+        "source_created_at": "2025-11-10T19:26:50.719Z",
+        "source_updated_at": "2025-11-10T19:26:50.719Z",
+        "raw_payload": {
+          "id": 63,
+          "status": "Aguardando resposta",
+          "color": "#1c97da",
+          "active": true,
+          "createdAt": "2025-11-10T19:26:50.719Z",
+          "updatedAt": "2025-11-10T19:26:50.719Z",
+          "userId": 60,
+          "tenantId": 28,
+          "funnelId": null
+        },
+        "ingested_at": "2026-06-18T15:47:48.996Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 11
+    },
+    "pipeline-steps": {
+      "fetched": 10,
+      "mapped": 10,
+      "would_insert": 10,
+      "sample": {
+        "id": 73,
+        "name": "Primeiro contato",
+        "color": "#2196F3",
+        "order": 1
+      },
+      "actual_inserted": 10
+    },
+    "products": {
+      "fetched": 4,
+      "mapped": 4,
+      "would_insert": 4,
+      "sample": {
+        "id": 64,
+        "name": "Hospedagem",
+        "description": null,
+        "is_active": true,
+        "value": "0.01",
+        "tenant_id": 28,
+        "raw_payload": {
+          "id": 64,
+          "tenantId": 28,
+          "userId": 60,
+          "name": "Hospedagem",
+          "description": null,
+          "isActive": true,
+          "value": 0.01,
+          "duration": null,
+          "createdAt": "2025-11-10T19:26:53.659Z",
+          "updatedAt": "2025-11-10T19:26:53.659Z"
+        },
+        "ingested_at": "2026-06-18T15:47:50.008Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 4
+    },
+    "opportunities": {
+      "fetched": 1,
+      "mapped": 1,
+      "would_insert": 1,
+      "sample": {
+        "id": 8935,
+        "tenant_id": 28,
+        "contact_id": 109710,
+        "user_id": 164,
+        "responsible_id": 164,
+        "pipeline_step_id": 73,
+        "status": "open",
+        "value": "0.00",
+        "expected_close_date": "2026-07-17",
+        "close_date": null,
+        "pipeline_updated_at": "2026-06-18",
+        "source_created_at": "2026-06-18T05:54:35.358Z",
+        "source_updated_at": "2026-06-18T05:54:35.358Z",
+        "raw_payload": {
+          "tasksCount": {
+            "countSchendule": 0,
+            "countDelayed": 0,
+            "countComplete": 0,
+            "countRequiredPending": 0
+          },
+          "id": 8935,
+          "tenantId": 28,
+          "contactId": 109710,
+          "userId": 164,
+          "responsibleId": 164,
+          "pipelineStepId": 73,
+          "gainOrLossReasonId": null,
+          "name": "Lead via Site - Alan Smoke Test",
+          "description": null,
+          "note": null,
+          "expectedCloseDate": "2026-07-17",
+          "closeDate": null,
+          "pipelineUpdatedAt": "2026-06-18",
+          "value": "0.00",
+          "status": "open",
+          "createdAt": "2026-06-18T05:54:35.358Z",
+          "updatedAt": "2026-06-18T05:54:35.358Z",
+          "contact": {
+            "profilePicUrl": "",
+            "address": {
+              "cep": null,
+              "pais": null,
+              "estado": null,
+              "cidade": null,
+              "bairro": null,
+              "logradouro": null,
+              "numero": null,
+              "complemento": null
+            },
+            "id": 109710,
+            "name": "5511983340447",
+            "number": "5511983340447",
+            "lid": "false",
+            "isNumber": true,
+            "email": null,
+            "pushname": null,
+            "observations": null,
+            "channel": "whatsapp",
+            "isUser": false,
+            "isWAContact": false,
+            "isGroup": false,
+            "deletedAt": null,
+            "negotiatedValue": null,
+            "leadStatusId": null,
+            "leadOriginId": null,
+            "queueId": null,
+            "tenantId": 28,
+            "birthDate": null,
+            "gender": null,
+            "company": null,
+            "cep": null,
+            "pais": null,
+            "estado": null,
+            "cidade": null,
+            "bairro": null,
+            "logradouro": null,
+            "numero": null,
+            "complemento": null,
+            "customFields": {},
+            "agentMemory": {},
+            "tags": [],
+            "firstConnection": 31,
+            "profilePicId": null,
+            "picIsObjectStorage": false,
+            "createdAt": "2026-06-18T05:54:35.008Z",
+            "updatedAt": "2026-06-18T05:54:35.075Z"
+          },
+          "user": {
+            "name": "Amanda Gattiboni",
+            "email": "branding@amandagattiboni.com"
+          },
+          "responsible": {
+            "name": "Amanda Gattiboni",
+            "email": "branding@amandagattiboni.com"
+          },
+          "gainOrLossReason": null,
+          "pipelineStep": {
+            "name": "Primeiro contato",
+            "color": "#2196F3",
+            "predefinedTasks": []
+          },
+          "productsOpportunity": []
+        },
+        "ingested_at": "2026-06-18T15:47:50.503Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 1
+    },
+    "contacts": {
+      "fetched": 1484,
+      "mapped": 1484,
+      "would_insert": 1484,
+      "actual_inserted": 1484,
+      "pages": 38,
+      "sample": {
+        "id": 85205,
+        "tenant_id": 28,
+        "name": "🤩",
+        "number": "223518721634414",
+        "pushname": null,
+        "email": null,
+        "channel": "whatsapp",
+        "company": null,
+        "gender": null,
+        "birth_date": null,
+        "cep": null,
+        "pais": null,
+        "estado": null,
+        "cidade": null,
+        "bairro": null,
+        "logradouro": null,
+        "numero_endereco": null,
+        "complemento": null,
+        "is_number": false,
+        "is_user": false,
+        "is_wa_contact": false,
+        "is_group": false,
+        "is_blacklisted": false,
+        "deleted_at": null,
+        "profile_pic_url": null,
+        "pic_is_object_storage": false,
+        "lead_status": null,
+        "lead_status_id": null,
+        "tags": [],
+        "wallet_id": null,
+        "funnels": null,
+        "lid": "false",
+        "first_connection": 31,
+        "source_created_at": "2026-03-16T18:34:11.043Z",
+        "source_updated_at": "2026-03-16T18:34:11.076Z",
+        "raw_payload": {
+          "id": 85205,
+          "name": "🤩",
+          "number": "223518721634414",
+          "email": null,
+          "profilePicUrl": null,
+          "picIsObjectStorage": false,
+          "channel": "whatsapp",
+          "pushname": null,
+          "isUser": false,
+          "isWAContact": false,
+          "isGroup": false,
+          "tenantId": 28,
+          "createdAt": "2026-03-16T18:34:11.043Z",
+          "updatedAt": "2026-03-16T18:34:11.076Z",
+          "walletId": null,
+          "wallet": null,
+          "tags": [],
+          "leadStatus": null,
+          "firstConnection": 31,
+          "funnels": null,
+          "lid": "false",
+          "isBlacklisted": false
+        },
+        "ingested_at": "2026-06-18T15:47:54.621Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      }
+    },
+    "contacts-dashboard": {
+      "fetched": 1,
+      "mapped": 1,
+      "would_insert": 1,
+      "sample": {
+        "snapshot_at": "2026-06-18T15:48:16.238Z",
+        "total": 1484,
+        "weekly_new": 27,
+        "recency_d30": 102,
+        "recency_d90": 224,
+        "recency_d180": 681,
+        "recency_d360": 477,
+        "recency_d360plus": 0,
+        "raw_payload": {
+          "total": 1484,
+          "weeklyNew": 27,
+          "recency": {
+            "d30": 102,
+            "d90": 224,
+            "d180": 681,
+            "d360": 477,
+            "d360plus": 0
+          },
+          "gender": [
+            {
+              "gender": "N",
+              "count": 1484
+            }
+          ],
+          "ageGroups": [
+            {
+              "range": "18-24",
+              "m": 0,
+              "f": 0,
+              "o": 0
+            },
+            {
+              "range": "25-34",
+              "m": 0,
+              "f": 0,
+              "o": 0
+            },
+            {
+              "range": "35-44",
+              "m": 0,
+              "f": 0,
+              "o": 0
+            },
+            {
+              "range": "45-54",
+              "m": 0,
+              "f": 0,
+              "o": 0
+            },
+            {
+              "range": "55+",
+              "m": 0,
+              "f": 0,
+              "o": 0
+            }
+          ],
+          "zodiac": [],
+          "states": [
+            {
+              "uf": "SP",
+              "name": "São Paulo",
+              "count": 646
+            },
+            {
+              "uf": "MG",
+              "name": "Minas Gerais",
+              "count": 96
+            },
+            {
+              "uf": "PR",
+              "name": "Paraná",
+              "count": 51
+            },
+            {
+              "uf": "BA",
+              "name": "Bahia",
+              "count": 49
+            },
+            {
+              "uf": "RS",
+              "name": "Rio Grande do Sul",
+              "count": 41
+            },
+            {
+              "uf": "RJ",
+              "name": "Rio de Janeiro",
+              "count": 36
+            },
+            {
+              "uf": "SC",
+              "name": "Santa Catarina",
+              "count": 27
+            },
+            {
+              "uf": "PA",
+              "name": "Pará",
+              "count": 25
+            },
+            {
+              "uf": "PE",
+              "name": "Pernambuco",
+              "count": 24
+            },
+            {
+              "uf": "MA",
+              "name": "Maranhão",
+              "count": 19
+            },
+            {
+              "uf": "RN",
+              "name": "Rio Grande do Norte",
+              "count": 18
+            },
+            {
+              "uf": "GO",
+              "name": "Goiás",
+              "count": 18
+            },
+            {
+              "uf": "CE",
+              "name": "Ceará",
+              "count": 18
+            },
+            {
+              "uf": "PI",
+              "name": "Piauí",
+              "count": 17
+            },
+            {
+              "uf": "AP",
+              "name": "Amapá",
+              "count": 15
+            },
+            {
+              "uf": "ES",
+              "name": "Espírito Santo",
+              "count": 14
+            },
+            {
+              "uf": "AM",
+              "name": "Amazonas",
+              "count": 14
+            },
+            {
+              "uf": "MT",
+              "name": "Mato Grosso",
+              "count": 14
+            },
+            {
+              "uf": "AL",
+              "name": "Alagoas",
+              "count": 10
+            },
+            {
+              "uf": "TO",
+              "name": "Tocantins",
+              "count": 9
+            },
+            {
+              "uf": "SE",
+              "name": "Sergipe",
+              "count": 8
+            },
+            {
+              "uf": "DF",
+              "name": "Distrito Federal",
+              "count": 8
+            },
+            {
+              "uf": "RR",
+              "name": "Roraima",
+              "count": 8
+            },
+            {
+              "uf": "RO",
+              "name": "Rondônia",
+              "count": 8
+            },
+            {
+              "uf": "MS",
+              "name": "Mato Grosso do Sul",
+              "count": 6
+            },
+            {
+              "uf": "PB",
+              "name": "Paraíba",
+              "count": 6
+            },
+            {
+              "uf": "AC",
+              "name": "Acre",
+              "count": 6
+            }
+          ],
+          "tags": [
+            {
+              "tag": "Interesse em pacote",
+              "count": 155
+            },
+            {
+              "tag": "Interesse em passagens",
+              "count": 45
+            },
+            {
+              "tag": "Trafego e sem resposta",
+              "count": 42
+            },
+            {
+              "tag": "Fornecedor",
+              "count": 31
+            },
+            {
+              "tag": "Europa",
+              "count": 22
+            },
+            {
+              "tag": "Cliente VIP",
+              "count": 18
+            },
+            {
+              "tag": "Interesse em navio",
+              "count": 14
+            },
+            {
+              "tag": "América do Sul",
+              "count": 14
+            },
+            {
+              "tag": "Viagem personalizada",
+              "count": 12
+            },
+            {
+              "tag": "Cliente recorrente",
+              "count": 11
+            }
+          ],
+          "origins": [
+            {
+              "name": "Trafego Pago ",
+              "count": 191
+            },
+            {
+              "name": "Indicação",
+              "count": 59
+            },
+            {
+              "name": "Conhecido",
+              "count": 52
+            },
+            {
+              "name": "Amigo",
+              "count": 43
+            },
+            {
+              "name": "Instagram ",
+              "count": 27
+            },
+            {
+              "name": "Grupo de Promoção",
+              "count": 22
+            },
+            {
+              "name": "Não sei informar",
+              "count": 15
+            },
+            {
+              "name": "Site",
+              "count": 2
+            }
+          ],
+          "channels": [
+            {
+              "channel": "whatsapp",
+              "count": 742
+            }
+          ],
+          "agents": [
+            {
+              "name": "Angelina",
+              "email": "admin@spinharditurismoltda.com",
+              "count": 14
+            }
+          ],
+          "topClients": [
+            {
+              "id": 24980,
+              "name": "Isa - FlyTour",
+              "count": 112,
+              "lastTicketAt": "2026-06-17T12:23:07.919Z"
+            },
+            {
+              "id": 1346,
+              "name": "Rafaela Baratelli Orinter CPQ",
+              "count": 77,
+              "lastTicketAt": "2026-06-18T14:55:41.069Z"
+            },
+            {
+              "id": 1315,
+              "name": "Angelina Saragiotto",
+              "count": 51,
+              "lastTicketAt": "2026-06-17T16:22:23.493Z"
+            },
+            {
+              "id": 12622,
+              "name": "Sonia Prata - Affinity",
+              "count": 40,
+              "lastTicketAt": "2026-06-18T15:38:54.576Z"
+            },
+            {
+              "id": 12077,
+              "name": "Frederico Ribeiro - Flytour Consolidadora",
+              "count": 38,
+              "lastTicketAt": "2026-06-17T17:12:13.108Z"
+            },
+            {
+              "id": 12423,
+              "name": "Sierra Tour",
+              "count": 36,
+              "lastTicketAt": "2026-05-07T12:30:10.438Z"
+            },
+            {
+              "id": 11369,
+              "name": "Renata Esteves",
+              "count": 34,
+              "lastTicketAt": "2026-05-12T16:27:02.717Z"
+            },
+            {
+              "id": 21287,
+              "name": "Douglas Pires - Reservia",
+              "count": 33,
+              "lastTicketAt": "2026-06-12T17:51:28.805Z"
+            }
+          ],
+          "topCities": [],
+          "topBairros": []
+        },
+        "ingested_at": "2026-06-18T15:48:16.238Z",
+        "ingestion_run_id": "7f359885-e6d4-4879-89e6-37d69e29f538",
+        "ingestion_source": "backfill"
+      },
+      "actual_inserted": 1
+    }
+  },
+  "errors": [
+    {
+      "resource": "contacts",
+      "message": "count inesperado: 1484 (esperado 1483)"
+    }
+  ]
+}

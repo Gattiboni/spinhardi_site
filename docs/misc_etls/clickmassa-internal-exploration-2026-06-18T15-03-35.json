@@ -1,0 +1,871 @@
+{
+  "runAt": "2026-06-18T15:03:35.330Z",
+  "host": "https://enterprise-352napi.clickmassa.com.br",
+  "jwtPreview": "eyJhbGci...",
+  "totalCalls": 73,
+  "summary": {
+    "ok200": 23,
+    "err401_403": 1,
+    "err404": 44,
+    "err5xx": 5,
+    "errNull": 0
+  },
+  "discoveredIds": {
+    "contactId": 85205,
+    "userId": 164,
+    "whatsappId": 31
+  },
+  "calls": [
+    {
+      "seq": 1,
+      "path": "/contacts?pageNumber=1",
+      "status": 200,
+      "latencyMs": 272,
+      "bodySize": 18304,
+      "error": null
+    },
+    {
+      "seq": 2,
+      "path": "/tickets?pageNumber=1",
+      "status": 500,
+      "latencyMs": 51,
+      "bodySize": 100,
+      "error": null
+    },
+    {
+      "seq": 3,
+      "path": "/tickets?status=open&pageNumber=1",
+      "status": 500,
+      "latencyMs": 24,
+      "bodySize": 100,
+      "error": null
+    },
+    {
+      "seq": 4,
+      "path": "/tickets?status=closed&pageNumber=1",
+      "status": 500,
+      "latencyMs": 37,
+      "bodySize": 100,
+      "error": null
+    },
+    {
+      "seq": 5,
+      "path": "/tickets?status=pending&pageNumber=1",
+      "status": 500,
+      "latencyMs": 26,
+      "bodySize": 100,
+      "error": null
+    },
+    {
+      "seq": 6,
+      "path": "/users",
+      "status": 200,
+      "latencyMs": 66,
+      "bodySize": 5395,
+      "error": null
+    },
+    {
+      "seq": 7,
+      "path": "/whatsapp",
+      "status": 200,
+      "latencyMs": 51,
+      "bodySize": 2195,
+      "error": null
+    },
+    {
+      "seq": 8,
+      "path": "/queue",
+      "status": 200,
+      "latencyMs": 27,
+      "bodySize": 541,
+      "error": null
+    },
+    {
+      "seq": 9,
+      "path": "/queues",
+      "status": 404,
+      "latencyMs": 33,
+      "bodySize": 145,
+      "error": null
+    },
+    {
+      "seq": 10,
+      "path": "/tags",
+      "status": 200,
+      "latencyMs": 28,
+      "bodySize": 3481,
+      "error": null
+    },
+    {
+      "seq": 11,
+      "path": "/quickAnswers",
+      "status": 404,
+      "latencyMs": 43,
+      "bodySize": 151,
+      "error": null
+    },
+    {
+      "seq": 12,
+      "path": "/settings",
+      "status": 200,
+      "latencyMs": 24,
+      "bodySize": 1646,
+      "error": null
+    },
+    {
+      "seq": 13,
+      "path": "/contacts/85205",
+      "status": 200,
+      "latencyMs": 34,
+      "bodySize": 839,
+      "error": null
+    },
+    {
+      "seq": 14,
+      "path": "/users/164",
+      "status": 200,
+      "latencyMs": 30,
+      "bodySize": 3575,
+      "error": null
+    },
+    {
+      "seq": 15,
+      "path": "/whatsapp/31",
+      "status": 200,
+      "latencyMs": 32,
+      "bodySize": 1375,
+      "error": null
+    },
+    {
+      "seq": 16,
+      "path": "/campaigns",
+      "status": 500,
+      "latencyMs": 33,
+      "bodySize": 108,
+      "error": null
+    },
+    {
+      "seq": 17,
+      "path": "/contactLists",
+      "status": 404,
+      "latencyMs": 24,
+      "bodySize": 151,
+      "error": null
+    },
+    {
+      "seq": 18,
+      "path": "/contact-lists",
+      "status": 404,
+      "latencyMs": 26,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 19,
+      "path": "/schedules",
+      "status": 404,
+      "latencyMs": 24,
+      "bodySize": 148,
+      "error": null
+    },
+    {
+      "seq": 20,
+      "path": "/wallets",
+      "status": 404,
+      "latencyMs": 39,
+      "bodySize": 146,
+      "error": null
+    },
+    {
+      "seq": 21,
+      "path": "/lead-status",
+      "status": 200,
+      "latencyMs": 20,
+      "bodySize": 2075,
+      "error": null
+    },
+    {
+      "seq": 22,
+      "path": "/leadStatus",
+      "status": 404,
+      "latencyMs": 38,
+      "bodySize": 149,
+      "error": null
+    },
+    {
+      "seq": 23,
+      "path": "/funnel",
+      "status": 200,
+      "latencyMs": 44,
+      "bodySize": 4127,
+      "error": null
+    },
+    {
+      "seq": 24,
+      "path": "/funnels",
+      "status": 404,
+      "latencyMs": 29,
+      "bodySize": 146,
+      "error": null
+    },
+    {
+      "seq": 25,
+      "path": "/companies",
+      "status": 404,
+      "latencyMs": 31,
+      "bodySize": 148,
+      "error": null
+    },
+    {
+      "seq": 26,
+      "path": "/plans",
+      "status": 404,
+      "latencyMs": 22,
+      "bodySize": 144,
+      "error": null
+    },
+    {
+      "seq": 27,
+      "path": "/announcements",
+      "status": 404,
+      "latencyMs": 25,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 28,
+      "path": "/chat-flows",
+      "status": 404,
+      "latencyMs": 30,
+      "bodySize": 149,
+      "error": null
+    },
+    {
+      "seq": 29,
+      "path": "/chatFlow",
+      "status": 404,
+      "latencyMs": 21,
+      "bodySize": 147,
+      "error": null
+    },
+    {
+      "seq": 30,
+      "path": "/helps",
+      "status": 404,
+      "latencyMs": 20,
+      "bodySize": 144,
+      "error": null
+    },
+    {
+      "seq": 31,
+      "path": "/opportunities",
+      "status": 404,
+      "latencyMs": 31,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 32,
+      "path": "/opportunities?pageNumber=1",
+      "status": 404,
+      "latencyMs": 23,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 33,
+      "path": "/pipeline-steps",
+      "status": 404,
+      "latencyMs": 24,
+      "bodySize": 153,
+      "error": null
+    },
+    {
+      "seq": 34,
+      "path": "/pipelineSteps",
+      "status": 404,
+      "latencyMs": 21,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 35,
+      "path": "/products",
+      "status": 404,
+      "latencyMs": 30,
+      "bodySize": 147,
+      "error": null
+    },
+    {
+      "seq": 36,
+      "path": "/contacts-dashboard",
+      "status": 200,
+      "latencyMs": 103,
+      "bodySize": 3114,
+      "error": null
+    },
+    {
+      "seq": 37,
+      "path": "/dashboard",
+      "status": 404,
+      "latencyMs": 23,
+      "bodySize": 148,
+      "error": null
+    },
+    {
+      "seq": 38,
+      "path": "/dashboard/contacts",
+      "status": 404,
+      "latencyMs": 33,
+      "bodySize": 157,
+      "error": null
+    },
+    {
+      "seq": 39,
+      "path": "/dashboard/tickets",
+      "status": 404,
+      "latencyMs": 20,
+      "bodySize": 156,
+      "error": null
+    },
+    {
+      "seq": 40,
+      "path": "/dashboard/messages",
+      "status": 404,
+      "latencyMs": 24,
+      "bodySize": 157,
+      "error": null
+    },
+    {
+      "seq": 41,
+      "path": "/dashboard/overview",
+      "status": 404,
+      "latencyMs": 39,
+      "bodySize": 157,
+      "error": null
+    },
+    {
+      "seq": 42,
+      "path": "/report",
+      "status": 404,
+      "latencyMs": 22,
+      "bodySize": 145,
+      "error": null
+    },
+    {
+      "seq": 43,
+      "path": "/reports",
+      "status": 404,
+      "latencyMs": 24,
+      "bodySize": 146,
+      "error": null
+    },
+    {
+      "seq": 44,
+      "path": "/api-config",
+      "status": 200,
+      "latencyMs": 46,
+      "bodySize": 965,
+      "error": null
+    },
+    {
+      "seq": 45,
+      "path": "/api-configs",
+      "status": 404,
+      "latencyMs": 20,
+      "bodySize": 150,
+      "error": null
+    },
+    {
+      "seq": 46,
+      "path": "/webhooks",
+      "status": 404,
+      "latencyMs": 21,
+      "bodySize": 147,
+      "error": null
+    },
+    {
+      "seq": 47,
+      "path": "/webhook",
+      "status": 404,
+      "latencyMs": 23,
+      "bodySize": 146,
+      "error": null
+    },
+    {
+      "seq": 48,
+      "path": "/webhook-configs",
+      "status": 404,
+      "latencyMs": 28,
+      "bodySize": 154,
+      "error": null
+    },
+    {
+      "seq": 49,
+      "path": "/integrations",
+      "status": 404,
+      "latencyMs": 70,
+      "bodySize": 151,
+      "error": null
+    },
+    {
+      "seq": 50,
+      "path": "/contacts?pageNumber=2",
+      "status": 200,
+      "latencyMs": 106,
+      "bodySize": 19131,
+      "error": null
+    },
+    {
+      "seq": 51,
+      "path": "/contacts?pageNumber=38",
+      "status": 200,
+      "latencyMs": 57,
+      "bodySize": 1348,
+      "error": null
+    },
+    {
+      "seq": 52,
+      "path": "/contacts?pageNumber=999",
+      "status": 200,
+      "latencyMs": 59,
+      "bodySize": 46,
+      "error": null
+    },
+    {
+      "seq": 53,
+      "path": "/contacts?searchParam=alan",
+      "status": 200,
+      "latencyMs": 38,
+      "bodySize": 1409,
+      "error": null
+    },
+    {
+      "seq": 54,
+      "path": "/contacts?searchParam=5511",
+      "status": 200,
+      "latencyMs": 42,
+      "bodySize": 19935,
+      "error": null
+    },
+    {
+      "seq": 55,
+      "path": "/contacts?pageNumber=1&extraSize=80",
+      "status": 200,
+      "latencyMs": 68,
+      "bodySize": 18304,
+      "error": null
+    },
+    {
+      "seq": 56,
+      "path": "/contacts?pageNumber=1&pageSize=80",
+      "status": 200,
+      "latencyMs": 46,
+      "bodySize": 18304,
+      "error": null
+    },
+    {
+      "seq": 57,
+      "path": "/contacts?pageNumber=1&limit=80",
+      "status": 200,
+      "latencyMs": 51,
+      "bodySize": 18304,
+      "error": null
+    },
+    {
+      "seq": 58,
+      "path": "/contacts?pageNumber=1&size=80",
+      "status": 200,
+      "latencyMs": 74,
+      "bodySize": 18304,
+      "error": null
+    },
+    {
+      "seq": 59,
+      "path": "/contact-tags",
+      "status": 404,
+      "latencyMs": 20,
+      "bodySize": 151,
+      "error": null
+    },
+    {
+      "seq": 60,
+      "path": "/ticket-tags",
+      "status": 404,
+      "latencyMs": 25,
+      "bodySize": 150,
+      "error": null
+    },
+    {
+      "seq": 61,
+      "path": "/subscriptions",
+      "status": 404,
+      "latencyMs": 20,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 62,
+      "path": "/tenant",
+      "status": 404,
+      "latencyMs": 19,
+      "bodySize": 145,
+      "error": null
+    },
+    {
+      "seq": 63,
+      "path": "/tenants",
+      "status": 403,
+      "latencyMs": 49,
+      "bodySize": 32,
+      "error": null
+    },
+    {
+      "seq": 64,
+      "path": "/billing",
+      "status": 404,
+      "latencyMs": 25,
+      "bodySize": 146,
+      "error": null
+    },
+    {
+      "seq": 65,
+      "path": "/invoices",
+      "status": 404,
+      "latencyMs": 43,
+      "bodySize": 147,
+      "error": null
+    },
+    {
+      "seq": 66,
+      "path": "/notifications",
+      "status": 404,
+      "latencyMs": 59,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 67,
+      "path": "/logs",
+      "status": 404,
+      "latencyMs": 41,
+      "bodySize": 143,
+      "error": null
+    },
+    {
+      "seq": 68,
+      "path": "/audit-logs",
+      "status": 404,
+      "latencyMs": 60,
+      "bodySize": 149,
+      "error": null
+    },
+    {
+      "seq": 69,
+      "path": "/contact-notes",
+      "status": 404,
+      "latencyMs": 23,
+      "bodySize": 152,
+      "error": null
+    },
+    {
+      "seq": 70,
+      "path": "/notes",
+      "status": 404,
+      "latencyMs": 22,
+      "bodySize": 144,
+      "error": null
+    },
+    {
+      "seq": 71,
+      "path": "/tasks",
+      "status": 200,
+      "latencyMs": 27,
+      "bodySize": 2,
+      "error": null
+    },
+    {
+      "seq": 72,
+      "path": "/reminders",
+      "status": 404,
+      "latencyMs": 48,
+      "bodySize": 148,
+      "error": null
+    },
+    {
+      "seq": 73,
+      "path": "/ratings",
+      "status": 404,
+      "latencyMs": 21,
+      "bodySize": 146,
+      "error": null
+    }
+  ],
+  "results200": [
+    {
+      "path": "/contacts?pageNumber=1",
+      "latencyMs": 272,
+      "bodySize": 18304,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/users",
+      "latencyMs": 66,
+      "bodySize": 5395,
+      "topFields": [
+        "users",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/whatsapp",
+      "latencyMs": 51,
+      "bodySize": 2195,
+      "topFields": []
+    },
+    {
+      "path": "/queue",
+      "latencyMs": 27,
+      "bodySize": 541,
+      "topFields": []
+    },
+    {
+      "path": "/tags",
+      "latencyMs": 28,
+      "bodySize": 3481,
+      "topFields": []
+    },
+    {
+      "path": "/settings",
+      "latencyMs": 24,
+      "bodySize": 1646,
+      "topFields": []
+    },
+    {
+      "path": "/contacts/85205",
+      "latencyMs": 34,
+      "bodySize": 839,
+      "topFields": [
+        "profilePicUrl",
+        "address",
+        "id",
+        "name",
+        "number",
+        "lid",
+        "isNumber",
+        "email",
+        "pushname",
+        "observations",
+        "channel",
+        "isUser",
+        "isWAContact",
+        "isGroup",
+        "deletedAt",
+        "negotiatedValue",
+        "leadStatusId",
+        "leadOriginId",
+        "queueId",
+        "tenantId"
+      ]
+    },
+    {
+      "path": "/users/164",
+      "latencyMs": 30,
+      "bodySize": 3575,
+      "topFields": [
+        "expiredPassword",
+        "profilePic",
+        "name",
+        "phone",
+        "username",
+        "status",
+        "configs",
+        "isOnline",
+        "lastLogin",
+        "id",
+        "email",
+        "profile",
+        "tokenVersion",
+        "tenantId",
+        "mensagemAusencia",
+        "uid",
+        "lastPasswordChange",
+        "passwordMustChange",
+        "isDisableAutodistribution",
+        "canViewDepartmentTickets"
+      ]
+    },
+    {
+      "path": "/whatsapp/31",
+      "latencyMs": 32,
+      "bodySize": 1375,
+      "topFields": [
+        "id",
+        "qrcode",
+        "name",
+        "status",
+        "plugged",
+        "isDefault",
+        "tokenTelegram",
+        "instagramUser",
+        "type",
+        "createdAt",
+        "updatedAt",
+        "number",
+        "phone",
+        "tenantId",
+        "wabaBSP",
+        "tokenAPI",
+        "fbPageId",
+        "isRejectCall",
+        "callRejectedMessage",
+        "minutesInactivity"
+      ]
+    },
+    {
+      "path": "/lead-status",
+      "latencyMs": 20,
+      "bodySize": 2075,
+      "topFields": []
+    },
+    {
+      "path": "/funnel",
+      "latencyMs": 44,
+      "bodySize": 4127,
+      "topFields": [
+        "funnels",
+        "limit"
+      ]
+    },
+    {
+      "path": "/contacts-dashboard",
+      "latencyMs": 103,
+      "bodySize": 3114,
+      "topFields": [
+        "total",
+        "weeklyNew",
+        "recency",
+        "gender",
+        "ageGroups",
+        "zodiac",
+        "states",
+        "tags",
+        "origins",
+        "channels",
+        "agents",
+        "topClients",
+        "topCities",
+        "topBairros"
+      ]
+    },
+    {
+      "path": "/api-config",
+      "latencyMs": 46,
+      "bodySize": 965,
+      "topFields": [
+        "apis"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=2",
+      "latencyMs": 106,
+      "bodySize": 19131,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=38",
+      "latencyMs": 57,
+      "bodySize": 1348,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=999",
+      "latencyMs": 59,
+      "bodySize": 46,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?searchParam=alan",
+      "latencyMs": 38,
+      "bodySize": 1409,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?searchParam=5511",
+      "latencyMs": 42,
+      "bodySize": 19935,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=1&extraSize=80",
+      "latencyMs": 68,
+      "bodySize": 18304,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=1&pageSize=80",
+      "latencyMs": 46,
+      "bodySize": 18304,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=1&limit=80",
+      "latencyMs": 51,
+      "bodySize": 18304,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/contacts?pageNumber=1&size=80",
+      "latencyMs": 74,
+      "bodySize": 18304,
+      "topFields": [
+        "contacts",
+        "count",
+        "hasMore"
+      ]
+    },
+    {
+      "path": "/tasks",
+      "latencyMs": 27,
+      "bodySize": 2,
+      "topFields": []
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "id": "89596",
+    "assunto": "Check in <redacted-cliente>",
+    "descricao": "",
+    "data": "2025-09-09",
+    "hora": "12:00:00",
+    "situacao": "C",
+    "tipo": "1",
+    "id_orcamento": null,
+    "id_responsavel": "6713",
+    "id_usuario_origem": "6713"
+  }
+}

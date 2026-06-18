@@ -211,7 +211,7 @@ async function getPipelineStepsFromSupabase(): Promise<PipelineStep[]> {
     console.log("    Supabase nao configurado (env ausente), pulando.");
     return [];
   }
-  const url = `${SUPABASE_URL}/rest/v1/clickmassa_pipeline_steps?order=ordem.asc`;
+  const url = `${SUPABASE_URL}/rest/v1/bronze_clickmassa_pipeline_steps?order=ordem.asc`;
   try {
     const res = await fetch(url, {
       headers: {
@@ -292,7 +292,7 @@ async function main(): Promise<void> {
   let steps: PipelineStep[] = [];
   let stepsSource = "unknown";
 
-  console.log("\n  1a. Tentando cache Supabase (tabela clickmassa_pipeline_steps)...");
+  console.log("\n  1a. Tentando cache Supabase (tabela bronze_clickmassa_pipeline_steps)...");
   steps = await getPipelineStepsFromSupabase();
   if (steps.length > 0) {
     stepsSource = "supabase-cache";

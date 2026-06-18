@@ -1,0 +1,56 @@
+{
+  "contacts": [
+    {
+      "id": 42761,
+      "name": "Paula Galante",
+      "number": "5511983655600",
+      "email": null,
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": null,
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2026-01-08T23:18:36.865Z",
+      "updatedAt": "2026-01-15T19:09:01.940Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [
+        "Viagem personalizada"
+      ],
+      "leadStatus": "Cotação enviada",
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "169625606180962",
+      "isBlacklisted": false
+    },
+    {
+      "id": 59134,
+      "name": "Paula Galante",
+      "number": "169625606180962",
+      "email": null,
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": null,
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2026-01-17T18:54:58.065Z",
+      "updatedAt": "2026-01-17T18:54:58.094Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [],
+      "leadStatus": null,
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "false",
+      "isBlacklisted": false
+    }
+  ],
+  "count": "3",
+  "hasMore": false
+}

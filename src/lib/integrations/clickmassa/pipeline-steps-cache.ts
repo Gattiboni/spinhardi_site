@@ -56,7 +56,7 @@ async function readAllFromCache(): Promise<{
   syncedAt: Date | null;
 }> {
   const { data, error } = await supabaseAdmin()
-    .from("clickmassa_pipeline_steps")
+    .from("bronze_clickmassa_pipeline_steps")
     .select("*")
     .order("ordem", { ascending: true });
 
@@ -78,7 +78,7 @@ async function readAllFromCache(): Promise<{
 const DEFAULT_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 /**
- * Le pipeline steps do cache local (tabela `clickmassa_pipeline_steps`),
+ * Le pipeline steps do cache local (tabela `bronze_clickmassa_pipeline_steps`),
  * ordenados por `ordem ASC`. Retorna [] se vazio ou mais velho que `maxAgeMs`.
  */
 export async function getCachedPipelineSteps(opts?: {
@@ -118,7 +118,7 @@ export async function refreshPipelineStepsCache(): Promise<{
     }));
 
     const { error: upsertError } = await supabaseAdmin()
-      .from("clickmassa_pipeline_steps")
+      .from("bronze_clickmassa_pipeline_steps")
       .upsert(rows, { onConflict: "id" });
 
     if (upsertError) {

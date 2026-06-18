@@ -15,6 +15,84 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-18 — Bronze Iddas completo: 23 tabelas, 9.076 rows (Lote Iddas A/B)
+
+### INFRA
+
+Camada bronze da API do Iddas Agência (ERP da agência) construída e populada via
+backfill ETL. API oficial documentada (Swagger), auth Bearer de 12h sem refresh.
+
+### Adicionado
+
+- **Exploração (Turno A):** 27 recursos mapeados, auth resolvida
+  (`POST
+  /auth/login` com `{ chave }`), 23 com dados, 4 vazios. Relatório em
+  `docs/iddas-endpoints.md`, samples em `docs/samples/iddas/`.
+- **DDL bronze (23 tabelas `bronze_iddas_*`):** núcleo (pessoa 838, orcamento
+  614, venda 208, solicitacao 9), sub-recursos de orçamento (cruzeiro,
+  hospedagem 109, seguro, transporte, voo 387), financeiro (receita 441, despesa
+  327, conta, cartao, categoria), apoio (canal, situacao, motivoreprovacao,
+  etiqueta, usuario, tarefa 629), referência (aeroporto 4564, companhia 1018), e
+  infosolicitacao (snapshot).
+- IDs TEXT, `raw_payload` JSONB, audit columns, RLS padrão bronze (authenticated
+  SELECT + service_role ALL) aplicada em massa via DO block. 39 indexes nas FKs
+  e campos de filtro.
+- **Backfill (`scripts/backfill-iddas.ts`):** dry-run + `--apply`, flags
+  `--only`/`--skip`, re-auth automático (D060), paginação `?page=N`,
+  normalizações (datas 0000-00-00, dd/MM/yyyy, monetário, IATA via regex). 9.076
+  rows gravados.
+
+### Resolvido
+
+- Queda de rede no meio do apply (página 115/457 do aeroporto): run completado
+  com `--only` nos 10 recursos faltantes. UPSERT idempotente, zero duplicata
+  (D053).
+
+### Pendente
+
+- `ingestion_log` parcial órfão do 1o run (cosmético).
+- Iddas: campo `despesa.pessoa` às vezes nome vs ID (tratar na silver).
+
+---
+
+## 2026-06-18 — Bronze ClickMassa completo: 1.484 contatos (Lote H/H.1/H.2)
+
+### INFRA
+
+Camada bronze do ClickMassa (CRM WhatsApp, fork de Whaticket) construída e
+populada. Descoberta-chave: JWT externo autentica rotas internas do painel
+(D056), destravando o backfill dos 1.483+ contatos antes inacessíveis.
+
+### Adicionado
+
+- **DDL bronze:** `ingestion_log` + tabelas `bronze_clickmassa_*`
+  (opportunities, contacts, tags, users, products, queues, lead_statuses,
+  settings, whatsapp_sessions, api_configs, funnels, funnel_steps,
+  contacts_dashboard) + rename de `pipeline_steps`.
+- **Exploração interna (Turno H.1):** 23 endpoints internos mapeados,
+  documentados em `docs/clickmassa-internal-endpoints.md`.
+- **Backfill V2 (`scripts/backfill-clickmassa.ts`):** 1.484 contatos (38
+  páginas), 20 tags, 4 users, 11 settings/lead_statuses, 10 pipeline_steps, 1
+  opportunity, dashboard snapshot. UPSERT idempotente.
+- `api_configs` com `id` TEXT + CHECK anti-token + `delete token` no mapper
+  (D052).
+
+### Resolvido
+
+- Cascata de PGRST204 (mapper inseria colunas fora do DDL): alinhamento
+  schema/mapper via ALTER + recreate (D054).
+- PATCH do `ingestion_log` quebrando por `duration_ms` inexistente: duração
+  movida pra dentro de `counts` (D055).
+
+### Pendente
+
+- Promoção bronze -> silver (painel ainda lê silver legada, 3 contatos).
+- Webhook OURO `FinishedTicketHistoricMessages` (Lote I).
+- Trocar senha Amanda no ClickMassa (invalida JWT de sessão capturado no
+  DevTools).
+
+---
+
 ## 2026-06-18 — Arquitetura de camadas bronze/silver/gold formalizada (D041)
 
 ### DECISÃO

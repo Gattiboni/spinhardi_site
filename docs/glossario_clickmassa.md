@@ -1,6 +1,7 @@
 # Glossario da API ClickMassa - operacao Spinhardi
 
 Gerado em: 2026-06-18 (BRT) - Turno A
+Atualizado em: 2026-06-18 (BRT) - Turno D (shapes de users, products, achados novos)
 Base URL: `https://enterprise-352napi.clickmassa.com.br/v1/api/external/b14c6651-0f00-4e64-973e-392f82691951` (apiId embutido)
 Auth: Bearer JWT (`tenantId: 28`, `profile: admin`, `channelType: whatsapp`, valido ate 2028)
 
@@ -17,7 +18,7 @@ Auth: Bearer JWT (`tenantId: 28`, `profile: admin`, `channelType: whatsapp`, val
 | GET | `/users/{apiId}` | 200 | Quirk 1: path invertido | URL deve ser `.../users/{apiId}`, nao `.../{apiId}/users`. |
 | GET | `/pipeline-steps` | 500 (bug confirmado) | Quirk 2: 500 intermitente | Bug 100% nesta sondagem: falhou em ambas as tentativas (tentativa + retry). |
 | GET | `/tags` | 200 | - | Array direto. Campos extras alem da spec: `isActive`, `tenantId`, `createdAt`, `updatedAt`. |
-| GET | `/products` | 200 | - | Confirmado nos smokes G.1/G.2. Nao re-sondado neste turno. |
+| GET | `/products` | 200 | - | Shape completo confirmado no Turno D. 4 produtos no tenant. |
 | GET | `/chat-flows` | 200 | - | Confirmado nos smokes G.1/G.2. Nao re-sondado neste turno. |
 | POST | `/{apiId}` (raiz) | 200 | - | Envio de mensagem. Confirmado em G.2. |
 | POST | `/opportunities` | 201 | - | Criacao. Confirmado em G.2 (opp 8935). |
@@ -425,3 +426,81 @@ A API externa do ClickMassa NAO expoe:
 | 30 | GET /gain-or-loss-reasons/{apiId} (Quirk1-alt) | 404 | HTML Cannot GET (rota inexistente) |
 | 31 | GET /queues/{apiId} (Quirk1-alt) | 404 | HTML Cannot GET (rota inexistente) |
 | 32 | GET /departments/{apiId} (Quirk1-alt) | 404 | HTML Cannot GET (rota inexistente) |
+
+---
+
+## Turno D — Shapes confirmados (Users, Products, achados novos)
+
+### ExternalUser (response real — GET /users/{apiId})
+
+Endpoint retorna `{ users: ExternalUser[], count: number }`. Confirmado Turno D: 4 users no tenant.
+
+```json
+{
+  "id": 164,
+  "name": "Amanda Gattiboni",
+  "phone": "5548996850657",
+  "email": "branding@amandagattiboni.com",
+  "profile": "admin",
+  "tenantId": 28,
+  "uid": "6a8bb194-3921-4198-b6f3-6e5ce996a2f6",
+  "isDisableAutodistribution": false,
+  "canViewDepartmentTickets": true
+}
+```
+
+**Campos vs spec (ExternalUsersResponse):** spec documenta `{id, name, phone, email, profile, tenantId, uid, isDisableAutodistribution, canViewDepartmentTickets}`. Shape real bate com a spec.
+
+### Product (response real — GET /products)
+
+Endpoint retorna `{ success, data: Product[] }`. Confirmado Turno D: 4 produtos no tenant.
+
+```json
+{
+  "id": 64,
+  "tenantId": 28,
+  "userId": 60,
+  "name": "Hospedagem",
+  "description": null,
+  "isActive": true,
+  "value": 0.01,
+  "duration": null,
+  "createdAt": "2025-11-10T19:26:53.659Z",
+  "updatedAt": "2025-11-10T19:26:53.659Z"
+}
+```
+
+**Discrepancias vs spec:**
+
+| Campo | Spec dizia | Realidade |
+|---|---|---|
+| `value` | `number` | `number` (0.01) — diferente de opp.value que retorna string! |
+| `userId` | nao documentado | numero inteiro |
+| `duration` | nao documentado | null ou valor numerico (duracao em dias?) |
+| `createdAt`, `updatedAt` | nao documentados | presentes |
+
+**Nota importante:** `product.value` retorna NUMBER (ex: 0.01), ao contrario de `opportunity.value`
+que retorna STRING ("0.00"). Bronze preserva ambos como string para consistencia, mas o tipo
+da API e diferente. Cuidado ao comparar ou converter.
+
+### PipelineStep embed em Opportunity — campo novo
+
+O embed `pipelineStep` dentro de Opportunity agora inclui `predefinedTasks: []` (nao documentado
+no Turno A). Shape atual: `{ name, color, predefinedTasks }`.
+
+### Quirk 2 atualizado — /pipeline-steps
+
+No Turno D a chamada a `/pipeline-steps` retornou **200 OK** (sem o bug 500 desta vez).
+O bug e genuinamente intermitente. O backfill script tem fallback para o cache Supabase caso
+a chamada falhe.
+
+### Contagens reais do tenant (confirmadas no dry-run do Turno D)
+
+| Recurso | Count |
+|---|---|
+| Pipeline steps | 10 |
+| Tags | 20 |
+| Users | 4 |
+| Products | 4 |
+| Opportunities (total) | 1 (apenas opp 8935 em step 73) |
+| Contacts (via embed) | 1 (contact 109710) |

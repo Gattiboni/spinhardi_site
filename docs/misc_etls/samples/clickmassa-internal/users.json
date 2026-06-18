@@ -1,0 +1,281 @@
+{
+  "users": [
+    {
+      "expiredPassword": false,
+      "profilePic": "",
+      "name": "Amanda Gattiboni",
+      "id": 164,
+      "email": "branding@amandagattiboni.com",
+      "profile": "admin",
+      "mensagemAusencia": "",
+      "lastLogout": null,
+      "lastLogin": "2026-06-18T03:20:10.780Z",
+      "isOnline": true,
+      "phone": "5548996850657",
+      "isDisableAutodistribution": false,
+      "profileId": null,
+      "lastPasswordChange": "2026-06-15T18:06:19.574Z",
+      "passwordMustChange": false,
+      "canViewDepartmentTickets": true,
+      "maxActiveChats": null,
+      "welcomeMessage": "",
+      "queues": [
+        {
+          "id": 31,
+          "queue": "Financeiro",
+          "UsersQueues": {
+            "id": 1368,
+            "queueId": 31,
+            "userId": 164,
+            "createdAt": "2026-06-15T17:51:18.423Z",
+            "updatedAt": "2026-06-15T17:51:18.423Z"
+          }
+        },
+        {
+          "id": 32,
+          "queue": "Pós venda",
+          "UsersQueues": {
+            "id": 1367,
+            "queueId": 32,
+            "userId": 164,
+            "createdAt": "2026-06-15T17:51:18.423Z",
+            "updatedAt": "2026-06-15T17:51:18.423Z"
+          }
+        },
+        {
+          "id": 30,
+          "queue": "Atendimento",
+          "UsersQueues": {
+            "id": 1366,
+            "queueId": 30,
+            "userId": 164,
+            "createdAt": "2026-06-15T17:51:18.423Z",
+            "updatedAt": "2026-06-15T17:51:18.423Z"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": 31,
+          "name": "Spinhardi Turismo",
+          "UsersConnection": {
+            "id": 930,
+            "whatsappId": 31,
+            "userId": 164,
+            "createdAt": "2026-06-15T17:51:18.437Z",
+            "updatedAt": "2026-06-15T17:51:18.437Z"
+          }
+        }
+      ],
+      "tenant": {
+        "uid": "e02335db-d5cf-40ad-b9d5-4b9b2ac64b2a"
+      },
+      "groups": []
+    },
+    {
+      "expiredPassword": false,
+      "profilePic": "",
+      "name": "Angelina",
+      "id": 60,
+      "email": "admin@spinharditurismoltda.com",
+      "profile": "admin",
+      "mensagemAusencia": null,
+      "lastLogout": "2026-05-11T10:49:10.450Z",
+      "lastLogin": "2026-06-18T14:54:58.315Z",
+      "isOnline": true,
+      "phone": "5519996146357",
+      "isDisableAutodistribution": false,
+      "profileId": null,
+      "lastPasswordChange": "2026-05-11T11:16:50.618Z",
+      "passwordMustChange": false,
+      "canViewDepartmentTickets": false,
+      "maxActiveChats": null,
+      "welcomeMessage": null,
+      "queues": [
+        {
+          "id": 30,
+          "queue": "Atendimento",
+          "UsersQueues": {
+            "id": 859,
+            "queueId": 30,
+            "userId": 60,
+            "createdAt": "2026-01-23T17:10:58.519Z",
+            "updatedAt": "2026-01-23T17:10:58.519Z"
+          }
+        },
+        {
+          "id": 32,
+          "queue": "Pós venda",
+          "UsersQueues": {
+            "id": 858,
+            "queueId": 32,
+            "userId": 60,
+            "createdAt": "2026-01-23T17:10:58.519Z",
+            "updatedAt": "2026-01-23T17:10:58.519Z"
+          }
+        },
+        {
+          "id": 31,
+          "queue": "Financeiro",
+          "UsersQueues": {
+            "id": 860,
+            "queueId": 31,
+            "userId": 60,
+            "createdAt": "2026-01-23T17:10:58.519Z",
+            "updatedAt": "2026-01-23T17:10:58.519Z"
+          }
+        }
+      ],
+      "connections": [],
+      "tenant": {
+        "uid": "e02335db-d5cf-40ad-b9d5-4b9b2ac64b2a"
+      },
+      "groups": [
+        {
+          "id": 2055,
+          "contactId": 11467
+        },
+        {
+          "id": 2056,
+          "contactId": 11488
+        },
+        {
+          "id": 2057,
+          "contactId": 11787
+        },
+        {
+          "id": 2062,
+          "contactId": 1306
+        },
+        {
+          "id": 2058,
+          "contactId": 1308
+        },
+        {
+          "id": 2063,
+          "contactId": 11473
+        },
+        {
+          "id": 2059,
+          "contactId": 11818
+        },
+        {
+          "id": 2060,
+          "contactId": 1317
+        },
+        {
+          "id": 2061,
+          "contactId": 1372
+        }
+      ]
+    },
+    {
+      "expiredPassword": false,
+      "profilePic": "",
+      "name": "Isaura Teixeira",
+      "id": 144,
+      "email": "isaura.teixeira@spinharditurismo.com.br",
+      "profile": "user",
+      "mensagemAusencia": "",
+      "lastLogout": "2026-06-09T17:07:20.303Z",
+      "lastLogin": "2026-06-18T14:46:54.061Z",
+      "isOnline": true,
+      "phone": "5519999130106",
+      "isDisableAutodistribution": false,
+      "profileId": null,
+      "lastPasswordChange": "2026-04-06T14:58:34.998Z",
+      "passwordMustChange": false,
+      "canViewDepartmentTickets": false,
+      "maxActiveChats": null,
+      "welcomeMessage": null,
+      "queues": [
+        {
+          "id": 32,
+          "queue": "Pós venda",
+          "UsersQueues": {
+            "id": 940,
+            "queueId": 32,
+            "userId": 144,
+            "createdAt": "2026-02-02T18:24:12.244Z",
+            "updatedAt": "2026-02-02T18:24:12.244Z"
+          }
+        },
+        {
+          "id": 30,
+          "queue": "Atendimento",
+          "UsersQueues": {
+            "id": 939,
+            "queueId": 30,
+            "userId": 144,
+            "createdAt": "2026-02-02T18:24:12.244Z",
+            "updatedAt": "2026-02-02T18:24:12.244Z"
+          }
+        }
+      ],
+      "connections": [],
+      "tenant": {
+        "uid": "e02335db-d5cf-40ad-b9d5-4b9b2ac64b2a"
+      },
+      "groups": [
+        {
+          "id": 2512,
+          "contactId": 33838
+        },
+        {
+          "id": 2518,
+          "contactId": 24668
+        },
+        {
+          "id": 2522,
+          "contactId": 1306
+        },
+        {
+          "id": 2514,
+          "contactId": 1288
+        },
+        {
+          "id": 2517,
+          "contactId": 1308
+        },
+        {
+          "id": 2521,
+          "contactId": 11488
+        },
+        {
+          "id": 2511,
+          "contactId": 33835
+        },
+        {
+          "id": 2515,
+          "contactId": 1372
+        },
+        {
+          "id": 2519,
+          "contactId": 33946
+        },
+        {
+          "id": 2523,
+          "contactId": 59641
+        },
+        {
+          "id": 2513,
+          "contactId": 11553
+        },
+        {
+          "id": 2516,
+          "contactId": 11473
+        },
+        {
+          "id": 2520,
+          "contactId": 1317
+        },
+        {
+          "id": 2524,
+          "contactId": 11818
+        }
+      ]
+    }
+  ],
+  "count": 4,
+  "hasMore": false
+}

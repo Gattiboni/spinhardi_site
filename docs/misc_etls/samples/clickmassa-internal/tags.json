@@ -1,0 +1,32 @@
+[
+  {
+    "id": 320,
+    "tag": "Africa/Asia",
+    "color": "#0000a3",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "createdAt": "2025-12-10T22:54:52.875Z",
+    "updatedAt": "2025-12-10T22:55:38.366Z"
+  },
+  {
+    "id": 319,
+    "tag": "América do Sul",
+    "color": "#ff6666",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "createdAt": "2025-12-10T22:54:28.155Z",
+    "updatedAt": "2025-12-10T22:54:28.155Z"
+  },
+  {
+    "id": 323,
+    "tag": "Caribe",
+    "color": "#66ffff",
+    "isActive": true,
+    "userId": 60,
+    "tenantId": 28,
+    "createdAt": "2025-12-11T00:00:45.217Z",
+    "updatedAt": "2025-12-11T00:00:45.217Z"
+  }
+]

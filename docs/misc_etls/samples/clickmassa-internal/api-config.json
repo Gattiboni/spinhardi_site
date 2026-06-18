@@ -1,0 +1,37 @@
+{
+  "apis": [
+    {
+      "id": "b14c6651-0f00-4e64-973e-392f82691951",
+      "sessionId": 31,
+      "name": "Spinhardi Site - Back Office",
+      "isActive": true,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZW5hbnRJZCI6MjgsInByb2ZpbGUiOiJhZG1pbiIsInNlc3Npb25JZCI6MzEsImNoYW5uZWxUeXBlIjoid2hhdHNhcHAiLCJpYXQiOjE3ODE3NTQyOTMsImV4cCI6MTg0NDgyNjI5M30.SOuEvVqZ6Jnj6q63tRGlyVHjSWx2gi9KnWiiS7U2jwE",
+      "authToken": null,
+      "urlServiceStatus": null,
+      "urlMessageStatus": null,
+      "ticketAction": "OT",
+      "queueId": null,
+      "redirectUserId": null,
+      "closingReasonId": null,
+      "userId": 164,
+      "createdAt": "2026-06-18T03:44:53.624Z",
+      "updatedAt": "2026-06-18T03:44:53.624Z",
+      "tenantId": 28,
+      "isNewTicket": false,
+      "isStartedTicket": false,
+      "isFinishedTicket": false,
+      "isUpdateOnTicket": false,
+      "isTransferOfTicket": false,
+      "isNewMessage": false,
+      "isAckMessage": false,
+      "isNewContact": false,
+      "isUpdateContact": false,
+      "isConnectionStatusUpdate": false,
+      "isOpportunity": false,
+      "isFinishedTicketHistoricMessages": false,
+      "webhookUrl": null,
+      "queue": null,
+      "redirectUser": null
+    }
+  ]
+}

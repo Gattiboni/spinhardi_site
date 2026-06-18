@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "id": "510470",
+    "cliente": "<redacted-nome>",
+    "id_orcamento": "1212965",
+    "data": "14/05/2026",
+    "orcado": 0,
+    "custo": 0,
+    "venda": 0.01,
+    "lucro": 0,
+    "percentual_lucro": "0.00%",
+    "comissao_mais": 0,
+    "comissao_menos": 0,
+    "situacao": "P",
+    "vencimento": null,
+    "status_pagamento": "Pago"
+  }
+}

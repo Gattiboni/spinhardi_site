@@ -1,0 +1,35 @@
+[
+  {
+    "id": 63,
+    "status": "Aguardando resposta",
+    "color": "#1c97da",
+    "active": true,
+    "createdAt": "2025-11-10T19:26:50.719Z",
+    "updatedAt": "2025-11-10T19:26:50.719Z",
+    "userId": 60,
+    "tenantId": 28,
+    "funnelId": null
+  },
+  {
+    "id": 62,
+    "status": "Cotação enviada",
+    "color": "#1c94ce",
+    "active": true,
+    "createdAt": "2025-11-10T19:26:50.713Z",
+    "updatedAt": "2025-11-10T19:26:50.713Z",
+    "userId": 60,
+    "tenantId": 28,
+    "funnelId": null
+  },
+  {
+    "id": 61,
+    "status": "Em atendimento",
+    "color": "#4cd5da",
+    "active": true,
+    "createdAt": "2025-11-10T19:26:50.703Z",
+    "updatedAt": "2025-11-10T19:26:50.703Z",
+    "userId": 60,
+    "tenantId": 28,
+    "funnelId": null
+  }
+]

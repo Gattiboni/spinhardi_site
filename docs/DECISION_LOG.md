@@ -26,6 +26,233 @@ Ordem: mais recente no topo.
 
 ## Decisões Registradas
 
+### [2026-06-18] D060 — Iddas: re-auth automático no pipeline (token 12h sem refresh)
+
+**Contexto:** A API do Iddas usa Bearer token de vida curta (12h,
+`expires_in: 43200`) e NÃO oferece refresh token. O backfill inteiro (~9k rows)
+e o sync recorrente futuro precisam sobreviver à expiração.
+
+**Decisão:** O script (`scripts/backfill-iddas.ts`) implementa
+`getValidToken()`: guarda o token e o `exp` do JWT, e antes de cada página checa
+se faltam menos de 5 min pra expirar; se sim, re-loga via
+`POST /api/v1/auth/login` com body `{ "chave": IDDAS_API_KEY }`. Vale pro
+backfill e já deixa pronto pro sync (5 a 15 min).
+
+**Racional:** Diferente do ClickMassa (JWT externo válido até 2028, sem
+re-auth), o Iddas força re-login. Embutir a checagem no pipeline blinda runs
+longos sem intervenção manual.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D059 — Iddas: IDs como TEXT (não BIGINT)
+
+**Contexto:** A API do Iddas retorna todos os IDs como string JSON, mesmo quando
+são inteiros (`"id": "894558"`, `"cliente": "552991"`).
+
+**Decisão:** Toda PK e FK das tabelas `bronze_iddas_*` é TEXT. Diverge do
+ClickMassa, onde IDs são BIGINT (lá a API retorna number).
+
+**Racional:** Bronze replica o cru. Forçar cast pra BIGINT criaria risco de
+falha de insert e divergência com a fonte. TEXT é fiel ao payload.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D058 — Iddas: quirks de campo que vão morder na silver
+
+**Contexto:** A exploração e o backfill do Iddas revelaram inconsistências da
+API que o bronze preservou cru, mas que precisam de tratamento quando promover
+pra silver.
+
+**Decisão:** Registrar os quirks pra não redescobrir depois. O mapper bronze já
+trata os de formato; os de semântica ficam pra silver:
+
+- `orcamento.situacao` é o **código** da situação (ex `"R"`), não o `id`. FK
+  correta é `orcamento.situacao -> situacao.codigo`.
+- `venda.cliente` é nome denormalizado (string), NÃO FK. Pra ligar venda a
+  pessoa: `venda.id_orcamento -> orcamento.cliente -> pessoa.id`.
+- `despesa.pessoa` às vezes vem como ID, às vezes como nome (ex
+  `"Sierra Tour Ltda"`). Tratar os dois casos na silver.
+- `receita`/`despesa` NÃO têm `id_orcamento`. Ligação financeira é
+  `pessoa + conta + categoria`, não passa por orçamento.
+- `voo.aeroporto_origem`/`destino` são strings "Cidade (IATA)", não FK. Mapper
+  extrai o IATA via regex `/\(([A-Z]{3})\)/` pras colunas `aeroporto_*_iata`
+  (387/387 extraídos no backfill).
+- Datas `0000-00-00` -> NULL. `venda.data` em `dd/MM/yyyy` -> ISO. Valores
+  monetários vêm string -> NUMERIC(15,2).
+- Paginação: `?page=N` manual. NÃO usar `meta.next` (vem com URL interna
+  `index.php` quebrada). Recursos vazios retornam `total=0` mas `next` não-null
+  (bug deles): checar `total` antes de paginar.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D057 — Iddas: escopo do bronze (23 tabelas; 4 vazios e infosolicitacao)
+
+**Contexto:** A API do Iddas expõe 27 recursos. Decisão de quais viram tabela
+bronze.
+
+**Decisão:**
+
+- **TUDO que tem dado vira bronze** (filtragem fica pra silver). 23 tabelas
+  criadas.
+- **4 recursos vazios PULADOS** (`forma`, `passeio`, `produtoservico`,
+  `roteiro`): zero registros hoje e sem uso previsto no médio prazo. Criar
+  quando tiver dado.
+- **Sub-recursos de orçamento** (`cruzeiro`, `hospedagem`, `seguro`,
+  `transporte`, `voo`) com tabela própria, alimentada pelo endpoint próprio; o
+  array embedded no orçamento continua preservado no `raw_payload` do orçamento.
+- **`infosolicitacao` INCLUÍDO** como snapshot (INSERT, não UPSERT; sem id
+  natural, PK surrogate `snapshot_id` BIGSERIAL). NOTA: é a definição dos campos
+  do form público, NÃO comentário livre. O ouro qualitativo (KPI de
+  sentimento/tema) está em campos de texto livre já capturados:
+  `pessoa.observacao`, `solicitacao.observacao`, e
+  `orcamento.informacoes / detalhes_viagem / outras_informacoes`.
+
+**Racional:** "Tudo em bronze, incrementa depois" minimiza retrabalho de schema.
+Pular vazios evita tabela morta. Infosolicitacao custa quase nada e documenta a
+evolução do form.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D056 — ClickMassa é fork de Whaticket; JWT externo serve rotas internas
+
+**Contexto:** A API externa documentada do ClickMassa (17 endpoints) não expõe
+`GET /contacts`. O dashboard mostrava 1.483 contatos, mas só era possível puxar
+contato via embed em opportunities (1 contato). Gap real.
+
+**Decisão:** Confirmado que ClickMassa é um fork do **Whaticket** (controllers
+TypeScript batem 100% com canove/whaticket-community). O JWT do `.env`
+(`CLICKMASSA_API_KEY`, válido até 2028) autentica também nas **rotas internas**
+do painel (`enterprise-352napi.clickmassa.com.br`), não só na API externa.
+`GET /contacts?pageNumber=N` retorna os 1.483 (40 por página, 38 páginas). Não
+precisa de re-auth.
+
+**Racional:** A descoberta destravou o backfill completo de contatos. As rotas
+internas são o caminho real; a API externa documentada é parcial.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D055 — ingestion_log: duração vai dentro de counts (sem coluna duration_ms)
+
+**Contexto:** O `ingestion_log` foi criado com `status`, `counts` (jsonb),
+`error_message`, mas sem `duration_ms`. Os scripts tentavam fazer PATCH com
+`duration_ms` no nível de cima e quebravam com 400.
+
+**Decisão:** A duração entra dentro do `counts` como `_duration_ms`. O PATCH de
+fechamento não manda `duration_ms` no topo. Filtro do PATCH é `id=eq.{runId}`
+(PK é `id`). Vale pros dois pipelines.
+
+**Racional:** `counts` é JSONB e aceita qualquer chave. Não criar coluna nova
+pra um único número. Zero ALTER, zero dívida.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D054 — Schema bronze segue a lista fechada do Claudinho (anti-PGRST204)
+
+**Contexto:** No backfill do ClickMassa, os mappers do Codinho inseriam colunas
+que o DDL inicial não tinha, gerando cascata de erros PGRST204 ("column not
+found"). Custou um ciclo de fix (ALTER + recreate).
+
+**Decisão:** O DDL define a lista fechada de colunas planas. O mapper insere
+SOMENTE essas colunas + `raw_payload` + audit. Qualquer campo do payload sem
+coluna correspondente vai SÓ pro `raw_payload`. Quando a exploração não detalha
+os campos de um recurso, captura-se sample antes de montar as colunas planas
+(nunca chutar campo).
+
+**Racional:** Mapper e schema têm que casar exatamente. A fonte da verdade do
+schema é o DDL (Claudinho), não a inferência do mapper. No Iddas isso foi
+aplicado desde o início e o backfill passou sem PGRST204.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D053 — Backfill idempotente via UPSERT; snapshot via INSERT
+
+**Contexto:** Backfills longos (ClickMassa 1.484 contatos, Iddas 9k rows) estão
+sujeitos a queda de rede no meio (aconteceu no Iddas, página 115/457 do
+aeroporto).
+
+**Decisão:** Toda tabela de entidade usa UPSERT (`ON CONFLICT (id) DO
+UPDATE`),
+idempotente: re-rodar completa o que faltou sem duplicar. Tabelas snapshot
+(`contacts_dashboard` no ClickMassa, `infosolicitacao` no Iddas) usam INSERT
+puro (cada run = novo snapshot). Flags `--only` e `--skip` (CSV) permitem
+re-runs cirúrgicos.
+
+**Racional:** Idempotência transforma queda de rede em "roda de novo", não em
+"perdeu tudo". Comprovado: o run parcial do Iddas foi completado com `--only`
+nos 10 recursos faltantes, zero duplicata.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D052 — api_configs do ClickMassa: id TEXT + nunca armazenar token
+
+**Contexto:** O endpoint `/api-config` do ClickMassa expõe o JWT em plaintext no
+payload. Além disso, o `id` é UUID string, não BIGINT.
+
+**Decisão:** `bronze_clickmassa_api_configs` tem `id TEXT` (recriada, era BIGINT
+por engano) e uma CHECK constraint
+`no_token_in_payload: NOT (raw_payload ? 'token')`. O mapper faz
+`delete payload.token` antes do insert; a constraint é defesa em profundidade
+(rejeita o insert se o token sobreviver).
+
+**Racional:** Token nunca deve descansar no banco. Constraint + delete no mapper
+= dupla proteção. Confirmado no backfill: token removido, insert aceito.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D051 — Bronze enche primeiro nos dois ERPs; silver/promoção depois (supersede parcial D041)
+
+**Contexto:** Com ClickMassa e Iddas ambos mapeados, decisão de ordem: encher os
+dois bronzes antes de construir a silver, ou promover ClickMassa pra silver já
+pra ver o painel reagir.
+
+**Decisão:** Encher TODO o bronze dos dois ERPs primeiro. Silver unificada
+(cross-reference ClickMassa + Iddas por telefone/email/nome normalizado) só
+depois que os dois bronzes estiverem completos. O painel admin continua lendo a
+silver legada (3 contatos) até a promoção existir.
+
+**Racional:** Unificar os dois de uma vez evita retrabalho de fazer silver do
+ClickMassa e refazer quando o Iddas entrar. O painel "parado" é esperado: ele lê
+silver, não bronze.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-18] D050 — Auto-descoberta de schema via MOAS antes de cada DDL
+
+**Contexto:** Antes de criar/alterar tabelas, é preciso conhecer o estado real
+do banco (tabelas, colunas, constraints, RLS) sem confiar em memória ou specs.
+
+**Decisão:** Usar query MOAS (consulta consolidada de auto-descoberta via
+`pg_catalog`/`information_schema`) pra fotografar o schema antes de montar DDL,
+e verificações estilo MOAS no fim de cada migração. Padrão inspirado no projeto
+Central de Dados RH.
+
+**Racional:** Realidade do banco > spec do prompt. Confirmar defaults,
+constraints e RLS reais antes de alterar evita ALTER cego e dívida.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ## D049 — Manter `contacts` como silver com legacy fields (vs migration limpa)
 
 **Contexto:** ao formalizar arquitetura de camadas bronze/silver/gold (D041), o

@@ -1,0 +1,328 @@
+{
+  "total": 1483,
+  "weeklyNew": 26,
+  "recency": {
+    "d30": 101,
+    "d90": 224,
+    "d180": 681,
+    "d360": 477,
+    "d360plus": 0
+  },
+  "gender": [
+    {
+      "gender": "N",
+      "count": 1483
+    }
+  ],
+  "ageGroups": [
+    {
+      "range": "18-24",
+      "m": 0,
+      "f": 0,
+      "o": 0
+    },
+    {
+      "range": "25-34",
+      "m": 0,
+      "f": 0,
+      "o": 0
+    },
+    {
+      "range": "35-44",
+      "m": 0,
+      "f": 0,
+      "o": 0
+    },
+    {
+      "range": "45-54",
+      "m": 0,
+      "f": 0,
+      "o": 0
+    },
+    {
+      "range": "55+",
+      "m": 0,
+      "f": 0,
+      "o": 0
+    }
+  ],
+  "zodiac": [],
+  "states": [
+    {
+      "uf": "SP",
+      "name": "São Paulo",
+      "count": 646
+    },
+    {
+      "uf": "MG",
+      "name": "Minas Gerais",
+      "count": 96
+    },
+    {
+      "uf": "PR",
+      "name": "Paraná",
+      "count": 51
+    },
+    {
+      "uf": "BA",
+      "name": "Bahia",
+      "count": 49
+    },
+    {
+      "uf": "RS",
+      "name": "Rio Grande do Sul",
+      "count": 41
+    },
+    {
+      "uf": "RJ",
+      "name": "Rio de Janeiro",
+      "count": 36
+    },
+    {
+      "uf": "SC",
+      "name": "Santa Catarina",
+      "count": 27
+    },
+    {
+      "uf": "PA",
+      "name": "Pará",
+      "count": 25
+    },
+    {
+      "uf": "PE",
+      "name": "Pernambuco",
+      "count": 24
+    },
+    {
+      "uf": "MA",
+      "name": "Maranhão",
+      "count": 19
+    },
+    {
+      "uf": "RN",
+      "name": "Rio Grande do Norte",
+      "count": 18
+    },
+    {
+      "uf": "CE",
+      "name": "Ceará",
+      "count": 18
+    },
+    {
+      "uf": "PI",
+      "name": "Piauí",
+      "count": 17
+    },
+    {
+      "uf": "GO",
+      "name": "Goiás",
+      "count": 17
+    },
+    {
+      "uf": "AP",
+      "name": "Amapá",
+      "count": 15
+    },
+    {
+      "uf": "MT",
+      "name": "Mato Grosso",
+      "count": 14
+    },
+    {
+      "uf": "AM",
+      "name": "Amazonas",
+      "count": 14
+    },
+    {
+      "uf": "ES",
+      "name": "Espírito Santo",
+      "count": 14
+    },
+    {
+      "uf": "AL",
+      "name": "Alagoas",
+      "count": 10
+    },
+    {
+      "uf": "TO",
+      "name": "Tocantins",
+      "count": 9
+    },
+    {
+      "uf": "SE",
+      "name": "Sergipe",
+      "count": 8
+    },
+    {
+      "uf": "DF",
+      "name": "Distrito Federal",
+      "count": 8
+    },
+    {
+      "uf": "RR",
+      "name": "Roraima",
+      "count": 8
+    },
+    {
+      "uf": "RO",
+      "name": "Rondônia",
+      "count": 8
+    },
+    {
+      "uf": "MS",
+      "name": "Mato Grosso do Sul",
+      "count": 6
+    },
+    {
+      "uf": "PB",
+      "name": "Paraíba",
+      "count": 6
+    },
+    {
+      "uf": "AC",
+      "name": "Acre",
+      "count": 6
+    }
+  ],
+  "tags": [
+    {
+      "tag": "Interesse em pacote",
+      "count": 155
+    },
+    {
+      "tag": "Interesse em passagens",
+      "count": 45
+    },
+    {
+      "tag": "Trafego e sem resposta",
+      "count": 42
+    },
+    {
+      "tag": "Fornecedor",
+      "count": 31
+    },
+    {
+      "tag": "Europa",
+      "count": 22
+    },
+    {
+      "tag": "Cliente VIP",
+      "count": 18
+    },
+    {
+      "tag": "Interesse em navio",
+      "count": 14
+    },
+    {
+      "tag": "América do Sul",
+      "count": 14
+    },
+    {
+      "tag": "Viagem personalizada",
+      "count": 12
+    },
+    {
+      "tag": "Cliente recorrente",
+      "count": 11
+    }
+  ],
+  "origins": [
+    {
+      "name": "Trafego Pago ",
+      "count": 191
+    },
+    {
+      "name": "Indicação",
+      "count": 59
+    },
+    {
+      "name": "Conhecido",
+      "count": 52
+    },
+    {
+      "name": "Amigo",
+      "count": 43
+    },
+    {
+      "name": "Instagram ",
+      "count": 27
+    },
+    {
+      "name": "Grupo de Promoção",
+      "count": 22
+    },
+    {
+      "name": "Não sei informar",
+      "count": 15
+    },
+    {
+      "name": "Site",
+      "count": 2
+    }
+  ],
+  "channels": [
+    {
+      "channel": "whatsapp",
+      "count": 742
+    }
+  ],
+  "agents": [
+    {
+      "name": "Angelina",
+      "email": "admin@spinharditurismoltda.com",
+      "count": 14
+    }
+  ],
+  "topClients": [
+    {
+      "id": 24980,
+      "name": "Isa - FlyTour",
+      "count": 112,
+      "lastTicketAt": "2026-06-17T12:23:07.919Z"
+    },
+    {
+      "id": 1346,
+      "name": "Rafaela Baratelli Orinter CPQ",
+      "count": 77,
+      "lastTicketAt": "2026-06-18T14:55:41.069Z"
+    },
+    {
+      "id": 1315,
+      "name": "Angelina Saragiotto",
+      "count": 51,
+      "lastTicketAt": "2026-06-17T16:22:23.493Z"
+    },
+    {
+      "id": 12622,
+      "name": "Sonia Prata - Affinity",
+      "count": 40,
+      "lastTicketAt": "2026-06-18T13:25:45.124Z"
+    },
+    {
+      "id": 12077,
+      "name": "Frederico Ribeiro - Flytour Consolidadora",
+      "count": 38,
+      "lastTicketAt": "2026-06-17T17:12:13.108Z"
+    },
+    {
+      "id": 12423,
+      "name": "Sierra Tour",
+      "count": 36,
+      "lastTicketAt": "2026-05-07T12:30:10.438Z"
+    },
+    {
+      "id": 11369,
+      "name": "Renata Esteves",
+      "count": 34,
+      "lastTicketAt": "2026-05-12T16:27:02.717Z"
+    },
+    {
+      "id": 21287,
+      "name": "Douglas Pires - Reservia",
+      "count": 33,
+      "lastTicketAt": "2026-06-12T17:51:28.805Z"
+    }
+  ],
+  "topCities": [],
+  "topBairros": []
+}

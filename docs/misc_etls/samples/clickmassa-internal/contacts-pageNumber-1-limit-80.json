@@ -1,0 +1,56 @@
+{
+  "contacts": [
+    {
+      "id": 85205,
+      "name": "🤩",
+      "number": "223518721634414",
+      "email": null,
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": null,
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2026-03-16T18:34:11.043Z",
+      "updatedAt": "2026-03-16T18:34:11.076Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [],
+      "leadStatus": null,
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "false",
+      "isBlacklisted": false
+    },
+    {
+      "id": 24621,
+      "name": "   .",
+      "number": "553599429831",
+      "email": null,
+      "profilePicUrl": null,
+      "picIsObjectStorage": false,
+      "channel": "whatsapp",
+      "pushname": null,
+      "isUser": false,
+      "isWAContact": false,
+      "isGroup": false,
+      "tenantId": 28,
+      "createdAt": "2025-11-24T15:11:17.064Z",
+      "updatedAt": "2025-12-10T22:56:32.117Z",
+      "walletId": null,
+      "wallet": null,
+      "tags": [
+        "Trafego e sem resposta"
+      ],
+      "leadStatus": "Aguardando resposta",
+      "firstConnection": 31,
+      "funnels": null,
+      "lid": "271008510558393",
+      "isBlacklisted": false
+    }
+  ],
+  "count": "1483",
+  "hasMore": true
+}
