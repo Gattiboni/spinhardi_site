@@ -87,3 +87,4 @@ desktop.ini
 *.backup
 _temp_premove/
 '@ | Out-File -FilePath .gitignore -Encoding utf8 -Force
+graphify-out/
