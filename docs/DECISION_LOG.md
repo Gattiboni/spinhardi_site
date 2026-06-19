@@ -26,6 +26,124 @@ Ordem: mais recente no topo.
 
 ## Decisões Registradas
 
+### [2026-06-19] D064 — Adições estruturais ao modelo silver pro MVP: vínculo externo, financeiro manual, contato PJ, proveniência
+
+**Contexto:** O contrato de dados aprovou mudanças no modelo canônico da pessoa
+que ainda não existem no schema e serão aplicadas no bundle de refator de front.
+
+**Decisão:** Entram no MVP, a aplicar via DDL guiado junto com o refator:
+
+- `contact_external_links`: vínculo externo vira linha (provider, external_id,
+  ref, deep_link, sync_status), não coluna. Cada fonte é um plug, nunca o
+  centro. A promoção do Lote 1 populou de propósito as colunas-ponte que já
+  existiam em `contacts` (não a tabela nova) pra acender a lista atual sem mexer
+  na UI.
+- Tabela silver de negócios pra entrada manual de financeiro (E4): Julia/Nina
+  digita venda/receita/despesa que não veio do Iddas ou complementa campo vazio.
+  Rótulos do front livres, mas alimentam os MESMOS campos que o gold soma
+  (venda, custo, lucro, percentual_lucro, data, situacao; categoria, valor,
+  data). Nome e colunas definidos no DDL contra o repo, não inventados.
+- `pessoa_contato` (E2): campo ativo na UI pra contato PJ/CNPJ.
+- `field_provenance` jsonb (D2 do contrato): proveniência por campo, etiqueta no
+  detalhe.
+
+**Racional:** Mantém o silver fonte-agnóstico e extensível. Vínculo como linha
+deixa plugar Instagram/Google/site sem ALTER TABLE. Financeiro manual fecha o
+gap do dado que não nasce no Iddas sem furar a regra de não-sobrescrita.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa (implementação no bundle de
+refator de front)
+
+**Ver também:** contrato_dados_v1.md (E2, E4, D2); D041; D061.
+
+---
+
+### [2026-06-19] D063 — Merge não-destrutivo e proveniência na silver
+
+**Contexto:** Com duas fontes (Iddas, ClickMassa) e outras por vir, campos da
+mesma pessoa conflitam. Precisa de regra de quem ganha sem perder dado.
+
+**Decisão:**
+
+- Precedência por proveniência (financeiro = Iddas, conversa = ClickMassa,
+  contato = mais recente verificado, qualificação = edição manual) vale SÓ na
+  construção inicial (Lote 1).
+- Sync novo NUNCA sobrescreve: só adiciona linha ou preenche campo vazio. Sem
+  exceção no MVP.
+- Backoffice empilha (E3): orçamento e venda são 1:N, nunca colapsam nem se
+  sobrescrevem. Write-back pro Iddas fica pós-MVP.
+- Reconciliação de conflito de 2 vias é pós-MVP. Edge aceito: venda digitada que
+  depois chega do Iddas pode duplicar (dedupe de negócio pós-MVP).
+
+**Racional:** Não-sobrescrita protege a edição manual e o dado humano contra o
+robô de sync. Precedência só-na-construção evita que o sync recorrente fique
+decidindo quem ganha, o que viraria bug silencioso.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** contrato_dados_v1.md (seção 2.3, E3); D064.
+
+---
+
+### [2026-06-19] D062 — Resolução de identidade na silver: telefone normalizado + fila manual pros ambíguos
+
+**Contexto:** ClickMassa e Iddas não compartilham id. Precisa de chave pra
+cruzar a mesma pessoa nas duas fontes sem fundir gente diferente.
+
+**Decisão:**
+
+- Identidade = telefone normalizado. Normalização cravada: tira o `55` do DDI
+  quando o número tem 12-13 dígitos, valida 10-11 dígitos nacionais (descarta os
+  LIDs do WhatsApp de 14+ dígitos, ~747 no CM), chave de match são os últimos 10
+  dígitos.
+- 3 conjuntos tratados no FULL OUTER JOIN: ambos, só-CM, só-Iddas.
+- Telefone repetido NUNCA faz auto-merge. Vira fila de possível-duplicado por
+  detecção estrutural (contatos que dividem o mesmo whatsapp), não por lista
+  hardcoded. Os 19 ambíguos do Iddas são mistos: duplicata da mesma pessoa,
+  variação de nome, E família/casal dividindo o número (pessoas diferentes, ex
+  Heloisa e Luiz Sergio Del Nero). Por isso a decisão fica com o humano.
+- A nota `notas_internas='AMBIGUO'` é contexto opcional. A detecção estrutural é
+  a fonte durável e fonte-agnóstica.
+
+**Racional:** Telefone é o único campo confiável comum às duas fontes.
+Auto-merge por telefone fundiria casais e famílias. A fila estrutural pega
+qualquer ambíguo futuro de qualquer canal sem código novo.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** contrato_dados_v1.md (identidade); fase_3.md.
+
+---
+
+### [2026-06-19] D061 — Arquitetura de consumo do back-office: gold gerencial + operacional sobre silver canônico
+
+**Contexto:** O painel precisa servir a Nina (operacional, foge de número e
+planilha) e a Julia (gerencial, financeiro) sobre a mesma base, sem amarrar a
+uma fonte.
+
+**Decisão:** Dois produtos gold sobre o mesmo silver canônico fonte-agnóstico:
+
+- Gold gerencial = agregação, gráficos com drilldown, mora no Dashboard.
+- Gold operacional = linha a linha, cards que acusam gap, drilldown até cadastro
+  e espaço pra ação, mora em Contatos.
+- Funil aparece nas duas lentes: gráfico de estágio no Dashboard, kanban
+  operacional em Funil.
+- A pessoa é canônica na silver, cada fonte é um plug. O backoffice é a fonte da
+  verdade, com merge não-destrutivo.
+
+O contrato (`docs/contrato_dados_v1.md`) foi aprovado como fonte de verdade dos
+lotes de execução, com 12 decisões e emendas E1 a E4.
+
+**Racional:** Separar os dois vieses sobre um silver único entrega valor pros
+dois perfis sem duplicar dado nem acoplar a UI a uma fonte. Estende o D041
+(bronze/silver/gold) pro lado do consumo.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** D041; plano_backoffice_crm_v1.md; D062, D063, D064.
+
+---
+
 ### [2026-06-18] D060 — Iddas: re-auth automático no pipeline (token 12h sem refresh)
 
 **Contexto:** A API do Iddas usa Bearer token de vida curta (12h,

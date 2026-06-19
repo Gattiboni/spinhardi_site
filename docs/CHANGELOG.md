@@ -15,6 +15,95 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-19 — Lote 1: promoção bronze -> silver, `contacts` populada (826 contatos)
+
+### INFRA
+
+Promoção executada via SQL guiado direto no Supabase (Claudinho guia, Alan
+aplica; Codinho não toca banco). A `contacts` silver saiu de 3 linhas de teste
+pra 826 contatos reais, mesclados e deduplicados, sem tocar uma linha de UI. A
+lista do admin já lê a base de verdade.
+
+### Adicionado
+
+- **Normalização de telefone cravada:** tira o `55` do DDI quando o número tem
+  12-13 dígitos, valida 10-11 dígitos nacionais (descarta os ~747 LIDs do
+  WhatsApp de 14+ dígitos do ClickMassa), chave de match são os últimos 10
+  dígitos, armazena `'55'` + nacional no formato wa.me.
+- **Merge por FULL OUTER JOIN nos 3 conjuntos:** ambos 328, só-CM 170, só-Iddas
+  328. Precedência de nome Iddas > CM > pushname. `origem='importado'`, enums
+  com default seguro (`destino_tipo='indefinido'`, etc), `sync_status` setado na
+  fonte que tem id.
+- **19 telefones ambíguos** (família/casal dividindo número + duplicatas da
+  mesma pessoa) importados sem colapsar, 48 contatos flagados, formando a fila
+  de possível-duplicado por detecção estrutural (whatsapp repetido), não por
+  lista hardcoded.
+
+### Resolvido
+
+- Bug do CTE `with idd_amb` só visível ao 1o INSERT no bloco dos ambíguos:
+  subquery inlinada em cada WHERE + travas `not in` pra re-rodabilidade.
+- Staging tables (`stg_cm` / `stg_idd`) derrubadas após validação.
+
+### Validação
+
+- total 826 = 778 não-ambíguos + 48 flagados. Zero `clickmassa_contact_id`
+  duplicado. 19 telefones na fila (10 com 3 cadastros + 9 com 2 = 48). origem
+  826 `importado`. Tudo reconcilia.
+- Resultados em `docs/fase_3.md`. Schema, enums e constraints reais extraídos em
+  `docs/tipagem_pre_fase_3.md`.
+
+### Pendente
+
+- Lote 2 (gold operacional: cards-de-gap, ação WhatsApp via CM, "abrir na
+  origem" com URL real).
+- Lote 3 (gold gerencial: matar mock Iddas lendo `bronze_iddas_*`, gráficos,
+  drilldown).
+- Lote 4 (funil operacional, bloqueador do módulo Opportunities do CM).
+- Adições estruturais ao silver (`contact_external_links`, tabela de negócios do
+  E4, `pessoa_contato`, `field_provenance`) a aplicar no bundle de refator de
+  front. Ver D064.
+
+---
+
+## 2026-06-19 — Contrato de dados do back-office CRM aprovado (Fases 0 a 2)
+
+### DOC
+
+Fechado o diagnóstico (Fase 0), a pesquisa externa (Fase 1) e o contrato de
+dados do front refatorado (Fase 2). Define a arquitetura de consumo gold
+gerencial + operacional sobre silver canônico fonte-agnóstico. Vira a fonte de
+verdade dos lotes de execução.
+
+### Adicionado
+
+- `docs/diff_fase0_contrato_dados.md` — planilha de diff por campo de consumo
+  (UI da fonte · raw_payload · coluna bronze · gap). Conclusão: gap real de ETL
+  ≈ zero, bronze completo pro consumo conhecido.
+- `docs/fase1_decisoes_pesquisa.md` — 6 decisões destiladas da pesquisa (SCV
+  nomeia a fonte-da-verdade, progressive profiling nomeia os cards-de-gap, 3-6
+  indicadores na primeira dobra, linguagem da dona, overview -> drill ->
+  records, etiqueta de proveniência).
+- `docs/contrato_dados_v1.md` — contrato completo, 9 seções + emendas E1 a E4.
+- `docs/memorial_descritivo_front_v1.md` — wireframe descritivo tela a tela,
+  cada elemento marcado como INTOCADO / MUDA-FONTE / RODA / +MELHORA /
+  +ADICIONA, com a fonte nomeada e de onde vem pra onde vai.
+- `docs/plano_backoffice_crm_v1.md` — plano em fases com checkpoints e 6
+  princípios não-negociáveis (incrementalidade, modularidade, zero dívida,
+  fonte-agnóstico, backoffice = fonte da verdade, merge não-destrutivo).
+
+### Decisões
+
+- D061 a D064 registradas no DECISION_LOG (arquitetura de consumo, identidade,
+  merge não-destrutivo, adições estruturais ao silver).
+
+### Pendente
+
+- Execução dos lotes 1 a 4 da Fase 3, cada um referenciando uma seção do
+  contrato.
+
+---
+
 ## 2026-06-18 — Bronze Iddas completo: 23 tabelas, 9.076 rows (Lote Iddas A/B)
 
 ### INFRA
