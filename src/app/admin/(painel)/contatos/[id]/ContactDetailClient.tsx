@@ -5,8 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/admin/StageBadge";
+import FinanceiroForm from "@/components/admin/FinanceiroForm";
 import { formatDateTime } from "@/lib/utils/date";
-import { saveGestaoInterna } from "./actions";
+import { saveGestaoInterna, sendWhatsAppWelcome } from "./actions";
+import {
+  type ContactExternalLink,
+  findLink,
+} from "@/lib/contacts/external-links-shared";
+import { buildPanelUrl } from "@/lib/integrations/panel-urls";
 import {
   type Contact,
   type ContactInteraction,
@@ -138,8 +144,125 @@ function QualificacaoCard({ contact: c }: { contact: Contact }) {
   );
 }
 
+// ── "Abrir na origem": deep-link montado do vínculo externo ─────
+// URL vem de PANEL_URLS + provider/external_id do vínculo. Enquanto o template
+// estiver vazio, o botão fica desabilitado (tooltip "configurar URL do painel").
+// Nunca inventa rota.
+function AbrirNaOrigem({
+  provider,
+  link,
+  label,
+}: {
+  provider: string;
+  link: ContactExternalLink | null;
+  label: string;
+}) {
+  const url = link ? buildPanelUrl(provider, link.externalId) : null;
+
+  if (!url) {
+    return (
+      <button
+        type="button"
+        disabled
+        title="configurar URL do painel"
+        className="text-dark/40 font-body text-sm cursor-not-allowed"
+      >
+        {label} →
+      </button>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-gold hover:underline font-body text-sm"
+    >
+      {label} →
+    </a>
+  );
+}
+
+// ── Ações por canal ─────────────────────────────────────────────
+// Monta as ações a partir dos canais que o contato TEM (não do campo `origem`):
+//  - vínculo ClickMassa → "Mandar WhatsApp" (sendMessage via lib, mensagem inicial).
+//  - email              → "Mandar email" (mailto: no cliente da operadora).
+function AcoesCard({
+  contact: c,
+  temClickmassa,
+}: {
+  contact: Contact;
+  temClickmassa: boolean;
+}) {
+  const router = useRouter();
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
+
+  const handleWhatsApp = async () => {
+    if (!confirm(`Enviar a mensagem inicial de WhatsApp para ${c.name}?`)) return;
+    setSending(true);
+    setFeedback(null);
+    const result = await sendWhatsAppWelcome(c.id);
+    setSending(false);
+    if (result.success) {
+      setFeedback({ type: "ok", text: "Mensagem enviada." });
+      router.refresh();
+    } else {
+      setFeedback({ type: "erro", text: result.error ?? "Não foi possível enviar." });
+    }
+  };
+
+  const semCanal = !temClickmassa && !c.email;
+
+  return (
+    <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
+      <h2 className={cardTitleClass}>Ações</h2>
+
+      <div className="flex flex-wrap items-center gap-3 mt-5">
+        {temClickmassa && (
+          <Button variant="primary" size="md" onClick={handleWhatsApp} disabled={sending}>
+            {sending ? "Enviando..." : "💬 Mandar WhatsApp"}
+          </Button>
+        )}
+
+        {c.email && (
+          <a
+            href={`mailto:${c.email}?subject=${encodeURIComponent("Spinhardi Turismo")}`}
+            className="inline-flex items-center justify-center gap-2 rounded-md font-body font-medium text-base px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-dark transition-colors duration-medium"
+          >
+            📧 Mandar email
+          </a>
+        )}
+
+        {semCanal && (
+          <p className="font-body text-sm text-dark/50">
+            Sem canal disponível — sem vínculo ClickMassa nem e-mail.
+          </p>
+        )}
+
+        {feedback && (
+          <span
+            className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
+          >
+            {feedback.text}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Coluna 3: Sistemas externos ─────────────────────────────────
-function SistemasExternosCard({ contact: c }: { contact: Contact }) {
+function SistemasExternosCard({
+  contact: c,
+  iddasLink,
+  clickmassaLink,
+}: {
+  contact: Contact;
+  iddasLink: ContactExternalLink | null;
+  clickmassaLink: ContactExternalLink | null;
+}) {
   const handleForcarSync = () => {
     alert(`Forçar nova sincronização com Iddas e ClickMassa.\n\n${LOTE_C_ALERT}.`);
   };
@@ -179,13 +302,7 @@ function SistemasExternosCard({ contact: c }: { contact: Contact }) {
         {c.iddasSyncError && (
           <p className="text-red-600 text-xs font-body">Erro: {c.iddasSyncError}</p>
         )}
-        <button
-          type="button"
-          onClick={() => alert(`Abrir contato no Iddas.\n\n${LOTE_C_ALERT}.`)}
-          className="text-gold hover:underline font-body text-sm"
-        >
-          Abrir no Iddas →
-        </button>
+        <AbrirNaOrigem provider="iddas" link={iddasLink} label="Abrir no Iddas" />
       </div>
 
       <hr className="border-dark/10" />
@@ -215,13 +332,7 @@ function SistemasExternosCard({ contact: c }: { contact: Contact }) {
         {c.clickmassaSyncError && (
           <p className="text-red-600 text-xs font-body">Erro: {c.clickmassaSyncError}</p>
         )}
-        <button
-          type="button"
-          onClick={() => alert(`Abrir contato no ClickMassa.\n\n${LOTE_C_ALERT}.`)}
-          className="text-gold hover:underline font-body text-sm"
-        >
-          Abrir no ClickMassa →
-        </button>
+        <AbrirNaOrigem provider="clickmassa" link={clickmassaLink} label="Abrir no ClickMassa" />
       </div>
 
       <hr className="border-dark/10" />
@@ -402,10 +513,16 @@ function InteracoesTimeline({ interactions }: { interactions: ContactInteraction
 export default function ContactDetailClient({
   contact,
   interactions,
+  externalLinks,
 }: {
   contact: Contact;
   interactions: ContactInteraction[];
+  externalLinks: ContactExternalLink[];
 }) {
+  // Canais e deep-links vêm do VÍNCULO externo, não das colunas de origem.
+  const clickmassaLink = findLink(externalLinks, "clickmassa");
+  const iddasLink = findLink(externalLinks, "iddas");
+
   return (
     <div>
       <Link
@@ -428,10 +545,18 @@ export default function ContactDetailClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <DadosCard contact={contact} />
         <QualificacaoCard contact={contact} />
-        <SistemasExternosCard contact={contact} />
+        <SistemasExternosCard
+          contact={contact}
+          iddasLink={iddasLink}
+          clickmassaLink={clickmassaLink}
+        />
       </div>
 
+      <AcoesCard contact={contact} temClickmassa={clickmassaLink !== null} />
+
       <GestaoInternaForm contact={contact} />
+
+      <FinanceiroForm contactId={contact.id} />
 
       <InteracoesTimeline interactions={interactions} />
     </div>

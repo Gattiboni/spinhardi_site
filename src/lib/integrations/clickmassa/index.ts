@@ -322,6 +322,21 @@ export async function sendMessage(
   return { message: mapSendMessageMessage(msgRaw) };
 }
 
+// Envia a mensagem inicial de boas-vindas pra um contato, montando número e
+// corpo a partir dos helpers internos. Abstração de alto nível pra UI do admin
+// (botão "Mandar WhatsApp") — usa `sendMessage`, não chama a API direto.
+export async function sendWelcomeMessage(input: {
+  name: string | null;
+  phone: string;
+  externalKey: string;
+}): Promise<SendMessageResponse> {
+  return sendMessage({
+    number: normalizePhone(input.phone),
+    body: buildWelcomeMessageBody(input.name),
+    externalKey: input.externalKey,
+  });
+}
+
 // Cria oportunidade no funil. POST /opportunities.
 export async function createOpportunity(
   input: CreateOpportunityInput,

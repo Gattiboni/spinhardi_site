@@ -15,6 +15,11 @@ import {
   ORIGEM_LABELS,
   DESTINO_LABELS,
 } from "@/lib/contacts/types";
+import type {
+  GapSegment,
+  ContactGapFlags,
+  GapCounts,
+} from "@/lib/contacts/gold-operacional";
 
 const PAGE_SIZE = 10;
 
@@ -30,7 +35,29 @@ const SYNC_FILTER_LABELS: Record<SyncFilter, string> = {
   partial: "Sync parcial",
 };
 
-const BULK_ACTIONS = ["Adicionar tag", "Mudar estágio", "Enviar WhatsApp", "Exportar"];
+// "Enviar WhatsApp" foi removido de propósito: disparo em massa derruba o número
+// por ban da Meta — o canal inteiro da agência morre. WhatsApp só individual, no
+// detalhe do contato (um por vez, com confirm). As ações abaixo são seguras.
+const BULK_ACTIONS = ["Adicionar tag", "Mudar estágio", "Exportar"];
+
+// Cards de gap (gold operacional): contagem + clique que filtra a lista.
+const GAP_CARDS: { key: GapSegment; title: string; hint: string }[] = [
+  {
+    key: "semEmail",
+    title: "Sem email",
+    hint: "Contatos sem e-mail cadastrado",
+  },
+  {
+    key: "possivelDuplicado",
+    title: "Possível duplicado",
+    hint: "Dividem o mesmo telefone com outro contato",
+  },
+  {
+    key: "clickmassaSemIddas",
+    title: "Sem cadastro no Iddas",
+    hint: "Falados no WhatsApp (ClickMassa), fora do ERP",
+  },
+];
 
 function matchesSync(c: Contact, filter: SyncFilter): boolean {
   const i = c.iddasSyncStatus;
@@ -49,15 +76,31 @@ function matchesSync(c: Contact, filter: SyncFilter): boolean {
   }
 }
 
-export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
+export default function ContactsClient({
+  contacts,
+  gapFlags,
+  gapCounts,
+}: {
+  contacts: Contact[];
+  gapFlags: Record<string, ContactGapFlags>;
+  gapCounts: GapCounts;
+}) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [estagio, setEstagio] = useState<EstagioFunil | "todos">("todos");
   const [origem, setOrigem] = useState<CaptureOrigin | "todas">("todas");
   const [tag, setTag] = useState<string>("todas");
   const [sync, setSync] = useState<SyncFilter>("todos");
+  const [gap, setGap] = useState<GapSegment | null>(null);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Card de gap: clica pra filtrar, clica de novo no ativo pra limpar. Volta
+  // pra primeira página (event handler, não efeito).
+  const toggleGap = (key: GapSegment) => {
+    setGap((prev) => (prev === key ? null : key));
+    setPage(1);
+  };
 
   // Debounce da busca (300ms). Reseta a página dentro do callback (async),
   // nunca de forma síncrona no corpo do efeito.
@@ -92,13 +135,14 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
       if (origem !== "todas" && c.origem !== origem) return false;
       if (tag !== "todas" && !c.tags.includes(tag)) return false;
       if (!matchesSync(c, sync)) return false;
+      if (gap && !gapFlags[c.id]?.[gap]) return false;
       if (q) {
         const haystack = [c.name, c.whatsapp, c.email ?? "", ...c.tags].join(" ").toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [contacts, search, estagio, origem, tag, sync]);
+  }, [contacts, search, estagio, origem, tag, sync, gap, gapFlags]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   // Clamp defensivo: se a página atual passou do total (ex: lista encolheu),
@@ -146,6 +190,32 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
             + Novo contato
           </Button>
         </Link>
+      </div>
+
+      {/* Cards de gap (gold operacional) — contagem + clique que filtra a lista */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {GAP_CARDS.map((card) => {
+          const active = gap === card.key;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => toggleGap(card.key)}
+              aria-pressed={active}
+              className={`text-left bg-white border rounded-md p-6 min-h-[120px] transition-all duration-short ${
+                active
+                  ? "border-gold ring-2 ring-gold/30"
+                  : "border-dark/10 hover:border-gold hover:shadow-sm"
+              }`}
+            >
+              <p className="font-body text-sm text-dark/60 mb-3">{card.title}</p>
+              <p className="font-display text-4xl text-navy">{gapCounts[card.key]}</p>
+              <p className="font-body text-xs text-dark/50 mt-2">
+                {active ? "Filtrando · clique pra limpar" : card.hint}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
       {/* Busca */}

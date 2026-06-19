@@ -1,4 +1,5 @@
 import { getContactById, getContactInteractions } from "@/lib/contacts";
+import { getContactExternalLinks } from "@/lib/contacts/external-links";
 import { notFound } from "next/navigation";
 import ContactDetailClient from "./ContactDetailClient";
 import type { Metadata } from "next";
@@ -23,7 +24,16 @@ export default async function ContatoDetalhe({ params }: Props) {
   const contact = await getContactById(id);
   if (!contact) notFound();
 
-  const interactions = await getContactInteractions(id);
+  const [interactions, externalLinks] = await Promise.all([
+    getContactInteractions(id),
+    getContactExternalLinks(id),
+  ]);
 
-  return <ContactDetailClient contact={contact} interactions={interactions} />;
+  return (
+    <ContactDetailClient
+      contact={contact}
+      interactions={interactions}
+      externalLinks={externalLinks}
+    />
+  );
 }
