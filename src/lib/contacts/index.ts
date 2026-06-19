@@ -173,39 +173,108 @@ export async function addInteraction(
 // ─────────────────────────────────────────────────────────────────
 // Agregação pro dashboard
 //
-// Volume boutique: puxa os ativos uma vez e conta em memória — uma fonte de
-// verdade só (mesmo mapeamento de `getContacts`), sem 6 queries de count.
+// Cada número é um COUNT no Postgres (`count: 'exact', head: true`): conta no
+// banco, sem trazer nenhuma linha pro JS — imune ao teto de 1000 do PostgREST.
+// "Novos"/"Capturas" contam só origem != 'importado' na janela (os 826
+// importados não entram → devem dar 0 hoje). Degrada pra zeros em caso de erro.
 // ─────────────────────────────────────────────────────────────────
 
 export async function getContactStats(): Promise<{
   novosHoje: number;
   followUpHoje: number;
-  pendentesSync: number;
   capturasMes: number;
   emNegociacao: number;
   fechadosMes: number;
 }> {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const primeiroDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const now = new Date();
+  const hoje = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const inicioDia = `${hoje}T00:00:00`;
+  const inicioMes = `${new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
-    .slice(0, 10);
+    .slice(0, 10)}T00:00:00`;
 
-  const ativos = await getContacts({ status: "ativo" });
+  const sb = supabaseAdmin();
+  // Builder base: conta contatos ativos sem trazer linha (head: true).
+  const ativos = () =>
+    sb.from("contacts").select("*", { count: "exact", head: true }).eq("status", "ativo");
 
-  return {
-    novosHoje: ativos.filter((c) => c.createdAt.startsWith(hoje)).length,
-    followUpHoje: ativos.filter((c) => c.proximoFollowUp && c.proximoFollowUp <= hoje).length,
-    pendentesSync: ativos.filter(
-      (c) =>
-        c.iddasSyncStatus === "pending" ||
-        c.clickmassaSyncStatus === "pending" ||
-        c.iddasSyncStatus === "failed" ||
-        c.clickmassaSyncStatus === "failed",
-    ).length,
-    capturasMes: ativos.filter((c) => c.createdAt >= primeiroDiaMes).length,
-    emNegociacao: ativos.filter((c) => c.estagio === "em_negociacao").length,
-    fechadosMes: ativos.filter(
-      (c) => c.estagio === "fechado_confirmado" && c.estagioAtualizadoEm >= primeiroDiaMes,
-    ).length,
-  };
+  try {
+    const [novos, follow, capturas, negociacao, fechados] = await Promise.all([
+      ativos().neq("origem", "importado").gte("created_at", inicioDia),
+      ativos().not("proximo_follow_up", "is", null).lte("proximo_follow_up", hoje),
+      ativos().neq("origem", "importado").gte("created_at", inicioMes),
+      ativos().eq("estagio", "em_negociacao"),
+      ativos().eq("estagio", "fechado_confirmado").gte("estagio_atualizado_em", inicioMes),
+    ]);
+
+    return {
+      novosHoje: novos.count ?? 0,
+      followUpHoje: follow.count ?? 0,
+      capturasMes: capturas.count ?? 0,
+      emNegociacao: negociacao.count ?? 0,
+      fechadosMes: fechados.count ?? 0,
+    };
+  } catch (err) {
+    console.error("[getContactStats] erro ao contar stats:", err);
+    return {
+      novosHoje: 0,
+      followUpHoje: 0,
+      capturasMes: 0,
+      emNegociacao: 0,
+      fechadosMes: 0,
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Segmentos de gap — fontes server-side
+//
+// Duplicados e "sem cadastro no Iddas" vêm de funções (RPC) que o Claudinho
+// definiu e validou no banco: o Postgres já devolve só o conjunto filtrado
+// (48 e 170 hoje), não varremos linha no JS. UMA chamada por função: a contagem
+// do card é o tamanho do conjunto e a lista filtrada são esses mesmos ids —
+// mesma fonte (mata o desync). "Sem email" é um COUNT no banco (head: true).
+// Cada leitura degrada pra vazio/zero em caso de erro.
+// ─────────────────────────────────────────────────────────────────
+
+async function rpcContactIds(fn: string): Promise<Set<string>> {
+  const { data, error } = await supabaseAdmin().rpc(fn);
+  if (error) throw error;
+  return new Set((data as { id: string }[]).map((r) => r.id));
+}
+
+/** Conjunto de contatos possíveis-duplicados (mesmo whatsapp). Fonte única. */
+export async function getDuplicateContactIds(): Promise<Set<string>> {
+  try {
+    return await rpcContactIds("gold_contatos_duplicados");
+  } catch (err) {
+    console.error("[getDuplicateContactIds] erro:", err);
+    return new Set();
+  }
+}
+
+/** Conjunto de contatos com ClickMassa e SEM cadastro no Iddas. */
+export async function getSemIddasContactIds(): Promise<Set<string>> {
+  try {
+    return await rpcContactIds("gold_contatos_sem_iddas");
+  } catch (err) {
+    console.error("[getSemIddasContactIds] erro:", err);
+    return new Set();
+  }
+}
+
+/** Contagem de contatos ativos sem e-mail — COUNT no banco, sem trazer linha. */
+export async function getSemEmailCount(): Promise<number> {
+  try {
+    const { count, error } = await supabaseAdmin()
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "ativo")
+      .or("email.is.null,email.eq.");
+    if (error) throw error;
+    return count ?? 0;
+  } catch (err) {
+    console.error("[getSemEmailCount] erro:", err);
+    return 0;
+  }
 }

@@ -4,20 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import DashboardCard from "@/components/admin/DashboardCard";
+import FinanceiroCards from "@/components/admin/dashboard/FinanceiroCards";
+import DistribuicaoCharts from "@/components/admin/dashboard/DistribuicaoCharts";
+import FunilChart from "@/components/admin/dashboard/FunilChart";
+import type {
+  FinanceiroPorPeriodo,
+  FunilEstagio,
+  ContactsSnapshot,
+} from "@/lib/dashboard/types";
 
 type ContactStats = {
   novosHoje: number;
   followUpHoje: number;
-  pendentesSync: number;
   capturasMes: number;
   emNegociacao: number;
   fechadosMes: number;
-};
-
-type IddasStats = {
-  orcamentosMes: number;
-  vendasMes: number;
-  ticketMedio: number;
 };
 
 type ClickmassaStats = {
@@ -27,10 +28,12 @@ type ClickmassaStats = {
 
 type DashboardClientProps = {
   contactStats: ContactStats;
-  iddasStats: IddasStats;
   clickmassaStats: ClickmassaStats;
   postsCount: number;
   userName: string;
+  financeiro: FinanceiroPorPeriodo;
+  funil: FunilEstagio[];
+  snapshot: ContactsSnapshot | null;
 };
 
 function saudacaoPorHora(hora: number): string {
@@ -48,18 +51,14 @@ function dataFormatada(date: Date): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-const moedaBRL = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 0,
-});
-
 export default function DashboardClient({
   contactStats,
-  iddasStats,
   clickmassaStats,
   postsCount,
   userName,
+  financeiro,
+  funil,
+  snapshot,
 }: DashboardClientProps) {
   // Saudação e data dependem da hora local — calculadas após o mount pra evitar
   // mismatch de hidratação. O nome vem por prop (sessão real, lado servidor).
@@ -93,7 +92,7 @@ export default function DashboardClient({
       {/* HOJE */}
       <section className="mb-10">
         <p className="text-gold uppercase tracking-widest text-xs font-body mb-4">Hoje</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DashboardCard
             title="Novos contatos"
             value={contactStats.novosHoje}
@@ -103,17 +102,6 @@ export default function DashboardClient({
             title="A fazer follow-up"
             value={contactStats.followUpHoje}
             href="/admin/contatos"
-          />
-          <DashboardCard
-            title="Pendentes de sync"
-            value={contactStats.pendentesSync}
-            tone="warning"
-            href="/admin/contatos"
-            hint={
-              contactStats.pendentesSync === 0
-                ? "Tudo sincronizado"
-                : "Contatos com sync pendente ou com falha"
-            }
           />
         </div>
       </section>
@@ -136,20 +124,24 @@ export default function DashboardClient({
         </div>
       </section>
 
+      {/* FINANCEIRO — cards reais (Iddas + manual), agregados em SQL, com toggle */}
+      <FinanceiroCards financeiro={financeiro} />
+
+      {/* DISTRIBUIÇÃO — gráficos lendo o snapshot CM (gold gerencial) */}
+      <DistribuicaoCharts snapshot={snapshot} />
+
+      {/* FUNIL — estrutura por estágio, drilldown pra lista filtrada */}
+      <FunilChart funil={funil} />
+
       {/* PANORAMA — indicadores espelhados dos sistemas operacionais + blog */}
       <section className="mb-10">
         <p className="text-gold uppercase tracking-widest text-xs font-body mb-4">Panorama</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <DashboardCard
-            title="Orçamentos no Iddas (mês)"
-            value={iddasStats.orcamentosMes}
-            hint={`Ticket médio ${moedaBRL.format(iddasStats.ticketMedio)}`}
-          />
-          <DashboardCard title="Vendas no Iddas (mês)" value={iddasStats.vendasMes} />
-          <DashboardCard
             title="Tickets abertos (ClickMassa)"
             value={clickmassaStats.ticketsAbertos}
             hint={`${clickmassaStats.oportunidadesAtivas} oportunidades ativas`}
+            href="/admin/funil"
           />
           <DashboardCard title="Posts publicados" value={postsCount} href="/admin/blog" />
         </div>

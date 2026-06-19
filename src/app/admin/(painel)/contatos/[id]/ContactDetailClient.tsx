@@ -439,9 +439,10 @@ function GestaoInternaForm({ contact: c }: { contact: Contact }) {
           )}
           <button
             type="button"
-            onClick={() => alert(`Adicionar tag.\n\n${LOTE_C_ALERT}.`)}
-            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dark/20 text-dark/60 hover:border-gold hover:text-gold transition-colors duration-short"
-            aria-label="Adicionar tag"
+            disabled
+            title="Tags chegam no Lote C"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dark/15 text-dark/30 cursor-not-allowed"
+            aria-label="Adicionar tag (em breve, Lote C)"
           >
             +
           </button>

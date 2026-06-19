@@ -120,6 +120,7 @@ export async function registrarNegocio(
     await createNegocio(id, input);
 
     revalidatePath(`/admin/contatos/${id}`);
+    revalidatePath("/admin/contatos");
     revalidatePath("/admin");
     return { success: true };
   } catch (err) {
@@ -146,6 +147,7 @@ export async function registrarLancamento(
     await createLancamento(id, input);
 
     revalidatePath(`/admin/contatos/${id}`);
+    revalidatePath("/admin/contatos");
     revalidatePath("/admin");
     return { success: true };
   } catch (err) {

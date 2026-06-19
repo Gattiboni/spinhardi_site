@@ -23,21 +23,46 @@ const NAV_GROUPS = [
   },
 ];
 
-export default function AdminSidebar({ role }: { role: Role }) {
+export default function AdminSidebar({
+  role,
+  collapsed,
+  onToggle,
+}: {
+  role: Role;
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-dark/10 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-      <nav className="p-6">
+    <aside
+      className={`${
+        collapsed ? "w-16" : "w-64"
+      } shrink-0 bg-white border-r border-dark/10 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto transition-[width] duration-short`}
+    >
+      <nav className="p-3">
+        {/* Toggle de recolher — default expandido */}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          aria-expanded={!collapsed}
+          className="flex items-center justify-center w-full h-10 mb-4 rounded-md text-dark/60 hover:bg-dark/5 hover:text-dark transition-colors duration-short"
+        >
+          <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
+        </button>
+
         {NAV_GROUPS.map((group) => {
           const visibleItems = group.items.filter((item) => hasPermission(role, item.href));
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={group.title} className="mb-8">
-              <p className="text-gold uppercase tracking-widest text-xs font-body mb-3">
-                {group.title}
-              </p>
+            <div key={group.title} className="mb-6">
+              {!collapsed && (
+                <p className="text-gold uppercase tracking-widest text-xs font-body mb-3 px-3">
+                  {group.title}
+                </p>
+              )}
               <ul className="space-y-1">
                 {visibleItems.map((item) => {
                   const isActive =
@@ -47,8 +72,9 @@ export default function AdminSidebar({ role }: { role: Role }) {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        title={collapsed ? item.label : undefined}
                         className={`
-                          flex items-center gap-3 px-3 py-2 rounded-md
+                          flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-2 rounded-md
                           font-body text-sm transition-colors duration-short
                           ${
                             isActive
@@ -60,7 +86,7 @@ export default function AdminSidebar({ role }: { role: Role }) {
                         <span className="text-lg" aria-hidden="true">
                           {item.icon}
                         </span>
-                        <span>{item.label}</span>
+                        {!collapsed && <span>{item.label}</span>}
                       </Link>
                     </li>
                   );

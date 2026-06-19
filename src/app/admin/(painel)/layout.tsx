@@ -1,4 +1,4 @@
-import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminShell from "@/components/admin/AdminShell";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requireSession } from "@/lib/auth/session";
 
@@ -17,10 +17,7 @@ export default async function PainelLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-dark/5">
       <AdminHeader user={{ name: user.name, role: user.role }} />
-      <div className="flex">
-        <AdminSidebar role={user.role} />
-        <main className="flex-1 p-8 lg:p-12">{children}</main>
-      </div>
+      <AdminShell role={user.role}>{children}</AdminShell>
     </div>
   );
 }

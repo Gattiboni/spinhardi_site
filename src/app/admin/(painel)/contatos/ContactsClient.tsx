@@ -21,7 +21,7 @@ import type {
   GapCounts,
 } from "@/lib/contacts/gold-operacional";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const LOTE_C_ALERT = "Implementação completa virá no Lote C";
 
@@ -80,19 +80,22 @@ export default function ContactsClient({
   contacts,
   gapFlags,
   gapCounts,
+  initialEstagio,
 }: {
   contacts: Contact[];
   gapFlags: Record<string, ContactGapFlags>;
   gapCounts: GapCounts;
+  initialEstagio?: EstagioFunil;
 }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [estagio, setEstagio] = useState<EstagioFunil | "todos">("todos");
+  const [estagio, setEstagio] = useState<EstagioFunil | "todos">(initialEstagio ?? "todos");
   const [origem, setOrigem] = useState<CaptureOrigin | "todas">("todas");
   const [tag, setTag] = useState<string>("todas");
   const [sync, setSync] = useState<SyncFilter>("todos");
   const [gap, setGap] = useState<GapSegment | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Card de gap: clica pra filtrar, clica de novo no ativo pra limpar. Volta
@@ -144,11 +147,11 @@ export default function ContactsClient({
     });
   }, [contacts, search, estagio, origem, tag, sync, gap, gapFlags]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   // Clamp defensivo: se a página atual passou do total (ex: lista encolheu),
   // pagina pela última válida sem precisar de efeito.
   const safePage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const allPageSelected = pageItems.length > 0 && pageItems.every((c) => selected.has(c.id));
 
@@ -287,6 +290,19 @@ export default function ContactsClient({
         </select>
 
         <select
+          aria-label="Itens por página"
+          value={pageSize}
+          onChange={(e) => withPageReset(setPageSize)(Number(e.target.value))}
+          className={`${selectClass} ml-auto`}
+        >
+          {PAGE_SIZE_OPTIONS.map((n) => (
+            <option key={n} value={n}>
+              {n} por página
+            </option>
+          ))}
+        </select>
+
+        <select
           aria-label="Ações em massa"
           value=""
           disabled={selected.size === 0}
@@ -294,7 +310,7 @@ export default function ContactsClient({
             handleBulkAction(e.target.value);
             e.target.value = "";
           }}
-          className={`${selectClass} ml-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`${selectClass} disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <option value="">Ações em massa{selected.size > 0 ? ` (${selected.size})` : ""}</option>
           {BULK_ACTIONS.map((a) => (

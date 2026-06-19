@@ -24,6 +24,10 @@ const inputClass =
   "px-3 py-2 border border-dark/20 rounded-md font-body text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
 const labelClass = "text-gold uppercase tracking-widest text-xs font-body mb-2 block";
 
+// Situação do negócio — vocabulário fixo na UI (sem tabela nova). Começamos com
+// Pago/Pendente/Cancelado; alinhamos com o Iddas depois.
+const SITUACAO_OPTIONS = ["Pago", "Pendente", "Cancelado"];
+
 /** "" → null; senão Number. Mantém null pros campos numéricos opcionais. */
 function numOrNull(value: string): number | null {
   const trimmed = value.trim();
@@ -35,6 +39,30 @@ function numOrNull(value: string): number | null {
 function strOrNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+// ── Moeda BRL ────────────────────────────────────────────────────────────────
+// O input guarda a string já formatada (1.500,00); tratamos o que o usuário
+// digita como centavos. Na hora de gravar, `parseBRLToNumber` converte de volta.
+
+/** Dígitos (centavos) → "1.500,00". "" se vazio. */
+function formatCentsToBRL(digits: string): string {
+  if (!digits) return "";
+  const cents = parseInt(digits, 10);
+  if (!Number.isFinite(cents)) return "";
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** "1.500,00" → 1500. null se vazio/ inválido. */
+function parseBRLToNumber(formatted: string): number | null {
+  const trimmed = formatted.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/\./g, "").replace(",", ".");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
 }
 
 export default function FinanceiroForm({ contactId }: { contactId: string }) {
@@ -72,12 +100,18 @@ export default function FinanceiroForm({ contactId }: { contactId: string }) {
     setDescricao("");
   };
 
+  // Máscara de moeda: lê só os dígitos do que foi digitado e reformata como BRL.
+  const handleMoeda =
+    (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(formatCentsToBRL(e.target.value.replace(/\D/g, "")));
+    };
+
   const handleNegocio = async () => {
     setSaving(true);
     setFeedback(null);
 
-    const vendaN = numOrNull(venda);
-    const custoN = numOrNull(custo);
+    const vendaN = parseBRLToNumber(venda);
+    const custoN = parseBRLToNumber(custo);
     // Lucro e percentual derivados quando dá — gravam nas colunas que o gold soma.
     const lucro = vendaN !== null && custoN !== null ? vendaN - custoN : null;
     const percentualLucro =
@@ -169,31 +203,41 @@ export default function FinanceiroForm({ contactId }: { contactId: string }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label htmlFor="venda" className={labelClass}>
-              Venda (R$)
+              Venda
             </label>
-            <input
-              id="venda"
-              type="number"
-              step="0.01"
-              min="0"
-              value={venda}
-              onChange={(e) => setVenda(e.target.value)}
-              className={`${inputClass} w-full`}
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-body text-sm text-dark/50">
+                R$
+              </span>
+              <input
+                id="venda"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={venda}
+                onChange={handleMoeda(setVenda)}
+                className={`${inputClass} w-full pl-9`}
+              />
+            </div>
           </div>
           <div>
             <label htmlFor="custo" className={labelClass}>
-              Custo (R$)
+              Custo
             </label>
-            <input
-              id="custo"
-              type="number"
-              step="0.01"
-              min="0"
-              value={custo}
-              onChange={(e) => setCusto(e.target.value)}
-              className={`${inputClass} w-full`}
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-body text-sm text-dark/50">
+                R$
+              </span>
+              <input
+                id="custo"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={custo}
+                onChange={handleMoeda(setCusto)}
+                className={`${inputClass} w-full pl-9`}
+              />
+            </div>
           </div>
           <div>
             <label htmlFor="dataNegocio" className={labelClass}>
@@ -211,14 +255,19 @@ export default function FinanceiroForm({ contactId }: { contactId: string }) {
             <label htmlFor="situacao" className={labelClass}>
               Situação
             </label>
-            <input
+            <select
               id="situacao"
-              type="text"
-              placeholder="ex: confirmada, em aberto"
               value={situacao}
               onChange={(e) => setSituacao(e.target.value)}
               className={`${inputClass} w-full`}
-            />
+            >
+              <option value="">Selecione…</option>
+              {SITUACAO_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-2">
             <label htmlFor="observacao" className={labelClass}>

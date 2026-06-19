@@ -1,19 +1,22 @@
 import type { Contact } from "./types";
-import type { ContactExternalLink } from "./external-links-shared";
-import { indexLinksByContact } from "./external-links-shared";
 
 /**
  * Gold operacional — segmentos de GAP sobre a silver de contatos.
  *
- * Função pura (sem IO): recebe os contatos (silver) e os vínculos externos já
- * lidos, e devolve, por contato, em quais gaps ele cai + as contagens totais
- * pros 3 cards do topo da lista. Nunca lê bronze; só silver/vínculo.
+ * Função pura (sem IO): monta, por contato, em quais gaps ele cai + as contagens
+ * pros 3 cards do topo da lista. Nunca lê bronze.
  *
- *  - semEmail            → `email` null/vazio.
- *  - possivelDuplicado   → divide o mesmo telefone (dígitos) com outro contato.
- *  - clickmassaSemIddas  → tem vínculo `clickmassa` e NÃO tem `iddas` (gente que
- *                          a Nina fala no WhatsApp mas não está no ERP). Segmento
- *                          de consciência: leva pra lista filtrada e para aí.
+ *  - semEmail            → `email` null/vazio. Contagem do card vem de um COUNT
+ *                          no banco (`getSemEmailCount`); a membresia da lista é
+ *                          o mesmo critério sobre os contatos carregados.
+ *  - possivelDuplicado   → está no conjunto da RPC `gold_contatos_duplicados`
+ *                          (mesmo whatsapp, detectado no Postgres). Contagem =
+ *                          tamanho do conjunto; lista = esses mesmos ids. UMA
+ *                          fonte só — editar campo que não é o whatsapp não muda
+ *                          a membresia (mata o desync do #8).
+ *  - clickmassaSemIddas  → está no conjunto da RPC `gold_contatos_sem_iddas`
+ *                          (tem ClickMassa, sem cadastro no Iddas). Mesma
+ *                          mecânica: contagem = tamanho, lista = mesmos ids.
  */
 
 export type GapSegment = "semEmail" | "possivelDuplicado" | "clickmassaSemIddas";
@@ -27,50 +30,34 @@ export type GapResult = {
   counts: GapCounts;
 };
 
-/** Só os dígitos do telefone — base estrutural pra detectar telefone repetido. */
-function phoneDigits(whatsapp: string): string {
-  return whatsapp.replace(/\D/g, "");
-}
-
 function hasEmail(contact: Contact): boolean {
   return !!contact.email && contact.email.trim().length > 0;
 }
 
 export function computeGapSegments(
   contacts: Contact[],
-  links: ContactExternalLink[],
+  duplicateIds: Set<string>,
+  semIddasIds: Set<string>,
+  semEmailCount: number,
 ): GapResult {
-  const linksByContact = indexLinksByContact(links);
-
-  // Telefones (em dígitos) que aparecem em 2+ contatos — detecção estrutural.
-  const phoneCount = new Map<string, number>();
-  for (const c of contacts) {
-    const digits = phoneDigits(c.whatsapp);
-    if (!digits) continue;
-    phoneCount.set(digits, (phoneCount.get(digits) ?? 0) + 1);
-  }
-
   const flags: Record<string, ContactGapFlags> = {};
-  const counts: GapCounts = { semEmail: 0, possivelDuplicado: 0, clickmassaSemIddas: 0 };
 
   for (const c of contacts) {
-    const cLinks = linksByContact.get(c.id) ?? [];
-    const temClickmassa = cLinks.some((l) => l.provider === "clickmassa");
-    const temIddas = cLinks.some((l) => l.provider === "iddas");
-
-    const digits = phoneDigits(c.whatsapp);
-
-    const f: ContactGapFlags = {
+    flags[c.id] = {
       semEmail: !hasEmail(c),
-      possivelDuplicado: digits.length > 0 && (phoneCount.get(digits) ?? 0) > 1,
-      clickmassaSemIddas: temClickmassa && !temIddas,
+      // Membresia vem dos conjuntos server-side (RPC), não de recálculo local.
+      possivelDuplicado: duplicateIds.has(c.id),
+      clickmassaSemIddas: semIddasIds.has(c.id),
     };
-
-    flags[c.id] = f;
-    if (f.semEmail) counts.semEmail += 1;
-    if (f.possivelDuplicado) counts.possivelDuplicado += 1;
-    if (f.clickmassaSemIddas) counts.clickmassaSemIddas += 1;
   }
+
+  // Contagens dos cards: dup/sem-Iddas são o tamanho do conjunto que o Postgres
+  // já filtrou; sem-email é o COUNT do banco. Nenhuma é varredura no JS.
+  const counts: GapCounts = {
+    semEmail: semEmailCount,
+    possivelDuplicado: duplicateIds.size,
+    clickmassaSemIddas: semIddasIds.size,
+  };
 
   return { flags, counts };
 }
