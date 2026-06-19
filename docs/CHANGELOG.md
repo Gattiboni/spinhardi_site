@@ -19,6 +19,63 @@ Ordem: mais recente no topo.
 
 ### SITE
 
+Detalhe e lista de contato viram um 360 operacional. Review fechado: a fronteira
+server->client do resumo comercial confere, o dado chega via prop de server
+component (`[id]/page.tsx` chama `getContactComercial` no servidor e passa
+adiante), `comercial.ts` é `server-only` e o client só importa o `type`. Pronto
+pra commit.
+
+### Adicionado
+
+- **Timeline de interações** no detalhe (substitui o textarea de notas livres):
+  contact_interactions cronológico, nota nova grava `tipo='nota_interna'`, menu
+  Editar/Excluir só em nota_interna (evento de sistema é read-only). Trava
+  dupla: updateNotaInterna/deleteNotaInterna filtram `tipo='nota_interna'` no
+  próprio SQL. `criado_por='back-office'` (coluna NOT NULL sem default; valor já
+  em uso no sendWhatsAppWelcome).
+- **Resumo comercial e financeiro do contato** (módulo server-only
+  `src/lib/contacts/comercial.ts`): orçamentos e vendas do Iddas via cadeia D058
+  (orcamento.cliente = iddas_pessoa_id; venda via venda.id_orcamento, nunca
+  venda.cliente como FK) + negócios manuais (negocios por contact_id). Soma
+  separando Iddas / manual com proveniência rotulada. Lê bronze pelo padrão
+  server-only do gold.ts.
+- **Edição rápida inline** na lista (expansão de linha): nome, whatsapp, email,
+  estágio, status, via quickUpdateContact. Membresia de duplicado vem da RPC
+  gold_contatos_duplicados (fonte única), não recalculada no client.
+  Seleção/bulk/paginação intactos.
+
+### Resolvido
+
+- "Registrar negócio some no nada": o negócio manual agora aparece no resumo do
+  contato.
+- **Data do negócio manual exibia um dia a menos** (X-1): `formatDate` parseava
+  data-só (`YYYY-MM-DD`) como UTC meia-noite e formatava em UTC-3, recuando pro
+  dia anterior. Parse agora é local (split + `new Date(y, m-1, d)`), corrige o
+  shift em qualquer data-só que passe pelo formatter. A coluna `date` e a
+  gravação (string crua) sempre estiveram corretas, era só exibição. Junto, o
+  formato unificou pra **DD/MM/AAAA global** (ver D068): atinge o quadro
+  Comercial & financeiro e também o blog público (de "15 jun 2026" pra
+  "15/06/2026"), escolha consciente por consistência.
+
+### Pendente
+
+- Tags: o bulk "Adicionar tag" é stub (só alert). Botão individual desabilitado
+  com label honesto. Rodada própria: contacts.tags (string[]) existe e
+  updateContact suporta; falta UI/bulk real + registrar tag_adicionada/removida
+  na timeline.
+- Limpar textos "virá no Lote C" remanescentes (alert do bulk, "Forçar sync"),
+  cosmético.
+- Identificado no teste do Lote C, vai pro batch funil (fora do escopo deste
+  lote): máscara BRL nos inputs de valor (tela editar oportunidade), drilldown
+  dos cards "Financeiro (Iddas + manual)" do dashboard, e o erro 400 do módulo
+  Opportunities do ClickMassa ao salvar.
+
+---
+
+## 2026-06-19 — Lote C: Contato 360 (timeline, resumo comercial, edição rápida inline)
+
+### SITE
+
 Detalhe e lista de contato viram um 360 operacional. Entregue pelo Codinho, em
 review (a fronteira server->client do resumo comercial ainda não foi conferida),
 não commitado.

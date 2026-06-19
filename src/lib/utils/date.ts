@@ -1,18 +1,21 @@
 /**
- * Formata uma data ISO (YYYY-MM-DD) no padrão pt-BR curto, ex: "15 mar 2026".
+ * Formata uma data-só (YYYY-MM-DD) no padrão pt-BR DD/MM/AAAA, ex: "15/03/2026".
  *
- * O `replace` remove o ponto que o `toLocaleDateString` adiciona após a
- * abreviação do mês ("mar." → "mar").
+ * Parse LOCAL, não UTC: `new Date("2026-06-18")` é lido como UTC meia-noite e,
+ * ao formatar em horário de Brasil (UTC-3), volta pro dia anterior ("17/06"). Por
+ * isso quebramos a string e montamos a data no fuso local com `new Date(y, m-1, d)`,
+ * preservando o dia digitado. Vale pra qualquer data-só que passe por aqui.
  */
 export function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return date
-    .toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-    .replace(/\./g, "");
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(iso);
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 /**

@@ -28,6 +28,40 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-19] D068 — Formato de data do front: DD/MM/AAAA global, parse local em formatDate
+
+**Contexto:** Negócio manual registrado com data X exibia X-1 no quadro
+Comercial & financeiro do detalhe do contato. `formatDate`
+(src/lib/utils/date.ts) fazia `new Date("2026-06-18")`, lido como UTC
+meia-noite, e formatava em horário de Brasil (UTC-3), recuando pro dia anterior.
+A coluna `date` e a gravação (`createNegocio` grava a string crua `YYYY-MM-DD`,
+sem converter pra Date) sempre estiveram corretas: o shift era só na exibição, e
+atingia qualquer data-só que passasse pelo formatter (3 usos no quadro do
+contato + 3 no blog).
+
+**Alternativas consideradas:** (1) corrigir só o fuso e manter o formato por
+extenso ("15 jun 2026"); (2) dois formatters separados, DD/MM/AAAA no
+back-office e por extenso no blog; (3) unificar DD/MM/AAAA global, back-office e
+blog público.
+
+**Decisão:** Parse local em `formatDate` (regex de `YYYY-MM-DD` +
+`new Date(y,
+m-1, d)`; datetime ISO completo cai no fallback `new Date(iso)`,
+sem regressão) e formato **DD/MM/AAAA global**, incluindo o blog público (de "15
+jun 2026" pra "15/06/2026"). Um arquivo tocado (date.ts).
+
+**Racional:** O parse local é fix de bug puro, beneficia todo lugar sem mexer em
+aparência. O formato global foi escolha consciente por consistência, ciente de
+que muda a data do blog público (sinalizado e aprovado). Um formatter só é menos
+superfície que dois. Reversível se o tom editorial do blog pedir data por
+extenso depois.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** D067 (resumo 360 comercial, que consome o quadro afetado).
+
+---
+
 ### [2026-06-19] D066 — Funil canônico no back-office (silver estagio), não importado das integrações subutilizadas
 
 **Contexto:** O kanban do ClickMassa (/admin/funil) está vazio. Probe read-only
