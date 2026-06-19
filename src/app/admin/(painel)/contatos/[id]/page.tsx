@@ -1,5 +1,6 @@
 import { getContactById, getContactInteractions } from "@/lib/contacts";
 import { getContactExternalLinks } from "@/lib/contacts/external-links";
+import { getContactComercial } from "@/lib/contacts/comercial";
 import { notFound } from "next/navigation";
 import ContactDetailClient from "./ContactDetailClient";
 import type { Metadata } from "next";
@@ -24,9 +25,10 @@ export default async function ContatoDetalhe({ params }: Props) {
   const contact = await getContactById(id);
   if (!contact) notFound();
 
-  const [interactions, externalLinks] = await Promise.all([
+  const [interactions, externalLinks, comercial] = await Promise.all([
     getContactInteractions(id),
     getContactExternalLinks(id),
+    getContactComercial(id, contact.iddasPessoaId),
   ]);
 
   return (
@@ -34,6 +36,7 @@ export default async function ContatoDetalhe({ params }: Props) {
       contact={contact}
       interactions={interactions}
       externalLinks={externalLinks}
+      comercial={comercial}
     />
   );
 }

@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getContactById, updateContact, addInteraction } from "@/lib/contacts";
+import {
+  getContactById,
+  updateContact,
+  addInteraction,
+  updateNotaInterna,
+  deleteNotaInterna,
+} from "@/lib/contacts";
 import { requireSession } from "@/lib/auth/session";
 import { sendWelcomeMessage, ClickMassaError } from "@/lib/integrations/clickmassa";
 import { createNegocio, createLancamento } from "@/lib/financeiro";
@@ -19,7 +25,11 @@ export type ActionResult = {
 };
 
 /**
- * Salva a Gestão Interna da visão 360 (estágio, follow-up, notas).
+ * Salva a Gestão Interna da visão 360 (estágio, follow-up).
+ *
+ * As "notas internas" de texto livre saíram daqui (Lote C): viraram a timeline
+ * de interações (`contact_interactions`, tipo `nota_interna`). Este action não
+ * toca mais a coluna `notas_internas`.
  *
  * `estagioAtualizadoEm` só é tocado quando o estágio realmente muda — comparado
  * contra o valor atual no banco (autoridade do servidor, não do cliente).
@@ -27,7 +37,7 @@ export type ActionResult = {
  */
 export async function saveGestaoInterna(
   id: string,
-  data: { estagio: EstagioFunil; proximoFollowUp: string | null; notasInternas: string },
+  data: { estagio: EstagioFunil; proximoFollowUp: string | null },
 ): Promise<SaveGestaoInternaResult> {
   try {
     await requireSession();
@@ -39,7 +49,6 @@ export async function saveGestaoInterna(
     const patch: Partial<Contact> = {
       estagio: data.estagio,
       proximoFollowUp: data.proximoFollowUp,
-      notasInternas: data.notasInternas,
     };
     if (data.estagio !== current.estagio) {
       patch.estagioAtualizadoEm = new Date().toISOString();
@@ -54,6 +63,93 @@ export async function saveGestaoInterna(
   } catch (err) {
     console.error("[saveGestaoInterna] erro ao salvar gestão interna:", err);
     return { success: false, error: "Não foi possível salvar. Tente novamente." };
+  }
+}
+
+/**
+ * Timeline — adiciona uma nota interna (`contact_interactions`, tipo
+ * `nota_interna`). Sem auth real ainda (D030 deferido): `criadoPor` fica com o
+ * ator genérico de back-office já usado no resto do back-office — a coluna é
+ * NOT NULL sem default, então não dá pra deixar null; não inventamos identidade
+ * de usuário. Revalida só o detalhe (a nota não aparece na lista nem no dash).
+ */
+export async function addContactNote(id: string, texto: string): Promise<ActionResult> {
+  try {
+    await requireSession();
+    const descricao = texto.trim();
+    if (!descricao) {
+      return { success: false, error: "A nota não pode ficar vazia." };
+    }
+
+    const contact = await getContactById(id);
+    if (!contact) {
+      return { success: false, error: "Contato não encontrado." };
+    }
+
+    await addInteraction(id, {
+      tipo: "nota_interna",
+      descricao,
+      metadata: {},
+      criadoPor: "back-office",
+    });
+
+    revalidatePath(`/admin/contatos/${id}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[addContactNote] erro ao adicionar nota:", err);
+    return { success: false, error: "Não foi possível salvar a nota. Tente novamente." };
+  }
+}
+
+/**
+ * Timeline — edita o texto de uma nota interna. A lib filtra por
+ * `tipo='nota_interna'`: evento de sistema nunca é editável.
+ */
+export async function editContactNote(
+  contactId: string,
+  noteId: string,
+  texto: string,
+): Promise<ActionResult> {
+  try {
+    await requireSession();
+    const descricao = texto.trim();
+    if (!descricao) {
+      return { success: false, error: "A nota não pode ficar vazia." };
+    }
+
+    const matched = await updateNotaInterna(noteId, descricao);
+    if (matched === 0) {
+      return { success: false, error: "Nota não encontrada (ou não é editável)." };
+    }
+
+    revalidatePath(`/admin/contatos/${contactId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[editContactNote] erro ao editar nota:", err);
+    return { success: false, error: "Não foi possível editar a nota. Tente novamente." };
+  }
+}
+
+/**
+ * Timeline — exclui uma nota interna. Mesma trava `tipo='nota_interna'` na lib:
+ * evento de sistema é read-only.
+ */
+export async function deleteContactNote(
+  contactId: string,
+  noteId: string,
+): Promise<ActionResult> {
+  try {
+    await requireSession();
+    const matched = await deleteNotaInterna(noteId);
+    if (matched === 0) {
+      return { success: false, error: "Nota não encontrada (ou não é excluível)." };
+    }
+
+    revalidatePath(`/admin/contatos/${contactId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteContactNote] erro ao excluir nota:", err);
+    return { success: false, error: "Não foi possível excluir a nota. Tente novamente." };
   }
 }
 

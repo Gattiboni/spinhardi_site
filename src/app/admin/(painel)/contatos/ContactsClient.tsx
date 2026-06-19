@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/admin/StageBadge";
 import SyncBadge from "@/components/admin/SyncBadge";
@@ -9,12 +10,14 @@ import {
   type Contact,
   type EstagioFunil,
   type CaptureOrigin,
+  type ContactStatus,
   ESTAGIOS_OPTIONS,
   ORIGENS_OPTIONS,
   ESTAGIO_LABELS,
   ORIGEM_LABELS,
   DESTINO_LABELS,
 } from "@/lib/contacts/types";
+import { quickUpdateContact } from "./actions";
 import type {
   GapSegment,
   ContactGapFlags,
@@ -34,6 +37,18 @@ const SYNC_FILTER_LABELS: Record<SyncFilter, string> = {
   failed: "Falharam",
   partial: "Sync parcial",
 };
+
+// Rótulos de status. A edição rápida só oferece os operacionais (ativo /
+// arquivado); `duplicado`/`anonimizado_lgpd` são geridos por outros fluxos, mas
+// o select inclui o valor atual do contato pra nunca mostrar opção errada.
+const STATUS_LABELS: Record<ContactStatus, string> = {
+  ativo: "Ativo",
+  arquivado: "Arquivado",
+  duplicado: "Duplicado",
+  anonimizado_lgpd: "Anonimizado (LGPD)",
+};
+
+const STATUS_QUICK_OPTIONS: ContactStatus[] = ["ativo", "arquivado"];
 
 // "Enviar WhatsApp" foi removido de propósito: disparo em massa derruba o número
 // por ban da Meta — o canal inteiro da agência morre. WhatsApp só individual, no
@@ -76,6 +91,131 @@ function matchesSync(c: Contact, filter: SyncFilter): boolean {
   }
 }
 
+// Editor inline da edição rápida (expansão da linha). Campos básicos; salva via
+// server action e fecha. A membresia de "possível duplicado" NÃO é recalculada
+// aqui — vem da RPC ao revalidar, fonte única (ver actions.ts / gold-operacional).
+function QuickEditRow({
+  contact,
+  onClose,
+  onSaved,
+}: {
+  contact: Contact;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(contact.name);
+  const [whatsapp, setWhatsapp] = useState(contact.whatsapp);
+  const [email, setEmail] = useState(contact.email ?? "");
+  const [estagio, setEstagio] = useState<EstagioFunil>(contact.estagio);
+  const [status, setStatus] = useState<ContactStatus>(contact.status);
+  const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Inclui o status atual no select mesmo quando não é operacional (ex:
+  // duplicado), pra nunca exibir um valor selecionado fora da lista.
+  const statusOptions = STATUS_QUICK_OPTIONS.includes(status)
+    ? STATUS_QUICK_OPTIONS
+    : [status, ...STATUS_QUICK_OPTIONS];
+
+  const inputClass =
+    "px-3 py-2 border border-dark/20 rounded-md font-body text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
+  const labelClass = "text-gold uppercase tracking-widest text-xs font-body mb-1 block";
+
+  const handleSave = async () => {
+    setSaving(true);
+    setErro(null);
+    const result = await quickUpdateContact(contact.id, {
+      name,
+      whatsapp,
+      email: email.trim() ? email.trim() : null,
+      estagio,
+      status,
+    });
+    setSaving(false);
+    if (result.success) {
+      onSaved();
+    } else {
+      setErro(result.error ?? "Não foi possível salvar.");
+    }
+  };
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label className={labelClass}>Nome</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={`${inputClass} w-full`}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>WhatsApp</label>
+          <input
+            type="text"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            className={`${inputClass} w-full`}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>E-mail</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={`${inputClass} w-full`}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>Estágio</label>
+          <select
+            value={estagio}
+            onChange={(e) => setEstagio(e.target.value as EstagioFunil)}
+            className={`${inputClass} w-full`}
+          >
+            {ESTAGIOS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {ESTAGIO_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ContactStatus)}
+            className={`${inputClass} w-full`}
+          >
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-4">
+        <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Salvando..." : "Salvar"}
+        </Button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="font-body text-sm text-dark/60 hover:text-dark transition-colors duration-short"
+        >
+          Cancelar
+        </button>
+        {erro && <span className="font-body text-sm text-red-600">{erro}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function ContactsClient({
   contacts,
   gapFlags,
@@ -97,6 +237,8 @@ export default function ContactsClient({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const router = useRouter();
 
   // Card de gap: clica pra filtrar, clica de novo no ativo pra limpar. Volta
   // pra primeira página (event handler, não efeito).
@@ -343,48 +485,74 @@ export default function ContactsClient({
                   {h}
                 </th>
               ))}
+              <th className="text-right px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60">
+                Ações
+              </th>
             </tr>
           </thead>
           <tbody>
             {pageItems.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-dark/5 last:border-0 hover:bg-dark/5 transition-colors duration-short"
-              >
-                <td className="px-6 py-4">
-                  <input
-                    type="checkbox"
-                    aria-label={`Selecionar ${c.name}`}
-                    checked={selected.has(c.id)}
-                    onChange={() => toggleOne(c.id)}
-                    className="accent-gold"
-                  />
-                </td>
-                <td className="px-6 py-4 font-body text-dark">
-                  <Link
-                    href={`/admin/contatos/${c.id}`}
-                    className="hover:text-gold transition-colors duration-short"
-                  >
-                    {c.name}
-                  </Link>
-                </td>
-                <td className="px-6 py-4 font-body text-sm text-dark/60">
-                  {ORIGEM_LABELS[c.origem]}
-                </td>
-                <td className="px-6 py-4">
-                  <StageBadge estagio={c.estagio} />
-                </td>
-                <td className="px-6 py-4 font-body text-sm text-dark/60">
-                  {DESTINO_LABELS[c.destinoTipo]}
-                </td>
-                <td className="px-6 py-4">
-                  <SyncBadge iddas={c.iddasSyncStatus} clickmassa={c.clickmassaSyncStatus} />
-                </td>
-              </tr>
+              <Fragment key={c.id}>
+                <tr className="border-b border-dark/5 last:border-0 hover:bg-dark/5 transition-colors duration-short">
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      aria-label={`Selecionar ${c.name}`}
+                      checked={selected.has(c.id)}
+                      onChange={() => toggleOne(c.id)}
+                      className="accent-gold"
+                    />
+                  </td>
+                  <td className="px-6 py-4 font-body text-dark">
+                    <Link
+                      href={`/admin/contatos/${c.id}`}
+                      className="hover:text-gold transition-colors duration-short"
+                    >
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 font-body text-sm text-dark/60">
+                    {ORIGEM_LABELS[c.origem]}
+                  </td>
+                  <td className="px-6 py-4">
+                    <StageBadge estagio={c.estagio} />
+                  </td>
+                  <td className="px-6 py-4 font-body text-sm text-dark/60">
+                    {DESTINO_LABELS[c.destinoTipo]}
+                  </td>
+                  <td className="px-6 py-4">
+                    <SyncBadge iddas={c.iddasSyncStatus} clickmassa={c.clickmassaSyncStatus} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId((prev) => (prev === c.id ? null : c.id))}
+                      aria-expanded={editingId === c.id}
+                      className="font-body text-sm text-dark/60 hover:text-gold transition-colors duration-short"
+                    >
+                      {editingId === c.id ? "Fechar" : "Editar"}
+                    </button>
+                  </td>
+                </tr>
+                {editingId === c.id && (
+                  <tr className="border-b border-dark/5 bg-dark/5">
+                    <td colSpan={7} className="px-6 py-5">
+                      <QuickEditRow
+                        contact={c}
+                        onClose={() => setEditingId(null)}
+                        onSaved={() => {
+                          setEditingId(null);
+                          router.refresh();
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {pageItems.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center font-body text-dark/50">
+                <td colSpan={7} className="px-6 py-12 text-center font-body text-dark/50">
                   Nenhum contato encontrado com os filtros atuais.
                 </td>
               </tr>

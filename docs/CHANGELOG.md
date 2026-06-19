@@ -15,6 +15,138 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-19 — Lote C: Contato 360 (timeline, resumo comercial, edição rápida inline)
+
+### SITE
+
+Detalhe e lista de contato viram um 360 operacional. Entregue pelo Codinho, em
+review (a fronteira server->client do resumo comercial ainda não foi conferida),
+não commitado.
+
+### Adicionado
+
+- **Timeline de interações** no detalhe (substitui o textarea de notas livres):
+  contact_interactions cronológico, nota nova grava `tipo='nota_interna'`, menu
+  Editar/Excluir só em nota_interna (evento de sistema é read-only). Trava
+  dupla: updateNotaInterna/deleteNotaInterna filtram `tipo='nota_interna'` no
+  próprio SQL. `criado_por='back-office'` (coluna NOT NULL sem default; valor já
+  em uso no sendWhatsAppWelcome).
+- **Resumo comercial e financeiro do contato** (módulo server-only
+  `src/lib/contacts/comercial.ts`): orçamentos e vendas do Iddas via cadeia D058
+  (orcamento.cliente = iddas_pessoa_id; venda via venda.id_orcamento, nunca
+  venda.cliente como FK) + negócios manuais (negocios por contact_id). Soma
+  separando Iddas / manual com proveniência rotulada. Lê bronze pelo padrão
+  server-only do gold.ts.
+- **Edição rápida inline** na lista (expansão de linha): nome, whatsapp, email,
+  estágio, status, via quickUpdateContact. Membresia de duplicado vem da RPC
+  gold_contatos_duplicados (fonte única), não recalculada no client.
+  Seleção/bulk/paginação intactos.
+
+### Resolvido
+
+- "Registrar negócio some no nada": o negócio manual agora aparece no resumo do
+  contato.
+
+### Pendente
+
+- Review da fronteira server->client do resumo comercial antes do commit
+  (comercial.ts é server-only; conferir como o card chega no
+  ContactDetailClient).
+- Tags: o bulk "Adicionar tag" é stub (só alert). Botão individual desabilitado
+  com label honesto. Rodada própria: contacts.tags (string[]) existe e
+  updateContact suporta; falta UI/bulk real + registrar tag_adicionada/removida
+  na timeline.
+- Limpar textos "virá no Lote C" remanescentes (alert do bulk, "Forçar sync"),
+  cosmético.
+
+---
+
+## 2026-06-19 — Funil: módulo CM desmascarado + pivot pro funil interno (D066)
+
+### SITE
+
+### Resolvido
+
+- Premissa antiga derrubada por probe read-only: o módulo Opportunities do
+  ClickMassa FUNCIONA (pipeline-steps 200; opportunities?pipelineStepId=73 ->
+  200 com opp real). O board /admin/funil está vazio porque as sócias não usam o
+  CRM do CM, não por bloqueio. O 404 ERR_CONTACT_PIPELINE_NOT_FOUND era chamada
+  sem escopo de pipeline, não permissão. Drag-drop não existe porque nunca foi
+  construído no front, não porque a API barra (os PUT respondem).
+
+### Decisão
+
+- D066: funil canônico passa a ser contacts.estagio (back-office), não importado
+  das integrações subutilizadas. Pausado até conversa com Nina/Julia. Ver
+  DECISION_LOG.
+
+### Pendente
+
+- `origem='importado'` nos 826 é degenerada: o canal real de captura não foi
+  preservado como origem (a proveniência Iddas-vs-CM sobrevive em
+  iddas_pessoa_id/clickmassa_contact_id/sync_status, mas o campo origem não
+  distingue canal). Recuperar/expor canal real é trabalho futuro (refino de
+  origem + captured_at + semeadura do funil).
+
+---
+
+## 2026-06-19 — Lote 3 + rodada de fixes: dashboard gerencial real (mock Iddas morto) e ajustes de UI
+
+### SITE
+
+O dashboard parou de mostrar número seedado e passou a ler dado real:
+faturamento e vendas agregados em SQL unindo `bronze_iddas_venda` + negócios
+manuais, gráficos de distribuição lendo o snapshot do ClickMassa, e funil por
+estágio com drilldown pra lista. Junto, uma rodada de ajustes finos na lista de
+Contatos e no detalhe. Tudo conferido contra o diff (23 arquivos) antes do
+commit. Resolve os itens "Lote 2" (já no main, sem entrada própria) e "Lote 3"
+da pendência do Lote 1.
+
+### Adicionado
+
+- **4 funções gold no Postgres**, aplicadas e validadas no banco:
+  `gold_iddas_financeiro_resumo` (faturamento + vendas por período, une Iddas e
+  manual), `gold_funil_por_estagio`, `gold_contatos_duplicados` (48) e
+  `gold_contatos_sem_iddas` (170). Soma e contagem nascem no SQL, o front nunca
+  puxa linha pra agregar. Registradas em `sql/gold_dashboard.sql` e
+  `sql/gold_contacts.sql`.
+- **3 cards financeiros reais** (faturamento, vendas, ticket médio) com toggle
+  mês/ano/tudo pré-agregado pros 3 períodos, o clique troca o que já está em
+  mãos sem ir ao banco.
+- **Gráficos de distribuição** da base lendo o snapshot do ClickMassa: por tag,
+  por estado, por última interação (recharts, paleta navy/gold/verde).
+- **Funil por estágio** montado com todos os estágios em ordem (nasce
+  degenerado, popula sozinho), clique na barra leva pra lista filtrada por
+  aquele estágio.
+- **Sidebar recolhível** (toggle, default expandido, persiste entre navegações)
+  e **seletor de itens por página** (10/25/50) na lista de Contatos.
+- **Máscara BRL** no form financeiro (centavos formatados, round-trip) e
+  **situação como select** (Pago/Pendente/Cancelado).
+
+### Resolvido
+
+- **Mock do Iddas deletado** (`src/lib/integrations/iddas.ts`): o dashboard não
+  inventa mais número, mostra o que existe ou degrada pra zero.
+- **Desync das contagens de gap:** duplicados e sem-Iddas agora têm fonte única,
+  a contagem do card é o tamanho do conjunto que o Postgres devolve e a lista
+  são esses mesmos ids. Editar campo que não é o critério não move a membresia.
+- **Teto de 1000 do PostgREST:** stats do "Hoje" viraram count queries nativas
+  (`head: true`), imunes à truncagem que tinha inflado um card de gap no Lote 2.
+- **Sidebar empurrada pra fora** em páginas largas (kanban do funil): `min-w-0`
+  no `<main>` deixa o overflow rolar dentro do conteúdo.
+- Card "Pendentes de sync" removido (sem sync real ainda), botão de adicionar
+  tag desabilitado (tags são Lote C), card de tickets do ClickMassa virou link
+  pro funil.
+
+### Pendente
+
+- Kanban do funil arrastável segue travado pelo módulo Opportunities do
+  ClickMassa (404 `ERR_CONTACT_PIPELINE_NOT_FOUND`), a investigar.
+- Bloco "Contato 360" (quick-edit inline na lista, notas em timeline, resumo por
+  cliente) fica pro Lote C.
+
+---
+
 ## 2026-06-19 — Lote 1: promoção bronze -> silver, `contacts` populada (826 contatos)
 
 ### INFRA

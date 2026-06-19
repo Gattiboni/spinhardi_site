@@ -17,6 +17,25 @@ import {
  * bronze). Server-only, via `supabaseAdmin`, igual ao módulo de contatos.
  */
 
+/**
+ * Negócios manuais de um contato — leitura pro resumo comercial (Lote C).
+ * Só o grão `negocios` (venda manual); o que vem do Iddas é lido separado do
+ * bronze. Ordena por data desc (mais recente primeiro), nulls ao fim.
+ */
+export async function getNegociosByContact(contactId: string): Promise<Negocio[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("negocios")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("data", { ascending: false, nullsFirst: false });
+
+  if (error) {
+    throw new Error(`Erro ao buscar negócios do contato ${contactId}: ${error.message}`);
+  }
+
+  return (data as NegocioRow[]).map(rowToNegocio);
+}
+
 export async function createNegocio(
   contactId: string,
   input: NovoNegocioInput,

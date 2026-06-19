@@ -5,11 +5,7 @@
 -- Supabase Spinhardi — gold_contatos_duplicados() = 48, gold_contatos_sem_iddas()
 -- = 170. Este arquivo é só registro do que está no banco (igual gold_dashboard.sql);
 -- NÃO precisa aplicar.
---
--- ⚠️ O corpo abaixo é RECONSTRUÍDO do contrato que o Claudinho passou (assinatura
--- + semântica + contagens). A definição AUTORITATIVA é a que está aplicada no
--- banco — se divergir em detalhe de implementação, vale a do banco. Claudinho:
--- cola aqui o source exato quando puder, pra virar registro fiel.
+-- conferido contra o deployed, idêntico
 --
 -- Contrato consumido pelo front (src/lib/contacts/index.ts):
 --   • ambas retornam UMA coluna `id` (uuid) = id do contato.

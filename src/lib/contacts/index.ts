@@ -170,6 +170,45 @@ export async function addInteraction(
   return rowToInteraction(inserted as ContactInteractionRow);
 }
 
+/**
+ * Edita o texto de uma NOTA INTERNA da timeline. O filtro `tipo='nota_interna'`
+ * é a trava: eventos de sistema (sync, mudança de estágio, etc.) nunca são
+ * editáveis, mesmo que o id chegue aqui. Retorna quantas linhas casaram.
+ */
+export async function updateNotaInterna(id: string, descricao: string): Promise<number> {
+  const { data, error } = await supabaseAdmin()
+    .from("contact_interactions")
+    .update({ descricao })
+    .eq("id", id)
+    .eq("tipo", "nota_interna")
+    .select("id");
+
+  if (error) {
+    throw new Error(`Erro ao editar nota ${id}: ${error.message}`);
+  }
+
+  return (data as { id: string }[]).length;
+}
+
+/**
+ * Exclui uma NOTA INTERNA da timeline. Mesma trava `tipo='nota_interna'`:
+ * eventos de sistema são read-only e não podem ser apagados por aqui.
+ */
+export async function deleteNotaInterna(id: string): Promise<number> {
+  const { data, error } = await supabaseAdmin()
+    .from("contact_interactions")
+    .delete()
+    .eq("id", id)
+    .eq("tipo", "nota_interna")
+    .select("id");
+
+  if (error) {
+    throw new Error(`Erro ao excluir nota ${id}: ${error.message}`);
+  }
+
+  return (data as { id: string }[]).length;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Agregação pro dashboard
 //

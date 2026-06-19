@@ -26,6 +26,109 @@ Ordem: mais recente no topo.
 
 ## Decisões Registradas
 
+---
+
+### [2026-06-19] D066 — Funil canônico no back-office (silver estagio), não importado das integrações subutilizadas
+
+**Contexto:** O kanban do ClickMassa (/admin/funil) está vazio. Probe read-only
+provou que o módulo Opportunities do CM funciona (pipeline-steps 200;
+opportunities?pipelineStepId=73 retorna opp real). O board está vazio porque as
+sócias não usam o CRM do CM, não por bloqueio. A premissa antiga ("módulo
+travado, precisa Nina ativar") estava errada: o 404
+ERR_CONTACT_PIPELINE_NOT_FOUND era chamada sem escopo de pipeline, não
+permissão. Drag-drop nunca foi construído no front (a API move via PUT,
+responde).
+
+**Alternativas consideradas:** Ativar/alimentar o funil do CM e importar; manter
+dois funis (CM + dashboard estagio).
+
+**Decisão:** A fonte da verdade do funil é o site (back-office). O funil
+canônico passa a ser contacts.estagio (silver, 9 estágios). Colapsar os dois
+funis (gráfico de estágio do dashboard + kanban CM) num só, o interno. NÃO
+importar funil das integrações subutilizadas, porque degrada a qualidade do
+funil interno. Tratar funil e propagação da informação de forma customizada pra
+necessidade das sócias. A camada CM Opportunities fica dormente (guardada pra
+eventual write-back futuro).
+
+**Pré-requisito:** conversa Alan-Nina/Julia que defina (1) o vocabulário de
+estágios delas, (2) o que "fechado" significa (gancho com o financeiro). Sem
+isso, classificação automática é lixo. Depois: semear estagio a partir de sinal
+real (venda Iddas -> fechado/realizada; orçamento sem venda -> proposta; só
+contato -> novo; tag/lead-status CM -> pista), revisável, não cego. Drag-drop
+vira UPDATE no Supabase (nosso estagio), trivial.
+
+**Racional:** Importar de fonte que ninguém alimenta é construir em areia, gera
+incoerência entre telas e dívida técnica. O back-office já é a fonte da verdade
+(D041, D061) e o estagio já está meio pronto (gold_funil_por_estagio +
+drilldown).
+
+**Responsável:** Alan Gattiboni **Status:** Ativa (execução pausada até a
+conversa com as sócias)
+
+**Ver também:** D041, D061, D047.
+
+---
+
+### [2026-06-19] D067 — Resumo 360 do contato é comercial, não contábil
+
+**Contexto:** O resumo do contato (detalhe) agrega o histórico do cliente.
+Definir o que entra evita re-litígio e retrabalho.
+
+**Decisão:** O resumo 360 mostra o histórico COMERCIAL: orçamentos e vendas do
+Iddas (cadeia D058: orcamento.cliente = pessoa.id; venda via venda.id_orcamento)
+
+- negócios manuais (negocios por contact_id). Receita/despesa do Iddas
+  (contábil) ficam FORA: a ligação é por pessoa+conta+categoria (com quirk
+  nome-vs-id no despesa.pessoa), é contabilidade de conta da agência, não perfil
+  do cliente.
+
+**Racional:** Orçamento+venda têm FK sólida à pessoa e são o histórico
+comercial. Receita/despesa é contábil da agência, ligação frouxa, fora do perfil
+do cliente.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** D058, D063.
+
+---
+
+### [2026-06-19] D065 — Gold gerencial agrega em SQL: critério RPC vs count query e fonte única pros cards de gap
+
+**Contexto:** O Lote 3 trocou os números mock do dashboard (`iddas.getStats`
+seedado) por dado real, e o Lote 2 tinha deixado um card de gap desincronizado
+(contagem vinha de recálculo no JS, lista filtrada vinha de outro caminho, e o
+teto de 1000 do PostgREST inflou o número). Faltava a regra de onde cada
+agregação do gold gerencial nasce.
+
+**Alternativas consideradas:** Somar e contar no JS (puxar as linhas e agregar
+no front, simples mas refém do teto de 1000); virar tudo função SQL; ou misturar
+conforme o caso.
+
+**Decisão:** Toda soma e contagem do gold nasce no Postgres, o front nunca puxa
+linha pra agregar. A forma se decide assim:
+
+- Vira **função SQL (RPC)** quando junta tabelas (faturamento une
+  `bronze_iddas_venda` + negócios manuais) ou quando precisa devolver o CONJUNTO
+  de ids (duplicados, sem Iddas): a contagem do card é o tamanho do conjunto e a
+  lista filtrada são esses mesmos ids, uma fonte só.
+- Fica como **count query nativa** do PostgREST (`count: 'exact', head: true`)
+  quando é só um número sobre uma tabela (stats do "Hoje", card "sem email").
+
+**Racional:** Número agregado no banco é sempre exato, imune ao teto de 1000 que
+mordeu no Lote 2. Conjunto único pros cards de gap mata o desync por construção:
+a membresia é decidida no Postgres, não recalculada no JS, então mexer em campo
+que não é o critério não muda quem entra na lista. Count query nativa pra número
+solto evita função à toa (a diferença pra um COUNT FILTER é microssegundo em 826
+linhas). Matar o mock tira número fantasma da cara da Nina: o dashboard mostra o
+que existe ou degrada pra zero, nunca inventa.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+**Ver também:** D061 (arquitetura de consumo gold gerencial + operacional); D041
+(camadas, front nunca soma); D064 (negócios manual alimenta o gold).
+
+---
+
 ### [2026-06-19] D064 — Adições estruturais ao modelo silver pro MVP: vínculo externo, financeiro manual, contato PJ, proveniência
 
 **Contexto:** O contrato de dados aprovou mudanças no modelo canônico da pessoa
