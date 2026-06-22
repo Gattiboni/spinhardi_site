@@ -28,6 +28,76 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-22] D071 — Contrato HTTP da rota de sync
+
+**Contexto:** Com o status interno confiável (após D070), a rota precisava
+traduzir o resultado em HTTP pro cron da Vercel saber quando a run falhou.
+
+**Alternativas consideradas:** (1) partial → 200, só failed alarma; (2) partial
+→ não-2xx; (3) 207 Multi-Status.
+
+**Decisão:** Tudo certo (ingestão `completed` e promoção sem erro) → 200.
+Qualquer problema (partial, failed, promoção lançou) → 500. O corpo carrega o
+resultado detalhado nos dois casos.
+
+**Racional:** 207 é família 2xx, o cron não acusaria. Marcar partial como falha
+garante que falha parcial real apareça no painel; o cron não re-roda sozinho,
+então é só sinal. Regra simples: tudo certo = 200, qualquer pepino = 500.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-22] D070 — Checagem de baseline (expected) só dispara no backfill
+
+**Contexto:** A checagem `meta.total != expected` (baseline hardcoded de
+fevereiro) fazia toda run do recorrente virar `partial`, porque o dado cresce.
+Ruído garantido que mascararia falha real e impediria usar partial → 500 no
+cron.
+
+**Alternativas consideradas:** (1) remover a checagem; (2) trocar por
+`actual < expected`; (3) gatear pro modo backfill.
+
+**Decisão:** Gatear com `ctx.source === "backfill"` nos dois conectores
+(iddas/resources.ts:143, clickmassa/resources.ts:776). No recorrente não roda;
+no backfill (carga única conhecida) continua.
+
+**Racional:** O expected valida uma carga única, não um dado que cresce sempre.
+Gatear remove o ruído e mantém a proteção onde ela vale. O status do sync passa
+a ser confiável.
+
+**Débito registrado:** O recorrente não valida completude da paginação
+(`fetched` vs `meta.total` atual) — lacuna pré-existente, não criada aqui.
+Hardening futuro: check `fetched < meta.total`, tolerando crescimento.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-22] D069 — Sync recorrente do Iddas puxa só operação; referência fica manual
+
+**Contexto:** O sync de 30min estourava o rate limit (429) varrendo catálogos
+quase-estáticos (aeroporto 4564 linhas, companhia 1018), e o 429 derrubava justo
+os recursos críticos (pessoa, orçamento, venda).
+
+**Alternativas consideradas:** (1) tunar pacing/retry pra aguentar varrer tudo;
+(2) cortar só o aeroporto; (3) cortar todos os recursos de referência.
+
+**Decisão:** O recorrente puxa só os 12 de operação (pessoa, orcamento, venda,
+receita, despesa, tarefa, voo, cruzeiro, hospedagem, seguro, transporte,
+solicitacao) via `only` no runSync. Os 11 de referência (canal, situacao,
+motivoreprovacao, etiqueta, usuario, conta, cartao, categoriareceitasdespesas,
+aeroporto, companhia, infosolicitacao) ficam manuais.
+
+**Racional:** Catálogo quase-estático não tem o que fazer num sync de 30min e é
+o que estoura o rate limit. Régua: dado de operação (vivo) é recorrente;
+referência de banco é manual. Classificação feita pelos dados reais (amostras do
+MOAS), não inferência.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [2026-06-19] D068 — Formato de data do front: DD/MM/AAAA global, parse local em formatDate
 
 **Contexto:** Negócio manual registrado com data X exibia X-1 no quadro

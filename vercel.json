@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/sync/clickmassa", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/sync/iddas", "schedule": "*/30 * * * *" }
+  ]
+}

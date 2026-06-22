@@ -15,6 +15,52 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-06-22 — Peça 3: Sync recorrente automático (Vercel Cron)
+
+### INFRA
+
+ClickMassa e Iddas passam a rodar sozinhos via Vercel Cron. Rota dinâmica
+autenticada por Bearer CRON_SECRET, runSync orquestra ingestão (bronze) +
+promoção (silver via RPC), e o contrato HTTP sinaliza falha pro painel. Código
+pronto e testado (smoke CM: 200, `completed`); ativa em produção após deploy +
+CRON_SECRET nas env vars da Vercel.
+
+### Adicionado
+
+- **Rota** `/api/cron/sync/[source]` (GET/POST): valida
+  `Authorization: Bearer CRON_SECRET`, aceita `?ingestOnly=1`, `maxDuration=800`
+  (cobre os ~8min do Iddas; teto GA do Pro com fluid compute).
+- **runSync** (src/lib/sync/run-sync.ts): grava `ingestion_log` (`running` antes
+  da ingestão pela FK do bronze, terminal depois), ingere via lib, promove via
+  `promote_contacts_from_bronze()` quando não é `ingestOnly`. Em falha de
+  ingestão a linha fecha como `failed`, nunca órfã.
+- **vercel.json** com crons: ClickMassa `*/15`, Iddas `*/30`.
+- **IDDAS_OPERATIONAL_RESOURCES** (12 recursos de operação) passada como `only`
+  no Iddas (ver D069).
+- **Retry de 429** no transport do Iddas: honra `Retry-After` (cap 30s) +
+  backoff exponencial. Provado ao vivo (centenas de 429 recuperando, zero
+  esgotamento).
+
+### Mudado
+
+- Checagem de `expected` gateada pro modo backfill (ver D070):
+  iddas/resources.ts:143 e clickmassa/resources.ts:776. O recorrente não dispara
+  mais `partial` por crescimento de dado.
+- Retorno do RPC `promote_contacts_from_bronze()` tipado (`PromoteResultRow[]`).
+
+### Pendente
+
+- **Ativar em produção:** deploy + `CRON_SECRET` nas env vars da Vercel (sem ele
+  o cron é rejeitado), e validar no painel após o primeiro disparo.
+- Débito herdado (D070): completude da paginação não validada no recorrente.
+  Hardening futuro.
+- Pacing adaptativo do Iddas (run ~8min por rate limit cumulativo; cabe nos
+  800s). Otimização.
+- Promoção não auditada no `ingestion_log` (falha de promoção sinaliza por 500 +
+  runtime, não pelo log).
+
+---
+
 ## 2026-06-19 — Lote C: Contato 360 (timeline, resumo comercial, edição rápida inline)
 
 ### SITE
