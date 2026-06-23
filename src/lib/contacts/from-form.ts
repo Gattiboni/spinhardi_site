@@ -76,8 +76,9 @@ export function draftContactFromForm(
     experienciaAnterior: null,
     restricoes: null,
 
-    estagio: "novo",
-    estagioAtualizadoEm: now,
+    // Estágio saiu do contato (vive em `jornadas`). A criação de contato NÃO cria
+    // jornada automática — a jornada nasce por outro caminho ("novo atendimento"
+    // na ficha, ou o sync quando passar a gerar pendentes).
     proximoFollowUp: null,
     notasInternas: observacao,
 

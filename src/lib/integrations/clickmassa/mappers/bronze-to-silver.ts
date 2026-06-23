@@ -3,10 +3,10 @@
  *
  * Sem `import "server-only"`. Pode ser importado por scripts CLI.
  * Só preenche campos `clickmassa_*` + defaults para NOT NULL CHECK.
- * Não preenche `estagio` — DB default 'novo' deve tomar conta.
  *
- * ATENÇÃO B4: glossario_supabase.md não mostra default para `estagio`.
- * Mapper inclui `estagio: 'novo'` como segurança defensiva até DDL ser auditado.
+ * D072: `estagio` saiu do contato (migrou pra `jornadas`). O mapper NÃO seta mais
+ * `estagio` — a coluna em contacts será dropada por último (ver report). Importar
+ * um contato NÃO cria jornada; isso é por outro caminho.
  */
 
 import type { BronzeClickMassaContactRow } from "../bronze-types";
@@ -28,8 +28,6 @@ export interface SilverContactInsert {
   orcamento_estimado: "nao_informado";
   prazo_ideal: "flexivel";
   perfil_viajante: "outro";
-  // B4: estagio incluído como segurança — glossário não mostra default DB
-  estagio: "novo";
 
   // ClickMassa — todos os campos clickmassa_* da tabela contacts
   clickmassa_contact_id: string; // source_id como string
@@ -67,7 +65,6 @@ export function mapBronzeContactToSilverUpdate(
     orcamento_estimado: "nao_informado",
     prazo_ideal: "flexivel",
     perfil_viajante: "outro",
-    estagio: "novo",
 
     clickmassa_contact_id: String(bronzeContact.source_id),
     clickmassa_ticket_ids: [],

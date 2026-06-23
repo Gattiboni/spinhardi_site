@@ -40,16 +40,19 @@ export type PerfilViajante =
   | "negocios"
   | "outro";
 
+/**
+ * Estágio do funil — agora vive na JORNADA (tabela `jornadas`), não no contato.
+ * O vocabulário antigo de 9 estágios degenerados morreu (era tudo "novo"); estes
+ * são os 5 do modelo de jornada (D072), batendo EXATO com o CHECK do banco
+ * (texto com espaço/acento). 3 abertas vão pro kanban, 2 fechadas pro histórico.
+ * Ver `@/lib/jornadas/types` pra os conjuntos ABERTAS/FECHADAS.
+ */
 export type EstagioFunil =
-  | "novo"
-  | "qualificado"
-  | "proposta_enviada"
-  | "em_negociacao"
-  | "aguardando_pagamento"
-  | "fechado_confirmado"
-  | "viagem_realizada"
-  | "em_espera"
-  | "perdido";
+  | "primeiro contato"
+  | "cotação enviada"
+  | "pediu pra esperar"
+  | "aprovado"
+  | "reprovado";
 
 export type SyncStatus = "synced" | "pending" | "failed";
 
@@ -91,9 +94,10 @@ export type Contact = {
   experienciaAnterior: string | null;
   restricoes: string | null;
 
-  // 5. Estágio interno (nosso funil)
-  estagio: EstagioFunil;
-  estagioAtualizadoEm: string;
+  // 5. Acompanhamento interno
+  // O estágio do funil saiu daqui (migrou pra `jornadas`): o contato é a pessoa,
+  // a jornada é o ciclo de venda. `proximoFollowUp`/`notasInternas` seguem no
+  // contato (acompanhamento geral, não estágio).
   proximoFollowUp: string | null;
   notasInternas: string;
 
@@ -205,15 +209,11 @@ export const PERFIL_LABELS: Record<PerfilViajante, string> = {
 };
 
 export const ESTAGIO_LABELS: Record<EstagioFunil, string> = {
-  novo: "Novo",
-  qualificado: "Qualificado",
-  proposta_enviada: "Proposta enviada",
-  em_negociacao: "Em negociação",
-  aguardando_pagamento: "Aguardando pagamento",
-  fechado_confirmado: "Fechado",
-  viagem_realizada: "Viagem realizada",
-  em_espera: "Em espera",
-  perdido: "Perdido",
+  "primeiro contato": "Primeiro contato",
+  "cotação enviada": "Cotação enviada",
+  "pediu pra esperar": "Pediu pra esperar",
+  aprovado: "Aprovado",
+  reprovado: "Reprovado",
 };
 
 // Listas pra dropdowns
@@ -254,16 +254,13 @@ export const PERFIS_OPTIONS: PerfilViajante[] = [
   "outro",
 ];
 
+// Ordem do funil: as 3 abertas primeiro (na ordem do kanban), depois as 2 fechadas.
 export const ESTAGIOS_OPTIONS: EstagioFunil[] = [
-  "novo",
-  "qualificado",
-  "proposta_enviada",
-  "em_negociacao",
-  "aguardando_pagamento",
-  "fechado_confirmado",
-  "viagem_realizada",
-  "em_espera",
-  "perdido",
+  "primeiro contato",
+  "cotação enviada",
+  "pediu pra esperar",
+  "aprovado",
+  "reprovado",
 ];
 
 // Listas pra dropdowns de filtro (admin)

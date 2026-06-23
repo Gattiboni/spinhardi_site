@@ -7,7 +7,6 @@ import type {
   OrcamentoEstimado,
   PrazoIdeal,
   PerfilViajante,
-  EstagioFunil,
   SyncStatus,
   ContactStatus,
 } from "./types";
@@ -62,8 +61,9 @@ export type ContactRow = {
   experiencia_anterior: string | null;
   restricoes: string | null;
 
-  estagio: EstagioFunil;
-  estagio_atualizado_em: string;
+  // `estagio`/`estagio_atualizado_em` saíram do contato (migraram pra `jornadas`).
+  // A coluna `estagio` em contacts será dropada por último (ver report). Não
+  // lemos nem escrevemos mais essas colunas por aqui.
   proximo_follow_up: string | null;
   notas_internas: string;
 
@@ -149,8 +149,6 @@ export function rowToContact(row: ContactRow): Contact {
     experienciaAnterior: row.experiencia_anterior,
     restricoes: row.restricoes,
 
-    estagio: row.estagio,
-    estagioAtualizadoEm: row.estagio_atualizado_em,
     proximoFollowUp: row.proximo_follow_up,
     notasInternas: row.notas_internas,
 
@@ -219,8 +217,6 @@ export function contactToInsertRow(
     experiencia_anterior: contact.experienciaAnterior,
     restricoes: contact.restricoes,
 
-    estagio: contact.estagio,
-    estagio_atualizado_em: contact.estagioAtualizadoEm,
     proximo_follow_up: contact.proximoFollowUp,
     notas_internas: contact.notasInternas,
 
@@ -292,8 +288,6 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
   if ("experienciaAnterior" in patch) row.experiencia_anterior = patch.experienciaAnterior;
   if ("restricoes" in patch) row.restricoes = patch.restricoes;
 
-  if ("estagio" in patch) row.estagio = patch.estagio;
-  if ("estagioAtualizadoEm" in patch) row.estagio_atualizado_em = patch.estagioAtualizadoEm;
   if ("proximoFollowUp" in patch) row.proximo_follow_up = patch.proximoFollowUp;
   if ("notasInternas" in patch) row.notas_internas = patch.notasInternas;
 

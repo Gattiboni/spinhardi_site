@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getContactById, updateContact } from "@/lib/contacts";
 import { requireSession } from "@/lib/auth/session";
-import type { Contact, EstagioFunil, ContactStatus } from "@/lib/contacts/types";
+import type { Contact, ContactStatus } from "@/lib/contacts/types";
 
 export type ActionResult = {
   success: boolean;
@@ -14,7 +14,6 @@ export type QuickEditInput = {
   name: string;
   whatsapp: string;
   email: string | null;
-  estagio: EstagioFunil;
   status: ContactStatus;
 };
 
@@ -31,8 +30,8 @@ export type QuickEditInput = {
  * não é o whatsapp não muda o conjunto; salvar o whatsapp muda — e muda
  * igualmente nos dois, porque é uma fonte só.
  *
- * `estagioAtualizadoEm` só muda quando o estágio realmente muda (autoridade do
- * servidor). `updated_at` fica com o trigger.
+ * O estágio saiu daqui (migrou pra `jornadas`): a edição rápida cuida só dos
+ * dados da pessoa (nome, contato, status). `updated_at` fica com o trigger.
  */
 export async function quickUpdateContact(
   id: string,
@@ -57,12 +56,8 @@ export async function quickUpdateContact(
       name,
       whatsapp,
       email,
-      estagio: input.estagio,
       status: input.status,
     };
-    if (input.estagio !== current.estagio) {
-      patch.estagioAtualizadoEm = new Date().toISOString();
-    }
 
     await updateContact(id, patch);
 

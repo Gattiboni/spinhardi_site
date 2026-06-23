@@ -5,36 +5,35 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/admin/StageBadge";
-import FinanceiroForm from "@/components/admin/FinanceiroForm";
+import AnexosBlock from "@/components/admin/AnexosBlock";
 import { formatDate, formatDateTime } from "@/lib/utils/date";
 import {
-  saveGestaoInterna,
-  sendWhatsAppWelcome,
+  criarAtendimento,
   addContactNote,
   editContactNote,
   deleteContactNote,
 } from "./actions";
-import type { ContactComercial } from "@/lib/contacts/comercial";
+import type { Anexo } from "@/lib/anexos/types";
+import {
+  diasParado,
+  DIAS_PARADO_ALERTA,
+  type Jornada,
+} from "@/lib/jornadas/types";
 import {
   type ContactExternalLink,
   findLink,
 } from "@/lib/contacts/external-links-shared";
-import { buildPanelUrl } from "@/lib/integrations/panel-urls";
+import { buildPanelUrl, clickmassaContactUrl } from "@/lib/integrations/panel-urls";
 import {
   type Contact,
   type ContactInteraction,
   type ContactInteractionType,
-  type EstagioFunil,
-  ESTAGIOS_OPTIONS,
-  ESTAGIO_LABELS,
   ORIGEM_LABELS,
   DESTINO_LABELS,
   ORCAMENTO_LABELS,
   PRAZO_LABELS,
   PERFIL_LABELS,
 } from "@/lib/contacts/types";
-
-const LOTE_C_ALERT = "Implementação completa virá no Lote C";
 
 const SYNC_STATUS_LABEL: Record<Contact["iddasSyncStatus"], string> = {
   synced: "✓ Sincronizado",
@@ -58,8 +57,7 @@ const INTERACTION_ICON: Record<ContactInteractionType, string> = {
   tag_removida: "🏷️",
 };
 
-// BRL com centavos — detalhe operacional do contato (o dashboard gerencial usa
-// uma versão sem centavos; aqui valores individuais importam no detalhe).
+// BRL com centavos — detalhe operacional do contato (valores fechados individuais).
 const moedaBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -67,8 +65,22 @@ const moedaBRL = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 
+// BRL sem centavos — resumo gerencial do topo ("R$ X em vendas").
+const moedaResumo = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+
 function whatsappLink(whatsapp: string): string {
   return `https://wa.me/${whatsapp.replace(/\D/g, "")}`;
+}
+
+function iniciais(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase() || "?";
 }
 
 function passageirosResumo(c: Contact): string {
@@ -98,7 +110,99 @@ function Vazio() {
 const cardClass = "bg-white border border-dark/10 rounded-md p-6 space-y-5";
 const cardTitleClass = "font-display text-xl text-navy mb-2 pb-3 border-b border-dark/10";
 
-// ── Coluna 1: Dados pessoais ────────────────────────────────────
+// ── Header: identidade + resumo + ações ─────────────────────────
+// Resumo gerencial enxuto (D072): cliente desde, nº de jornadas, total vendido
+// (soma de `valor` das jornadas GANHAS). Sem épico financeiro aqui.
+function ContatoHeader({
+  contact,
+  abertas,
+  fechadas,
+}: {
+  contact: Contact;
+  abertas: Jornada[];
+  fechadas: Jornada[];
+}) {
+  const router = useRouter();
+  const [criando, setCriando] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
+
+  const nJornadas = abertas.length + fechadas.length;
+  const totalVendas = fechadas
+    .filter((j) => j.estagio === "aprovado")
+    .reduce((s, j) => s + (j.valor ?? 0), 0);
+
+  const cmUrl = clickmassaContactUrl(contact.clickmassaContactId);
+  const temCmId = contact.clickmassaContactId != null;
+
+  const handleNovoAtendimento = async () => {
+    setCriando(true);
+    setFeedback(null);
+    const result = await criarAtendimento(contact.id);
+    setCriando(false);
+    if (result.success) {
+      router.refresh();
+    } else {
+      setFeedback({ type: "erro", text: result.error ?? "Não foi possível criar o atendimento." });
+    }
+  };
+
+  return (
+    <header className="mb-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="shrink-0 w-14 h-14 rounded-full bg-navy text-white flex items-center justify-center font-display text-lg">
+            {iniciais(contact.name)}
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-display text-3xl text-navy truncate">{contact.name}</h1>
+            <p className="font-body text-sm text-dark/60 mt-1">
+              Cliente desde {formatDate(contact.createdAt)} · {nJornadas} jornada
+              {nJornadas !== 1 ? "s" : ""}
+              {totalVendas > 0 && ` · ${moedaResumo.format(totalVendas)} em vendas`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center gap-3">
+            {temCmId &&
+              (cmUrl ? (
+                <a
+                  href={cmUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-md font-body font-medium text-sm px-4 py-2 bg-gold text-dark hover:bg-gold/90 transition-colors duration-medium"
+                >
+                  💬 WhatsApp
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="configurar NEXT_PUBLIC_CLICKMASSA_PANEL_URL"
+                  className="inline-flex items-center justify-center gap-2 rounded-md font-body font-medium text-sm px-4 py-2 border border-dark/15 text-dark/40 cursor-not-allowed"
+                >
+                  💬 WhatsApp
+                </button>
+              ))}
+            <Button variant="secondary" size="sm" onClick={handleNovoAtendimento} disabled={criando}>
+              {criando ? "Criando..." : "+ Novo atendimento"}
+            </Button>
+          </div>
+          {feedback && (
+            <span
+              className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
+            >
+              {feedback.text}
+            </span>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ── Coluna: Dados pessoais ──────────────────────────────────────
 function DadosCard({ contact: c }: { contact: Contact }) {
   return (
     <div className={cardClass}>
@@ -127,7 +231,7 @@ function DadosCard({ contact: c }: { contact: Contact }) {
   );
 }
 
-// ── Coluna 2: Qualificação ──────────────────────────────────────
+// ── Coluna: Qualificação ────────────────────────────────────────
 function QualificacaoCard({ contact: c }: { contact: Contact }) {
   return (
     <div className={cardClass}>
@@ -160,452 +264,261 @@ function QualificacaoCard({ contact: c }: { contact: Contact }) {
   );
 }
 
-// ── "Abrir na origem": deep-link montado do vínculo externo ─────
-// URL vem de PANEL_URLS + provider/external_id do vínculo. Enquanto o template
-// estiver vazio, o botão fica desabilitado (tooltip "configurar URL do painel").
-// Nunca inventa rota.
-function AbrirNaOrigem({
-  provider,
-  link,
-  label,
+// ── Jornadas do contato (D072) ──────────────────────────────────
+// Abertas em destaque (estágio + dias parado); fechadas como histórico (valor +
+// desfecho), recolhidas além de um teto com "ver todas as fechadas". Cada uma
+// linka pro detalhe da jornada.
+const FECHADAS_VISIVEIS = 5;
+
+function JornadasZone({
+  abertas,
+  fechadas,
 }: {
-  provider: string;
-  link: ContactExternalLink | null;
-  label: string;
+  abertas: Jornada[];
+  fechadas: Jornada[];
 }) {
-  const url = link ? buildPanelUrl(provider, link.externalId) : null;
-
-  if (!url) {
-    return (
-      <button
-        type="button"
-        disabled
-        title="configurar URL do painel"
-        className="text-dark/40 font-body text-sm cursor-not-allowed"
-      >
-        {label} →
-      </button>
-    );
-  }
-
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-gold hover:underline font-body text-sm"
-    >
-      {label} →
-    </a>
-  );
-}
-
-// ── Ações por canal ─────────────────────────────────────────────
-// Monta as ações a partir dos canais que o contato TEM (não do campo `origem`):
-//  - vínculo ClickMassa → "Mandar WhatsApp" (sendMessage via lib, mensagem inicial).
-//  - email              → "Mandar email" (mailto: no cliente da operadora).
-function AcoesCard({
-  contact: c,
-  temClickmassa,
-}: {
-  contact: Contact;
-  temClickmassa: boolean;
-}) {
-  const router = useRouter();
-  const [sending, setSending] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
-
-  const handleWhatsApp = async () => {
-    if (!confirm(`Enviar a mensagem inicial de WhatsApp para ${c.name}?`)) return;
-    setSending(true);
-    setFeedback(null);
-    const result = await sendWhatsAppWelcome(c.id);
-    setSending(false);
-    if (result.success) {
-      setFeedback({ type: "ok", text: "Mensagem enviada." });
-      router.refresh();
-    } else {
-      setFeedback({ type: "erro", text: result.error ?? "Não foi possível enviar." });
-    }
-  };
-
-  const semCanal = !temClickmassa && !c.email;
+  const [verTodas, setVerTodas] = useState(false);
+  const fechadasVisiveis = verTodas ? fechadas : fechadas.slice(0, FECHADAS_VISIVEIS);
 
   return (
     <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
-      <h2 className={cardTitleClass}>Ações</h2>
+      <h2 className={cardTitleClass}>Jornadas</h2>
 
-      <div className="flex flex-wrap items-center gap-3 mt-5">
-        {temClickmassa && (
-          <Button variant="primary" size="md" onClick={handleWhatsApp} disabled={sending}>
-            {sending ? "Enviando..." : "💬 Mandar WhatsApp"}
-          </Button>
-        )}
-
-        {c.email && (
-          <a
-            href={`mailto:${c.email}?subject=${encodeURIComponent("Spinhardi Turismo")}`}
-            className="inline-flex items-center justify-center gap-2 rounded-md font-body font-medium text-base px-6 py-3 border-2 border-gold text-gold hover:bg-gold hover:text-dark transition-colors duration-medium"
-          >
-            📧 Mandar email
-          </a>
-        )}
-
-        {semCanal && (
-          <p className="font-body text-sm text-dark/50">
-            Sem canal disponível — sem vínculo ClickMassa nem e-mail.
-          </p>
-        )}
-
-        {feedback && (
-          <span
-            className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
-          >
-            {feedback.text}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Coluna 3: Sistemas externos ─────────────────────────────────
-function SistemasExternosCard({
-  contact: c,
-  iddasLink,
-  clickmassaLink,
-}: {
-  contact: Contact;
-  iddasLink: ContactExternalLink | null;
-  clickmassaLink: ContactExternalLink | null;
-}) {
-  const handleForcarSync = () => {
-    alert(`Forçar nova sincronização com Iddas e ClickMassa.\n\n${LOTE_C_ALERT}.`);
-  };
-
-  return (
-    <div className={cardClass}>
-      <h2 className={cardTitleClass}>Sistemas externos</h2>
-
-      {/* Iddas */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="font-body font-medium text-dark">Iddas</p>
-          <span className="font-body text-sm text-dark/70">
-            {SYNC_STATUS_LABEL[c.iddasSyncStatus]}
-          </span>
-        </div>
-        <dl className="font-body text-sm text-dark/70 space-y-1">
-          <div className="flex justify-between gap-3">
-            <dt>Pessoa</dt>
-            <dd>{c.iddasPessoaId ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Cotação</dt>
-            <dd>{c.iddasCotacaoCode ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Orçamento</dt>
-            <dd>{c.iddasOrcamentoId ?? "—"}</dd>
-          </div>
-          {c.iddasVendaId && (
-            <div className="flex justify-between gap-3">
-              <dt>Venda</dt>
-              <dd>{c.iddasVendaId}</dd>
-            </div>
-          )}
-        </dl>
-        {c.iddasSyncError && (
-          <p className="text-red-600 text-xs font-body">Erro: {c.iddasSyncError}</p>
-        )}
-        <AbrirNaOrigem provider="iddas" link={iddasLink} label="Abrir no Iddas" />
-      </div>
-
-      <hr className="border-dark/10" />
-
-      {/* ClickMassa */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="font-body font-medium text-dark">ClickMassa</p>
-          <span className="font-body text-sm text-dark/70">
-            {SYNC_STATUS_LABEL[c.clickmassaSyncStatus]}
-          </span>
-        </div>
-        <dl className="font-body text-sm text-dark/70 space-y-1">
-          <div className="flex justify-between gap-3">
-            <dt>Contact</dt>
-            <dd>{c.clickmassaContactId ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Ticket atual</dt>
-            <dd>{c.clickmassaTicketIds.at(-1) ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Etapa</dt>
-            <dd>{c.clickmassaPipelineStep ?? "—"}</dd>
-          </div>
-        </dl>
-        {c.clickmassaSyncError && (
-          <p className="text-red-600 text-xs font-body">Erro: {c.clickmassaSyncError}</p>
-        )}
-        <AbrirNaOrigem provider="clickmassa" link={clickmassaLink} label="Abrir no ClickMassa" />
-      </div>
-
-      <hr className="border-dark/10" />
-
-      <Field label="Última sync">
-        {c.iddasUltimoSync ? formatDateTime(c.iddasUltimoSync) : <Vazio />}
-      </Field>
-
-      <Button variant="secondary" size="sm" onClick={handleForcarSync}>
-        Forçar nova sync
-      </Button>
-    </div>
-  );
-}
-
-// ── Gestão interna ──────────────────────────────────────────────
-function GestaoInternaForm({ contact: c }: { contact: Contact }) {
-  const router = useRouter();
-  const [estagio, setEstagio] = useState<EstagioFunil>(c.estagio);
-  const [followUp, setFollowUp] = useState(c.proximoFollowUp ?? "");
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
-
-  const handleSalvar = async () => {
-    setSaving(true);
-    setFeedback(null);
-
-    const result = await saveGestaoInterna(c.id, {
-      estagio,
-      proximoFollowUp: followUp.trim() ? followUp : null,
-    });
-
-    setSaving(false);
-    if (result.success) {
-      setFeedback({ type: "ok", text: "Alterações salvas." });
-      router.refresh();
-    } else {
-      setFeedback({ type: "erro", text: result.error ?? "Não foi possível salvar." });
-    }
-  };
-
-  const inputClass =
-    "px-3 py-2 border border-dark/20 rounded-md font-body text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
-
-  return (
-    <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
-      <h2 className={cardTitleClass}>Gestão interna</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
-        <div>
-          <label
-            htmlFor="estagio"
-            className="text-gold uppercase tracking-widest text-xs font-body mb-2 block"
-          >
-            Estágio
-          </label>
-          <select
-            id="estagio"
-            value={estagio}
-            onChange={(e) => setEstagio(e.target.value as EstagioFunil)}
-            className={`${inputClass} w-full`}
-          >
-            {ESTAGIOS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {ESTAGIO_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label
-            htmlFor="followup"
-            className="text-gold uppercase tracking-widest text-xs font-body mb-2 block"
-          >
-            Próximo follow-up
-          </label>
-          <input
-            id="followup"
-            type="date"
-            value={followUp}
-            onChange={(e) => setFollowUp(e.target.value)}
-            className={`${inputClass} w-full`}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <p className="text-gold uppercase tracking-widest text-xs font-body mb-2">Tags</p>
-        <div className="flex flex-wrap items-center gap-2">
-          {c.tags.length > 0 ? (
-            c.tags.map((t) => (
-              <span
-                key={t}
-                className="inline-block px-3 py-1 rounded-full text-xs font-body bg-gold/10 text-gold"
-              >
-                {t}
-              </span>
-            ))
-          ) : (
-            <span className="font-body text-sm text-dark/40">Sem tags</span>
-          )}
-          <button
-            type="button"
-            disabled
-            title="Tags entram numa rodada própria (o bulk de tags ainda não persiste)"
-            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dark/15 text-dark/30 cursor-not-allowed"
-            aria-label="Adicionar tag (em breve — rodada de tags própria)"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 flex items-center gap-4">
-        <Button variant="primary" size="md" onClick={handleSalvar} disabled={saving}>
-          {saving ? "Salvando..." : "Salvar alterações"}
-        </Button>
-        {feedback && (
-          <span
-            className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
-          >
-            {feedback.text}
-          </span>
+      {/* Abertas */}
+      <div className="mt-4">
+        <p className="text-gold uppercase tracking-widest text-xs font-body mb-3">Abertas</p>
+        {abertas.length === 0 ? (
+          <p className="font-body text-sm text-dark/50">Nenhuma jornada aberta.</p>
+        ) : (
+          <ul className="space-y-2">
+            {abertas.map((j) => {
+              const dias = diasParado(j.estagioAtualizadoEm);
+              const parado = dias > DIAS_PARADO_ALERTA;
+              return (
+                <li key={j.id}>
+                  <Link
+                    href={`/admin/jornadas/${j.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-3 border border-dark/10 rounded-md hover:border-gold transition-colors duration-short"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-body text-sm text-dark truncate">
+                        {j.tituloJornada ?? "Atendimento sem título"}
+                      </p>
+                      <p
+                        className={`font-body text-xs mt-0.5 ${
+                          parado ? "text-red-600 font-medium" : "text-dark/40"
+                        }`}
+                      >
+                        {dias} dia{dias !== 1 ? "s" : ""} parado
+                      </p>
+                    </div>
+                    <StageBadge estagio={j.estagio} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
-    </div>
-  );
-}
 
-// ── Resumo comercial e financeiro ───────────────────────────────
-// Duas fontes lado a lado, proveniência visível: Iddas (bronze, lido server-only)
-// e manual (silver `negocios`). A soma do topo separa as duas. Sem valor → "—".
-function ComercialResumoCard({ comercial }: { comercial: ContactComercial }) {
-  const { iddas, manual, temPessoaIddas } = comercial;
-  const totalGeral = iddas.totalVendas + manual.totalVenda;
-
-  const semNada =
-    iddas.orcamentos.length === 0 && iddas.vendas.length === 0 && manual.negocios.length === 0;
-
-  return (
-    <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
-      <h2 className={cardTitleClass}>Comercial &amp; financeiro</h2>
-
-      {/* Soma unificada, separando Iddas de manual */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
-        <div className="rounded-md bg-dark/5 p-4">
-          <p className="font-body text-xs uppercase tracking-widest text-dark/50">
-            Vendas Iddas
-          </p>
-          <p className="font-display text-2xl text-navy mt-1">{moedaBRL.format(iddas.totalVendas)}</p>
-          <p className="font-body text-xs text-dark/50 mt-1">
-            {iddas.vendas.length} venda(s) · {iddas.orcamentos.length} orçamento(s)
-          </p>
-        </div>
-        <div className="rounded-md bg-dark/5 p-4">
-          <p className="font-body text-xs uppercase tracking-widest text-dark/50">
-            Vendas manuais
-          </p>
-          <p className="font-display text-2xl text-navy mt-1">{moedaBRL.format(manual.totalVenda)}</p>
-          <p className="font-body text-xs text-dark/50 mt-1">{manual.negocios.length} negócio(s)</p>
-        </div>
-        <div className="rounded-md bg-gold/10 p-4">
-          <p className="font-body text-xs uppercase tracking-widest text-gold">Total</p>
-          <p className="font-display text-2xl text-navy mt-1">{moedaBRL.format(totalGeral)}</p>
-          <p className="font-body text-xs text-dark/50 mt-1">Iddas + manual</p>
-        </div>
-      </div>
-
-      {semNada && (
-        <p className="font-body text-sm text-dark/50 mt-5">
-          {temPessoaIddas
-            ? "Nenhum orçamento, venda ou negócio registrado pra este contato."
-            : "Contato sem cadastro no Iddas e sem negócio manual registrado."}
-        </p>
-      )}
-
-      {/* Iddas */}
-      {(iddas.orcamentos.length > 0 || iddas.vendas.length > 0) && (
+      {/* Fechadas (histórico) */}
+      {fechadas.length > 0 && (
         <div className="mt-6">
-          <p className="font-body font-medium text-dark mb-3">
-            Iddas <span className="text-dark/40 text-xs">(do ERP, leitura)</span>
-          </p>
-
-          {iddas.vendas.length > 0 && (
-            <div className="mb-4">
-              <p className="text-gold uppercase tracking-widest text-xs font-body mb-2">Vendas</p>
-              <ul className="divide-y divide-dark/5 border border-dark/10 rounded-md">
-                {iddas.vendas.map((v) => (
-                  <li key={v.id} className="flex items-center justify-between gap-3 px-4 py-2">
-                    <span className="font-body text-sm text-dark/70">
-                      {v.data ? formatDate(v.data) : "—"}
-                      {v.situacaoLabel ? ` · ${v.situacaoLabel}` : ""}
-                    </span>
-                    <span className="font-body text-sm text-dark">
-                      {v.valor !== null ? moedaBRL.format(v.valor) : "—"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {iddas.orcamentos.length > 0 && (
-            <div>
-              <p className="text-gold uppercase tracking-widest text-xs font-body mb-2">
-                Orçamentos
-              </p>
-              <ul className="divide-y divide-dark/5 border border-dark/10 rounded-md">
-                {iddas.orcamentos.map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-3 px-4 py-2">
-                    <span className="font-body text-sm text-dark/70 min-w-0 truncate">
-                      {o.data ? formatDate(o.data) : "—"}
-                      {o.situacaoLabel ? ` · ${o.situacaoLabel}` : ""}
-                      {o.titulo ? ` · ${o.titulo}` : ""}
-                    </span>
-                    <span className="font-body text-sm text-dark shrink-0">
-                      {o.valor !== null ? moedaBRL.format(o.valor) : "—"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Manual */}
-      {manual.negocios.length > 0 && (
-        <div className="mt-6">
-          <p className="font-body font-medium text-dark mb-3">
-            Manual <span className="text-dark/40 text-xs">(lançado no back-office)</span>
-          </p>
+          <p className="text-gold uppercase tracking-widest text-xs font-body mb-3">Histórico</p>
           <ul className="divide-y divide-dark/5 border border-dark/10 rounded-md">
-            {manual.negocios.map((n) => (
-              <li key={n.id} className="flex items-center justify-between gap-3 px-4 py-2">
-                <span className="font-body text-sm text-dark/70">
-                  {n.data ? formatDate(n.data) : "—"}
-                  {n.situacao ? ` · ${n.situacao}` : ""}
-                  {n.lucro !== null ? ` · lucro ${moedaBRL.format(n.lucro)}` : ""}
-                </span>
-                <span className="font-body text-sm text-dark">
-                  {n.venda !== null ? moedaBRL.format(n.venda) : "—"}
-                </span>
+            {fechadasVisiveis.map((j) => (
+              <li key={j.id}>
+                <Link
+                  href={`/admin/jornadas/${j.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-2 hover:bg-dark/3 transition-colors duration-short"
+                >
+                  <span className="font-body text-sm text-dark/70 min-w-0 truncate">
+                    {j.tituloJornada ?? "Atendimento sem título"}
+                    {j.closedAt ? ` · ${formatDate(j.closedAt)}` : ""}
+                    {j.valor != null ? ` · ${moedaBRL.format(j.valor)}` : ""}
+                  </span>
+                  <StageBadge estagio={j.estagio} />
+                </Link>
               </li>
             ))}
           </ul>
+          {fechadas.length > FECHADAS_VISIVEIS && (
+            <button
+              type="button"
+              onClick={() => setVerTodas((v) => !v)}
+              className="mt-3 font-body text-sm text-dark/60 hover:text-gold transition-colors duration-short"
+            >
+              {verTodas
+                ? "Mostrar menos"
+                : `Ver todas as fechadas (${fechadas.length})`}
+            </button>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+// ── Preferências (tags) ─────────────────────────────────────────
+function PreferenciasCard({ contact: c }: { contact: Contact }) {
+  return (
+    <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
+      <h2 className={cardTitleClass}>Preferências</h2>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {c.tags.length > 0 ? (
+          c.tags.map((t) => (
+            <span
+              key={t}
+              className="inline-block px-3 py-1 rounded-full text-xs font-body bg-gold/10 text-gold"
+            >
+              {t}
+            </span>
+          ))
+        ) : (
+          <span className="font-body text-sm text-dark/40">Sem preferências marcadas.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sistemas externos (recolhido) ───────────────────────────────
+// <details> fechado por padrão: encanamento de integração não fica na cara. Iddas
+// com botão "Abrir no Iddas" presente mas DESABILITADO (URL real do registro não
+// confirmada — ver panel-urls.ts). ClickMassa abre o perfil no painel via env.
+function SistemasExternosDetails({
+  contact: c,
+  iddasLink,
+}: {
+  contact: Contact;
+  iddasLink: ContactExternalLink | null;
+}) {
+  const iddasUrl = buildPanelUrl("iddas", iddasLink?.externalId ?? c.iddasPessoaId);
+  const cmUrl = clickmassaContactUrl(c.clickmassaContactId);
+
+  return (
+    <details className="bg-white border border-dark/10 rounded-md mt-6 group">
+      <summary className="cursor-pointer list-none px-6 py-4 flex items-center justify-between">
+        <h2 className="font-display text-xl text-navy">Sistemas externos</h2>
+        <span className="font-body text-sm text-dark/40 group-open:hidden">mostrar</span>
+        <span className="font-body text-sm text-dark/40 hidden group-open:inline">ocultar</span>
+      </summary>
+
+      <div className="px-6 pb-6 space-y-5 border-t border-dark/10 pt-5">
+        {/* Iddas */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="font-body font-medium text-dark">Iddas</p>
+            <span className="font-body text-sm text-dark/70">
+              {SYNC_STATUS_LABEL[c.iddasSyncStatus]}
+            </span>
+          </div>
+          <dl className="font-body text-sm text-dark/70 space-y-1">
+            <div className="flex justify-between gap-3">
+              <dt>Pessoa</dt>
+              <dd>{c.iddasPessoaId ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Cotação</dt>
+              <dd>{c.iddasCotacaoCode ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Orçamento</dt>
+              <dd>{c.iddasOrcamentoId ?? "—"}</dd>
+            </div>
+            {c.iddasVendaId && (
+              <div className="flex justify-between gap-3">
+                <dt>Venda</dt>
+                <dd>{c.iddasVendaId}</dd>
+              </div>
+            )}
+          </dl>
+          {c.iddasSyncError && (
+            <p className="text-red-600 text-xs font-body">Erro: {c.iddasSyncError}</p>
+          )}
+          {iddasUrl ? (
+            <a
+              href={iddasUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold hover:underline font-body text-sm"
+            >
+              Abrir no Iddas →
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="URL do painel do Iddas ainda não confirmada"
+              className="text-dark/40 font-body text-sm cursor-not-allowed"
+            >
+              Abrir no Iddas →
+            </button>
+          )}
+        </div>
+
+        <hr className="border-dark/10" />
+
+        {/* ClickMassa */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="font-body font-medium text-dark">ClickMassa</p>
+            <span className="font-body text-sm text-dark/70">
+              {SYNC_STATUS_LABEL[c.clickmassaSyncStatus]}
+            </span>
+          </div>
+          <dl className="font-body text-sm text-dark/70 space-y-1">
+            <div className="flex justify-between gap-3">
+              <dt>Contact</dt>
+              <dd>{c.clickmassaContactId ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Ticket atual</dt>
+              <dd>{c.clickmassaTicketIds.at(-1) ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>Etapa</dt>
+              <dd>{c.clickmassaPipelineStep ?? "—"}</dd>
+            </div>
+          </dl>
+          {c.clickmassaSyncError && (
+            <p className="text-red-600 text-xs font-body">Erro: {c.clickmassaSyncError}</p>
+          )}
+          {cmUrl ? (
+            <a
+              href={cmUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold hover:underline font-body text-sm"
+            >
+              Abrir no ClickMassa →
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="configurar NEXT_PUBLIC_CLICKMASSA_PANEL_URL"
+              className="text-dark/40 font-body text-sm cursor-not-allowed"
+            >
+              Abrir no ClickMassa →
+            </button>
+          )}
+        </div>
+
+        <hr className="border-dark/10" />
+
+        <Field label="Última sync">
+          {c.iddasUltimoSync ? formatDateTime(c.iddasUltimoSync) : <Vazio />}
+        </Field>
+      </div>
+    </details>
   );
 }
 
 // ── Timeline de interações ──────────────────────────────────────
 // Cronológica, mais recente no topo. Eventos de sistema são read-only; só notas
-// internas (tipo `nota_interna`) têm menu de Editar/Excluir. Campo de nova nota
-// grava uma `nota_interna` (criadoPor = back-office, sem identidade inventada).
+// internas (tipo `nota_interna`) têm menu de Editar/Excluir. Tarefas (o que fazer)
+// vivem na jornada, não aqui — aqui é só o que ACONTECEU + adicionar nota.
 function InteracoesTimeline({
   contactId,
   interactions,
@@ -618,7 +531,6 @@ function InteracoesTimeline({
   const [adding, setAdding] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
 
-  // Mais recente no topo, sem depender da ordem que veio do servidor.
   const ordered = [...interactions].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 
   const handleAdd = async () => {
@@ -643,7 +555,6 @@ function InteracoesTimeline({
     <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
       <h2 className={cardTitleClass}>Interações ({interactions.length})</h2>
 
-      {/* Nova nota */}
       <div className="mt-5">
         <label
           htmlFor="nova-nota"
@@ -688,8 +599,6 @@ function InteracoesTimeline({
   );
 }
 
-// Uma linha da timeline. Notas internas ganham menu (Editar/Excluir) e modo de
-// edição inline; eventos de sistema renderizam só leitura.
 function TimelineItem({
   interaction: it,
   contactId,
@@ -706,7 +615,6 @@ function TimelineItem({
   const [erro, setErro] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fecha o menu ao clicar fora.
   useEffect(() => {
     if (!menuOpen) return;
     const onClick = (e: MouseEvent) => {
@@ -848,15 +756,15 @@ export default function ContactDetailClient({
   contact,
   interactions,
   externalLinks,
-  comercial,
+  jornadas,
+  anexos,
 }: {
   contact: Contact;
   interactions: ContactInteraction[];
   externalLinks: ContactExternalLink[];
-  comercial: ContactComercial;
+  jornadas: { abertas: Jornada[]; fechadas: Jornada[] };
+  anexos: Anexo[];
 }) {
-  // Canais e deep-links vêm do VÍNCULO externo, não das colunas de origem.
-  const clickmassaLink = findLink(externalLinks, "clickmassa");
   const iddasLink = findLink(externalLinks, "iddas");
 
   return (
@@ -868,33 +776,20 @@ export default function ContactDetailClient({
         ← Voltar pra lista
       </Link>
 
-      <header className="mb-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-3xl text-navy">{contact.name}</h1>
-          <StageBadge estagio={contact.estagio} />
-        </div>
-        <p className="font-body text-sm text-dark/60 mt-2">
-          Recebida em {formatDateTime(contact.createdAt)} · Via {ORIGEM_LABELS[contact.origem]}
-        </p>
-      </header>
+      <ContatoHeader contact={contact} abertas={jornadas.abertas} fechadas={jornadas.fechadas} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DadosCard contact={contact} />
         <QualificacaoCard contact={contact} />
-        <SistemasExternosCard
-          contact={contact}
-          iddasLink={iddasLink}
-          clickmassaLink={clickmassaLink}
-        />
       </div>
 
-      <AcoesCard contact={contact} temClickmassa={clickmassaLink !== null} />
+      <JornadasZone abertas={jornadas.abertas} fechadas={jornadas.fechadas} />
 
-      <GestaoInternaForm contact={contact} />
+      <PreferenciasCard contact={contact} />
 
-      <ComercialResumoCard comercial={comercial} />
+      <SistemasExternosDetails contact={contact} iddasLink={iddasLink} />
 
-      <FinanceiroForm contactId={contact.id} />
+      <AnexosBlock owner={{ kind: "contact", id: contact.id }} anexos={anexos} />
 
       <InteracoesTimeline contactId={contact.id} interactions={interactions} />
     </div>

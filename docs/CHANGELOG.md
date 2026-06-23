@@ -15,6 +15,39 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-23] SITE — Funil de jornadas: UI completa, valor editável, anexos, to-do interno
+
+Ciclo de implementação da UI do funil (D073-D076) sobre o modelo de jornada
+(D072):
+
+- **Kanban:** 5 colunas sempre visíveis com contador + somatório, recolhíveis.
+  Card click-abre/hold-arrasta, menu ⋯ pra ganhar/perder, "X dias parado", valor
+  quando > 0. RPC `gold_kanban_jornadas` (JOIN no Postgres, resolve
+  HeadersOverflowError de 586 ids na URL). Paginação client-side nas fechadas.
+- **Detalhe da jornada:** valor com label por estágio (cotação/ganho/perda),
+  inserir quando vazio + editar quando vivo + congelado quando fechado; tarefas
+  unificadas (Iddas read-only + internas); histórico do cliente; anexos.
+- **Ficha do contato:** três zonas, sistemas externos recolhidos, WhatsApp
+  condicional (só com clickmassa_contact_id), removidos blocos do modelo velho.
+- **Schema:** `jornadas.valor` (campo único, significado pelo estágio);
+  `tarefas_jornada` (to-do interno); `anexos` + bucket Storage privado.
+- **Removido:** funil ClickMassa da nav e rota (D066 dormente → removido).
+
+**Pendências rastreadas (não esquecer):**
+
+- Botão "Abrir no Iddas" inativo: trava de permissão no perfil. Pedir acesso,
+  confirmar URL real do registro de pessoa, preencher
+  NEXT_PUBLIC_IDDAS_PANEL_URL.
+- Ás guardado: API do CM exporta histórico de conversas de WhatsApp. Fonte pra
+  lógica de tagging automático a partir do histórico (registrar endpoint e
+  formato quando for implementar).
+- `promote_jornadas_from_bronze`: sync futuro lê bronze_iddas_orcamento.valor →
+  jornadas.valor (nomes alinhados, mapeamento trivial).
+- Dashboard gerencial (FunilChart com valor_total): próximo ciclo, com mock e
+  método.
+
+---
+
 ### [2026-06-23] D072 — Funil por jornada: nova entidade silver, 5 estágios canônicos, follow-up ortogonal
 
 **Contexto:** D066 deixou pendente o vocabulário de estágios (placeholder de 9

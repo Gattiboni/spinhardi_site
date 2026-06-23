@@ -118,9 +118,9 @@ export default function DashboardClient({
           <DashboardCard
             title="Em negociação"
             value={contactStats.emNegociacao}
-            href="/admin/contatos"
+            href="/admin/jornadas"
           />
-          <DashboardCard title="Fechados" value={contactStats.fechadosMes} href="/admin/contatos" />
+          <DashboardCard title="Fechados" value={contactStats.fechadosMes} href="/admin/jornadas" />
         </div>
       </section>
 
@@ -141,7 +141,6 @@ export default function DashboardClient({
             title="Tickets abertos (ClickMassa)"
             value={clickmassaStats.ticketsAbertos}
             hint={`${clickmassaStats.oportunidadesAtivas} oportunidades ativas`}
-            href="/admin/funil"
           />
           <DashboardCard title="Posts publicados" value={postsCount} href="/admin/blog" />
         </div>

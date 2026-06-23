@@ -11,8 +11,9 @@ import {
 import { requireSession } from "@/lib/auth/session";
 import { sendWelcomeMessage, ClickMassaError } from "@/lib/integrations/clickmassa";
 import { createNegocio, createLancamento } from "@/lib/financeiro";
+import { createJornadaManual } from "@/lib/jornadas";
 import type { NovoNegocioInput, NovoLancamentoInput } from "@/lib/financeiro/types";
-import type { Contact, EstagioFunil } from "@/lib/contacts/types";
+import type { Contact } from "@/lib/contacts/types";
 
 export type SaveGestaoInternaResult = {
   success: boolean;
@@ -25,19 +26,15 @@ export type ActionResult = {
 };
 
 /**
- * Salva a Gestão Interna da visão 360 (estágio, follow-up).
+ * Salva a Gestão Interna da visão 360 (follow-up).
  *
- * As "notas internas" de texto livre saíram daqui (Lote C): viraram a timeline
- * de interações (`contact_interactions`, tipo `nota_interna`). Este action não
- * toca mais a coluna `notas_internas`.
- *
- * `estagioAtualizadoEm` só é tocado quando o estágio realmente muda — comparado
- * contra o valor atual no banco (autoridade do servidor, não do cliente).
+ * O estágio do funil saiu daqui (migrou pra `jornadas`): o contato é a pessoa, o
+ * estágio vive na jornada. Este action cuida só do próximo follow-up do contato.
  * `updated_at` é cuidado pelo trigger, não entra no patch.
  */
 export async function saveGestaoInterna(
   id: string,
-  data: { estagio: EstagioFunil; proximoFollowUp: string | null },
+  data: { proximoFollowUp: string | null },
 ): Promise<SaveGestaoInternaResult> {
   try {
     await requireSession();
@@ -47,12 +44,8 @@ export async function saveGestaoInterna(
     }
 
     const patch: Partial<Contact> = {
-      estagio: data.estagio,
       proximoFollowUp: data.proximoFollowUp,
     };
-    if (data.estagio !== current.estagio) {
-      patch.estagioAtualizadoEm = new Date().toISOString();
-    }
 
     await updateContact(id, patch);
 
@@ -63,6 +56,29 @@ export async function saveGestaoInterna(
   } catch (err) {
     console.error("[saveGestaoInterna] erro ao salvar gestão interna:", err);
     return { success: false, error: "Não foi possível salvar. Tente novamente." };
+  }
+}
+
+/**
+ * "Novo atendimento" na ficha do contato — cria uma jornada manual (D072).
+ * Nasce aberta, já aprovada, em "primeiro contato": entra direto no kanban.
+ */
+export async function criarAtendimento(contactId: string): Promise<ActionResult> {
+  try {
+    await requireSession();
+    const contact = await getContactById(contactId);
+    if (!contact) {
+      return { success: false, error: "Contato não encontrado." };
+    }
+
+    await createJornadaManual(contactId);
+
+    revalidatePath(`/admin/contatos/${contactId}`);
+    revalidatePath("/admin/jornadas");
+    return { success: true };
+  } catch (err) {
+    console.error("[criarAtendimento] erro ao criar jornada manual:", err);
+    return { success: false, error: "Não foi possível criar o atendimento. Tente novamente." };
   }
 }
 

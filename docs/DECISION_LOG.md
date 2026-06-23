@@ -28,6 +28,104 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-23] D076 — UI do funil: cards, detalhe e ficha reconstruídos sobre referência de mercado
+
+**Contexto:** A primeira versão da UI do funil (kanban + detalhe + ficha) foi
+construída no improviso, sem referência. Alan apontou múltiplos desvios: botão
+"Aprovar/Reprovar" gigante em card frio, ausência de "inserir cotação", colunas
+que sumiam quando vazias, vazamento de termo interno ("APROVAÇÃO: Aprovada") na
+tela da Nina. Pesquisa de mercado (Perplexity + docs HubSpot/Pipedrive) validou
+os padrões corretos antes de redesenhar.
+
+**Decisão:** UI reconstruída sobre padrão consolidado de CRM:
+
+- Card: click abre detalhe, hold+move arrasta; ação ganhar/perder vai pro menu ⋯
+  (não CTA na cara do card frio); "X dias parado" (vermelho > 14 dias); valor só
+  quando > 0.
+- Coluna: 5 sempre visíveis com contador + somatório de valor; recolhível
+  (chevron), expandida por padrão, sem persistir preferência.
+- Detalhe da jornada: header com Ganhou/Perdeu, contato linkado; removido o
+  campo interno de aprovacao_status; bloco de tarefas (Iddas read-only +
+  internas com checkbox); histórico do cliente; anexos.
+- Ficha do contato: três zonas (dados / jornadas+interações / sistemas externos
+  recolhido); removidos os blocos do modelo velho (follow-up no contato,
+  financeiro). Header com resumo de valor do cliente.
+
+**Racional:** "Fizemos CRM de viagem sem olhar CRM de viagem." Pesquisa cortou o
+improviso. Mockup interativo aprovado antes de virar código, eliminando uma
+camada de ida-e-volta com o Codinho.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-23] D075 — Anexos em jornada e contato via Storage privado
+
+**Contexto:** Faltava lugar pra guardar documentos (orçamento PDF, voucher,
+print). Alan: "traz função além de mecânica."
+
+**Decisão:** Tabela `anexos` (contact_id e jornada_id nullable, CHECK garante ao
+menos um dono) + bucket Storage privado `anexos` com RLS authenticated. Upload
+server-side, download por URL assinada efêmera (60s), nunca pública. Componente
+reutilizado em jornada e contato. Aceita PDF, Word, Excel, imagem.
+
+**Racional:** Documento de cliente não pode ter URL aberta (bucket privado). O
+CHECK no banco garante integridade (anexo órfão é impossível).
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-23] D074 — To-do interno na jornada, distinto da tarefa Iddas
+
+**Contexto:** Pesquisa confirmou: CRM sem criar/concluir tarefa não é CRM. A
+tarefa do Iddas é read-only (vem do sync). Faltava a Nina poder anotar "ligar
+terça" na mão.
+
+**Decisão:** Tabela `tarefas_jornada` (jornada_id FK, assunto, data, concluida,
+timestamps), to-do interno editável pela Nina. No detalhe da jornada, lista
+unificada: tarefas do Iddas marcadas "do Iddas" (read-only) + internas com
+checkbox e "+ Nova". Back-office é fonte da verdade do to-do (reafirma D072).
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [2026-06-23] D073 — Valor da jornada: um campo, significado pelo estágio
+
+**Contexto:** O backfill jogou o valor do Iddas em `valor_orcado`, mas pra venda
+fechada esse valor é venda, não orçamento — a coluna carregava dois
+significados. Tentativa de resolver com `valor_fechado` separado foi descartada:
+o Iddas (bronze_iddas_orcamento) tem um campo `valor` ÚNICO, cujo significado
+vem da situação do orçamento. Criar campo separado seria inventar estrutura que
+a origem não tem.
+
+**Decisão:** `jornadas` tem UM campo `valor` (renomeado de `valor_orcado`;
+`valor_fechado` removido). O significado vem do estágio: cotação (abertas),
+ganho (aprovado), perda (reprovado). Alinha com a ingestão (mesmo nome da
+origem) e facilita o futuro `promote_jornadas_from_bronze`.
+
+**UI do valor:** jornada viva sem valor → "inserir cotação" (cria do zero, é o
+ato que dá peso ao pipeline); viva com valor → editar inline (última vale, sem
+histórico de cotações dentro da jornada); morta → congelado, read-only (cliente
+que volta abre jornada nova, a velha nunca reedita). Label segue o estágio.
+
+**Série histórica:** preservada pelas N jornadas por cliente ao longo do tempo,
+cada uma com valor congelado no fechamento — não por histórico de edições dentro
+de uma jornada. Sem tabela de cotações, sem coluna extra.
+
+**`gold_funil_por_estagio` reescrita:** conta jornadas E soma `valor` por
+estágio (antes contava contatos, sem valor). Quantifica o pipeline pro
+dashboard.
+
+**Racional:** Pipeline sem valor é lista de nomes, não funil (validado por
+pesquisa). Um campo cujo significado deriva do estágio replica fielmente a
+origem e evita duplicação/sobrescrita entre campos.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [2026-06-23] D072 — Funil por jornada: nova entidade silver, 5 estágios canônicos, follow-up ortogonal
 
 **Contexto:** D066 deixou pendente o vocabulário de estágios (placeholder de 9

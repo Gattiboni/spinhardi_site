@@ -30,3 +30,30 @@ export function buildPanelUrl(
   if (!template || !externalId) return null;
   return template.replace("{external_id}", encodeURIComponent(externalId));
 }
+
+/**
+ * URL do perfil do contato no painel humano do ClickMassa (botão WhatsApp da
+ * ficha). O HOST vem da env `NEXT_PUBLIC_CLICKMASSA_PANEL_URL` (NEXT_PUBLIC: é só
+ * link aberto no navegador, sem credencial — NÃO confundir com a URL da API do
+ * CM que o sync usa). Rota confirmada: hash routing `/#/contact/{id}/perfil`.
+ * Devolve `null` se faltar o host (env não setada) ou o id do contato no CM.
+ */
+export function clickmassaContactUrl(clickmassaContactId: string | null): string | null {
+  const base = process.env.NEXT_PUBLIC_CLICKMASSA_PANEL_URL;
+  if (!base || !clickmassaContactId) return null;
+  return `${base.replace(/\/+$/, "")}/#/contact/${encodeURIComponent(clickmassaContactId)}/perfil`;
+}
+
+/**
+ * URL do registro da pessoa no painel humano do Iddas. INATIVA por ora: o host
+ * (`NEXT_PUBLIC_IDDAS_PANEL_URL`) e o path do registro ainda não foram
+ * confirmados (trava de permissão no perfil). NÃO chutamos domínio nem rota —
+ * enquanto a env não existir, devolve `null` e o botão "Abrir no Iddas" fica
+ * desabilitado. Quando confirmado, ligar setando a env + o path real aqui.
+ */
+export function iddasPessoaUrl(_iddasPessoaId: string | null): string | null {
+  // const base = process.env.NEXT_PUBLIC_IDDAS_PANEL_URL;
+  // if (!base || !iddasPessoaId) return null;
+  // return `${base.replace(/\/+$/, "")}/<path-confirmado>/${encodeURIComponent(iddasPessoaId)}`;
+  return null;
+}

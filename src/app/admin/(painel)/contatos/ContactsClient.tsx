@@ -4,16 +4,12 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import StageBadge from "@/components/admin/StageBadge";
 import SyncBadge from "@/components/admin/SyncBadge";
 import {
   type Contact,
-  type EstagioFunil,
   type CaptureOrigin,
   type ContactStatus,
-  ESTAGIOS_OPTIONS,
   ORIGENS_OPTIONS,
-  ESTAGIO_LABELS,
   ORIGEM_LABELS,
   DESTINO_LABELS,
 } from "@/lib/contacts/types";
@@ -53,7 +49,7 @@ const STATUS_QUICK_OPTIONS: ContactStatus[] = ["ativo", "arquivado"];
 // "Enviar WhatsApp" foi removido de propósito: disparo em massa derruba o número
 // por ban da Meta — o canal inteiro da agência morre. WhatsApp só individual, no
 // detalhe do contato (um por vez, com confirm). As ações abaixo são seguras.
-const BULK_ACTIONS = ["Adicionar tag", "Mudar estágio", "Exportar"];
+const BULK_ACTIONS = ["Adicionar tag", "Exportar"];
 
 // Cards de gap (gold operacional): contagem + clique que filtra a lista.
 const GAP_CARDS: { key: GapSegment; title: string; hint: string }[] = [
@@ -106,7 +102,6 @@ function QuickEditRow({
   const [name, setName] = useState(contact.name);
   const [whatsapp, setWhatsapp] = useState(contact.whatsapp);
   const [email, setEmail] = useState(contact.email ?? "");
-  const [estagio, setEstagio] = useState<EstagioFunil>(contact.estagio);
   const [status, setStatus] = useState<ContactStatus>(contact.status);
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -128,7 +123,6 @@ function QuickEditRow({
       name,
       whatsapp,
       email: email.trim() ? email.trim() : null,
-      estagio,
       status,
     });
     setSaving(false);
@@ -170,20 +164,6 @@ function QuickEditRow({
           />
         </div>
         <div>
-          <label className={labelClass}>Estágio</label>
-          <select
-            value={estagio}
-            onChange={(e) => setEstagio(e.target.value as EstagioFunil)}
-            className={`${inputClass} w-full`}
-          >
-            {ESTAGIOS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {ESTAGIO_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
           <label className={labelClass}>Status</label>
           <select
             value={status}
@@ -220,16 +200,13 @@ export default function ContactsClient({
   contacts,
   gapFlags,
   gapCounts,
-  initialEstagio,
 }: {
   contacts: Contact[];
   gapFlags: Record<string, ContactGapFlags>;
   gapCounts: GapCounts;
-  initialEstagio?: EstagioFunil;
 }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [estagio, setEstagio] = useState<EstagioFunil | "todos">(initialEstagio ?? "todos");
   const [origem, setOrigem] = useState<CaptureOrigin | "todas">("todas");
   const [tag, setTag] = useState<string>("todas");
   const [sync, setSync] = useState<SyncFilter>("todos");
@@ -276,7 +253,6 @@ export default function ContactsClient({
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return contacts.filter((c) => {
-      if (estagio !== "todos" && c.estagio !== estagio) return false;
       if (origem !== "todas" && c.origem !== origem) return false;
       if (tag !== "todas" && !c.tags.includes(tag)) return false;
       if (!matchesSync(c, sync)) return false;
@@ -287,7 +263,7 @@ export default function ContactsClient({
       }
       return true;
     });
-  }, [contacts, search, estagio, origem, tag, sync, gap, gapFlags]);
+  }, [contacts, search, origem, tag, sync, gap, gapFlags]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   // Clamp defensivo: se a página atual passou do total (ex: lista encolheu),
@@ -377,20 +353,6 @@ export default function ContactsClient({
       {/* Filtros + ações em massa */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <select
-          aria-label="Filtrar por estágio"
-          value={estagio}
-          onChange={(e) => withPageReset(setEstagio)(e.target.value as EstagioFunil | "todos")}
-          className={selectClass}
-        >
-          <option value="todos">Estágio: todos</option>
-          {ESTAGIOS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {ESTAGIO_LABELS[s]}
-            </option>
-          ))}
-        </select>
-
-        <select
           aria-label="Filtrar por origem"
           value={origem}
           onChange={(e) => withPageReset(setOrigem)(e.target.value as CaptureOrigin | "todas")}
@@ -477,7 +439,7 @@ export default function ContactsClient({
                   className="accent-gold"
                 />
               </th>
-              {["Nome", "Origem", "Estágio", "Destino", "Sync"].map((h) => (
+              {["Nome", "Origem", "Destino", "Sync"].map((h) => (
                 <th
                   key={h}
                   className="text-left px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60"
@@ -514,9 +476,6 @@ export default function ContactsClient({
                   <td className="px-6 py-4 font-body text-sm text-dark/60">
                     {ORIGEM_LABELS[c.origem]}
                   </td>
-                  <td className="px-6 py-4">
-                    <StageBadge estagio={c.estagio} />
-                  </td>
                   <td className="px-6 py-4 font-body text-sm text-dark/60">
                     {DESTINO_LABELS[c.destinoTipo]}
                   </td>
@@ -536,7 +495,7 @@ export default function ContactsClient({
                 </tr>
                 {editingId === c.id && (
                   <tr className="border-b border-dark/5 bg-dark/5">
-                    <td colSpan={7} className="px-6 py-5">
+                    <td colSpan={6} className="px-6 py-5">
                       <QuickEditRow
                         contact={c}
                         onClose={() => setEditingId(null)}
@@ -552,7 +511,7 @@ export default function ContactsClient({
             ))}
             {pageItems.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center font-body text-dark/50">
+                <td colSpan={6} className="px-6 py-12 text-center font-body text-dark/50">
                   Nenhum contato encontrado com os filtros atuais.
                 </td>
               </tr>

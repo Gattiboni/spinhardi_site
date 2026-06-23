@@ -15,11 +15,10 @@ import { ESTAGIOS_OPTIONS, ESTAGIO_LABELS } from "@/lib/contacts/types";
 import type { FunilEstagio } from "@/lib/dashboard/types";
 
 /**
- * Funil interno por estágio. Nasce degenerado (todos 'novo', e o módulo de
- * Oportunidades do CM está bloqueado) — uma barra só. Mas a ESTRUTURA é montada
- * com todos os estágios em ordem; popula sozinha conforme a Nina trabalha os
- * leads. Drilldown: clicar numa barra leva pra lista de Contatos filtrada por
- * aquele estágio (o fio atravessa).
+ * Funil interno por estágio — agora conta JORNADAS abertas e aprovadas (D072),
+ * não mais contatos. A estrutura é montada com os 5 estágios em ordem (3 abertas
+ * + 2 fechadas); as fechadas ficam em 0 aqui porque o gold só conta abertas.
+ * Drilldown: clicar numa barra leva pro kanban de Jornadas (o fio atravessa).
  */
 export default function FunilChart({ funil }: { funil: FunilEstagio[] }) {
   const router = useRouter();
@@ -35,7 +34,7 @@ export default function FunilChart({ funil }: { funil: FunilEstagio[] }) {
     <section className="mb-10">
       <div className="flex items-baseline justify-between mb-4">
         <p className="text-gold uppercase tracking-widest text-xs font-body">Funil por estágio</p>
-        <p className="font-body text-xs text-dark/50">Clique numa barra pra ver os contatos</p>
+        <p className="font-body text-xs text-dark/50">Clique numa barra pra ver as jornadas</p>
       </div>
 
       <div className="bg-white border border-dark/10 rounded-md p-6">
@@ -49,7 +48,8 @@ export default function FunilChart({ funil }: { funil: FunilEstagio[] }) {
               const idx = Number(state?.activeIndex);
               const point = Number.isInteger(idx) ? data[idx] : undefined;
               if (point?.estagio) {
-                router.push(`/admin/contatos?estagio=${point.estagio}`);
+                // O kanban de jornadas é a visão por estágio — o fio atravessa.
+                router.push("/admin/jornadas");
               }
             }}
           >
@@ -70,7 +70,7 @@ export default function FunilChart({ funil }: { funil: FunilEstagio[] }) {
             />
             <Bar
               dataKey="total"
-              name="Contatos"
+              name="Jornadas"
               fill={SPIN.navy}
               radius={[4, 4, 0, 0]}
               className="cursor-pointer"

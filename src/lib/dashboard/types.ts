@@ -18,6 +18,8 @@ export type FinanceiroPorPeriodo = Record<PeriodoKey, FinanceiroResumo>;
 export type FunilEstagio = {
   estagio: string;
   total: number;
+  /** Soma de `jornadas.valor` no estágio (cotação/ganho/perda conforme o estágio). */
+  valorTotal: number;
 };
 
 export type DistribItem = {

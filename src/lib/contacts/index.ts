@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { Contact, ContactInteraction, EstagioFunil, CaptureOrigin } from "./types";
+import { Contact, ContactInteraction, CaptureOrigin } from "./types";
 import {
   rowToContact,
   rowToInteraction,
@@ -27,7 +27,6 @@ import {
 // ─────────────────────────────────────────────────────────────────
 
 export async function getContacts(opts?: {
-  estagio?: EstagioFunil | "todos";
   origem?: CaptureOrigin | "todas";
   tags?: string[];
   syncStatus?: "todos" | "synced" | "pending" | "failed" | "partial";
@@ -45,10 +44,6 @@ export async function getContacts(opts?: {
   }
 
   let contacts = (data as ContactRow[]).map(rowToContact);
-
-  if (opts?.estagio && opts.estagio !== "todos") {
-    contacts = contacts.filter((c) => c.estagio === opts.estagio);
-  }
 
   if (opts?.origem && opts.origem !== "todas") {
     contacts = contacts.filter((c) => c.origem === opts.origem);
@@ -237,13 +232,19 @@ export async function getContactStats(): Promise<{
   const ativos = () =>
     sb.from("contacts").select("*", { count: "exact", head: true }).eq("status", "ativo");
 
+  // D072: "em negociação" e "fechados" agora vêm de JORNADAS, não do contato.
+  //  - emNegociacao  = jornadas abertas e aprovadas (atendimentos em andamento).
+  //  - fechadosMes   = jornadas aprovadas (estagio='aprovado') fechadas no mês.
+  const jornadas = () =>
+    sb.from("jornadas").select("*", { count: "exact", head: true });
+
   try {
     const [novos, follow, capturas, negociacao, fechados] = await Promise.all([
       ativos().neq("origem", "importado").gte("created_at", inicioDia),
       ativos().not("proximo_follow_up", "is", null).lte("proximo_follow_up", hoje),
       ativos().neq("origem", "importado").gte("created_at", inicioMes),
-      ativos().eq("estagio", "em_negociacao"),
-      ativos().eq("estagio", "fechado_confirmado").gte("estagio_atualizado_em", inicioMes),
+      jornadas().eq("aberta", true).eq("aprovacao_status", "aprovada"),
+      jornadas().eq("estagio", "aprovado").gte("closed_at", inicioMes),
     ]);
 
     return {

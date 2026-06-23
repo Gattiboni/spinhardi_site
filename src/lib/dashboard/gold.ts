@@ -55,10 +55,13 @@ export async function getFunilPorEstagio(): Promise<FunilEstagio[]> {
     const { data, error } = await supabaseAdmin().rpc("gold_funil_por_estagio");
     if (error) throw error;
 
-    return (data as { estagio: string; total: number }[]).map((r) => ({
-      estagio: r.estagio,
-      total: Number(r.total),
-    }));
+    return (data as { estagio: string; total: number; valor_total: number }[]).map(
+      (r) => ({
+        estagio: r.estagio,
+        total: Number(r.total),
+        valorTotal: Number(r.valor_total ?? 0),
+      }),
+    );
   } catch (err) {
     console.error("[gold] getFunilPorEstagio:", err);
     return [];

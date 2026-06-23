@@ -44,8 +44,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: "Já visitou Portugal e Espanha em 2023.",
     restricoes: null,
 
-    estagio: "qualificado",
-    estagioAtualizadoEm: "2026-06-08T11:00:00-03:00",
     proximoFollowUp: "2026-06-08",
     notasInternas:
       "Cliente bem qualificada. Quer Roma + Toscana, 14 dias. Próxima conversa: terça pra falar de hospedagem boutique.",
@@ -112,8 +110,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: "Primeira viagem internacional com as crianças.",
     restricoes: "Filho mais novo tem alergia a frutos do mar.",
 
-    estagio: "em_negociacao",
-    estagioAtualizadoEm: "2026-06-07T16:42:00-03:00",
     proximoFollowUp: "2026-06-08",
     notasInternas:
       "Família de 4. Sensível a preço de alta temporada — apresentar opção em janeiro. Aguardando aprovação da esposa sobre roteiro.",
@@ -180,8 +176,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: "Já fez cruzeiro pela costa brasileira.",
     restricoes: null,
 
-    estagio: "proposta_enviada",
-    estagioAtualizadoEm: "2026-06-06T09:30:00-03:00",
     proximoFollowUp: "2026-06-11",
     notasInternas:
       "Indicada pela Patrícia Souza. Proposta MSC Mediterrâneo enviada dia 06. Aguardando retorno sobre cabine com varanda.",
@@ -248,8 +242,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: null,
     restricoes: null,
 
-    estagio: "novo",
-    estagioAtualizadoEm: "2026-06-08T16:40:00-03:00",
     proximoFollowUp: null,
     notasInternas: "Pediu pra ligar. Ainda não sabemos destino nem orçamento. Qualificar.",
 
@@ -315,8 +307,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: "Casal aventureiro, já fez trekking no Peru e Bolívia.",
     restricoes: null,
 
-    estagio: "aguardando_pagamento",
-    estagioAtualizadoEm: "2026-06-04T15:20:00-03:00",
     proximoFollowUp: "2026-06-07",
     notasInternas:
       "Venda fechada, aguardando 1ª parcela. ATENÇÃO: sync com ClickMassa falhou (token expirado) — confirmar atendimento manualmente até religar a integração.",
@@ -385,8 +375,6 @@ export const MOCK_CONTACTS: Contact[] = [
       "Mais de 20 países visitados. Conhece bem Europa e EUA, primeira vez na Ásia.",
     restricoes: "Esposa vegetariana.",
 
-    estagio: "fechado_confirmado",
-    estagioAtualizadoEm: "2026-06-03T17:10:00-03:00",
     proximoFollowUp: null,
     notasInternas:
       "Cliente premium, fechou rápido. Roteiro Japão+Coreia confirmado e pago. Enviar guia de pré-viagem 30 dias antes. Potencial cliente recorrente.",
@@ -454,8 +442,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: "Grupo viaja junto há anos, já foram à França e Portugal.",
     restricoes: "Uma das amigas tem mobilidade reduzida — evitar roteiros com muita caminhada.",
 
-    estagio: "em_espera",
-    estagioAtualizadoEm: "2026-05-30T10:00:00-03:00",
     proximoFollowUp: "2026-08-01",
     notasInternas:
       "Grupo de 4 amigas, alto ticket. Em espera: decidiram adiar pra 2027 por agenda. Retomar contato em agosto. Lead muito quente, não perder.",
@@ -522,8 +508,6 @@ export const MOCK_CONTACTS: Contact[] = [
     experienciaAnterior: null,
     restricoes: null,
 
-    estagio: "perdido",
-    estagioAtualizadoEm: "2026-05-12T14:30:00-03:00",
     proximoFollowUp: null,
     notasInternas:
       "Cadastrado manualmente após ligar na agência. Orçamento muito abaixo do necessário pra Europa no período desejado. Desistiu.",
