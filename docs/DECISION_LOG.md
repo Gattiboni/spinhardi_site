@@ -28,6 +28,74 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-23] D072 — Funil por jornada: nova entidade silver, 5 estágios canônicos, follow-up ortogonal
+
+**Contexto:** D066 deixou pendente o vocabulário de estágios (placeholder de 9
+valores degenerados no CHECK de contacts.estagio, "novo" em 100% das 828
+linhas). A reunião 19/06 (resumo + áudio Amanda) cumpriu o pré-requisito do
+D066: as sócias definiram o vocabulário real. Investigação (Frentes 1-2) revelou
+que estágio no Iddas é por orçamento, não por pessoa, e que cliente recorrente
+(recompra é a regra na agência) quebra o modelo "estágio é campo do contato".
+
+**Decisão:** A unidade do funil é a JORNADA, não o contato. Nova tabela silver
+`jornadas`, 1 contato → N jornadas. Contato é a pessoa (existe 1x, guarda
+histórico). Jornada é 1 ciclo de venda (nasce em "primeiro contato", morre em
+"aprovado"/"reprovado"). N jornadas abertas simultâneas permitidas (cliente
+negocia múltiplos destinos). O card do kanban é da jornada.
+
+**Vocabulário canônico (5 estágios), fonte = demanda reunião 19/06:** primeiro
+contato | cotação enviada | aprovado | reprovado | pediu pra esperar. Aprovado +
+financeiro unificados a pedido da Nina. Abertas (kanban): primeiro contato,
+cotação enviada, pediu pra esperar. Fechadas (histórico read-only): aprovado,
+reprovado.
+
+**Follow-up é eixo ortogonal, não estágio** (fonte: áudio Amanda). Acontece
+dentro de "cotação enviada", vira badge no card, derivado de
+`bronze_iddas_tarefa` (459 tarefas com orçamento vinculado, 25 futuras). Não é
+coluna do kanban, não é campo guardado na jornada (deriva, não duplica dado
+vivo).
+
+**Classificação revisável, não cega** (cumpre D066): jornada tem
+`aprovacao_status` (pendente|aprovada). Histórico (623 orçamentos) entrou como
+`aprovada` em bloco — mapper bateu 100% com a contagem real. Orçamento novo do
+sync entra `pendente` e cai numa tela de aprovação onde a sócia confirma/corrige
+o estágio sugerido. Tag do Iddas seria enriquecimento da sugestão, mas não está
+normalizada (null no payload) — fora do MVP, "sem tag = sem sugestão, ainda cai
+na tela".
+
+**Mapper situacao Iddas → canônico (cravado):** R→reprovado; A,X→aprovado;
+W→pediu pra esperar; C,N,B→cotação enviada; E→primeiro contato. Estados
+operacionais do Iddas (Contrato, Emissão, Pré/Pós viagem, Financeiro): 0
+registros em orçamento, ficam fora do funil comercial.
+
+**Fonte da verdade é o back-office** (reafirma D066). Iddas e CM são espelhos a
+conciliar em P2. MVP read-only pros sistemas externos; write-back é pós-MVP.
+`contacts.estagio` (e seu CHECK de 9, índice, e os 15 arquivos que o
+leem/escrevem) é deprecado e migrado pra `jornadas` no mesmo movimento de
+refactor.
+
+**Jornada ≠ Negócio** (alinha E3/E4 do contrato_dados_v1): jornada é processo
+comercial (estágio, funil); `negocios` é resultado financeiro
+(venda/custo/lucro). Jornada aprovada gera negócio. Tabelas distintas,
+relacionadas via contact_id + bronze_ref.
+
+**Backfill executado (2026-06-23):** 586 jornadas dos 623 orçamentos Iddas (37
+órfãos de 25 pessoas sem contato resolvido ficaram de fora; reconciliação via
+UI/sync, não SQL manual). Contagem confere: reprovado 284, aprovado 212, pediu
+pra esperar 66, cotação enviada 20, primeiro contato 4.
+
+**Padrão silver seguido** (contra repo real, D024): PK uuid, contact_id FK
+nullable, par origem_dado+bronze_ref, trigger set_updated_at, enum via CHECK,
+RLS authenticated. Espelha negocios/lancamentos.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa (DDL + backfill aplicados;
+refactor do front pendente)
+
+**Ver também:** D066 (pré-requisito cumprido), D063/D064 (empilhamento silver),
+D041 (camadas), contrato_dados_v1.md E3/E4.
+
+---
+
 ### [2026-06-22] D071 — Contrato HTTP da rota de sync
 
 **Contexto:** Com o status interno confiável (após D070), a rota precisava
