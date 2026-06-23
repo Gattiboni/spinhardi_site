@@ -1,16 +1,16 @@
-# Graph Report - spinhardi_site  (2026-06-22)
+# Graph Report - spinhardi_site  (2026-06-23)
 
 ## Corpus Check
-- 252 files · ~659,141 words
+- 260 files · ~666,713 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1611 nodes · 2677 edges · 112 communities (96 shown, 16 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 60 edges (avg confidence: 0.8)
+- 1700 nodes · 2929 edges · 108 communities (92 shown, 16 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 68 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4ada0463`
+- Built from commit: `26d38ed3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -57,7 +57,6 @@
 - [[_COMMUNITY_Contacts Supabase Integration|Contacts Supabase Integration]]
 - [[_COMMUNITY_Real Photos Integration|Real Photos Integration]]
 - [[_COMMUNITY_About Page|About Page]]
-- [[_COMMUNITY_Home Page Copy|Home Page Copy]]
 - [[_COMMUNITY_Packages Page Copy|Packages Page Copy]]
 - [[_COMMUNITY_About Page Copy|About Page Copy]]
 - [[_COMMUNITY_Root Layout Fonts|Root Layout Fonts]]
@@ -80,7 +79,6 @@
 - [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
-- [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
@@ -99,11 +97,8 @@
 - [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 83|Community 83]]
 - [[_COMMUNITY_Community 84|Community 84]]
-- [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
 - [[_COMMUNITY_Community 87|Community 87]]
-- [[_COMMUNITY_Community 88|Community 88]]
-- [[_COMMUNITY_Community 89|Community 89]]
 - [[_COMMUNITY_Community 90|Community 90]]
 - [[_COMMUNITY_Community 91|Community 91]]
 - [[_COMMUNITY_Community 92|Community 92]]
@@ -120,37 +115,37 @@
 - [[_COMMUNITY_Community 110|Community 110]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `supabaseAdmin()` - 54 edges
-2. `ingestClickMassa()` - 26 edges
-3. `Endpoints com 200 OK` - 24 edges
-4. `Decisões Registradas` - 23 edges
-5. `requireSession()` - 22 edges
+1. `supabaseAdmin()` - 72 edges
+2. `requireSession()` - 33 edges
+3. `Decisões Registradas` - 28 edges
+4. `ingestClickMassa()` - 26 edges
+5. `Endpoints com 200 OK` - 24 edges
 6. `DECISION_LOG — Spinhardi Turismo Site` - 21 edges
-7. `Button()` - 17 edges
-8. `buildMeta()` - 17 edges
+7. `buildMeta()` - 17 edges
+8. `Button()` - 16 edges
 9. `Container()` - 16 edges
 10. `compilerOptions` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `main()` --calls--> `GET()`  [INFERRED]
   scripts/explore-clickmassa-internal.ts → src/app/api/cron/sync/[source]/route.ts
-- `main()` --calls--> `ingestClickMassa()`  [EXTRACTED]
-  scripts/backfill-clickmassa.ts → src/lib/ingestion/clickmassa/index.ts
 - `Blog()` --calls--> `getPosts()`  [INFERRED]
   src/app/(public)/blog/page.tsx → src/lib/blog/index.ts
 - `generateMetadata()` --calls--> `getContactById()`  [INFERRED]
   src/app/admin/(painel)/contatos/[id]/page.tsx → src/lib/contacts/index.ts
+- `main()` --calls--> `ingestClickMassa()`  [EXTRACTED]
+  scripts/backfill-clickmassa.ts → src/lib/ingestion/clickmassa/index.ts
 - `main()` --calls--> `resolveClickMassaConfig()`  [EXTRACTED]
   scripts/backfill-clickmassa.ts → src/lib/ingestion/config.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (112 total, 16 thin omitted)
+## Communities (108 total, 16 thin omitted)
 
 ### Community 0 - "Auth Session Management"
-Cohesion: 0.09
-Nodes (30): requireRole(), ActionResult, CaptureOriginInput, createCaptureOrigin(), createTag(), deleteCaptureOrigin(), deleteTag(), isUniqueViolation() (+22 more)
+Cohesion: 0.21
+Nodes (18): requireRole(), ActionResult, CaptureOriginInput, createCaptureOrigin(), createTag(), deleteCaptureOrigin(), deleteTag(), isUniqueViolation() (+10 more)
 
 ### Community 1 - "Admin UI Components"
 Cohesion: 0.09
@@ -162,59 +157,59 @@ Nodes (42): 1.1 Setup do repositório e fundação, 1.2 Design System, 1.3 Pági
 
 ### Community 3 - "Email Approval Navigation"
 Cohesion: 0.14
-Nodes (13): FOOTER_PAGE_LINKS, FOOTER_SERVICE_LINKS, NAV_LINKS, NavLink, BackToTop(), Header(), LIGHT_ROUTES, DEFAULT_SIZE (+5 more)
+Nodes (15): FOOTER_PAGE_LINKS, FOOTER_SERVICE_LINKS, NAV_LINKS, NavLink, BackToTop(), Footer(), Header(), LIGHT_ROUTES (+7 more)
 
 ### Community 4 - "Site Development Plan v3"
 Cohesion: 0.18
 Nodes (11): 4.1 Integrações operacionais, 4.2 Dashboard de integrações real, 4.3 Conectar integrações ao back office, 4.4 Camada de IA, 4.5 Página de Passagens Avulsas (interface operacional), 4.6 Melhorias contínuas, ClickMassa (WhatsApp CRM), FASE 4 — Pós-launch / Roadmap (+3 more)
 
 ### Community 5 - "Project Decision History"
-Cohesion: 0.13
-Nodes (31): IngestClickMassaOptions, CmCtx, ingestIddas(), IngestIddasOptions, IddasCtx, IddasResource, createIddasTransport(), IddasList (+23 more)
+Cohesion: 0.06
+Nodes (85): ingestClickMassa(), IngestClickMassaOptions, jwtPreview(), CmCtx, CmResource, extractArray(), PipelineStep, recordResult() (+77 more)
 
 ### Community 6 - "Design References Guide"
 Cohesion: 0.05
 Nodes (36): 1. Header e Navegação, 2. Hero e Cabeçalho de Página, 3. Layout de Rolagem da Home, 4. Grade de Serviços / Viagens (Numerada), 5. Efeitos de Imagem, 6. Blog — Listagem e Leitura, 7. Footer, Adaptação Spinhardi (+28 more)
 
 ### Community 7 - "Blog Post Management"
-Cohesion: 0.07
-Nodes (33): PostFormProps, FILTERS, FilterValue, getPostBySlug(), getPosts(), AdminBlogList(), CATEGORIES, Post (+25 more)
+Cohesion: 0.11
+Nodes (16): PostFormProps, FILTERS, FilterValue, CATEGORIES, Post, PostCategory, @sanity/client, sanityClient (+8 more)
 
 ### Community 8 - "Project Dependencies"
 Cohesion: 0.06
 Nodes (34): dependencies, jose, next, @portabletext/react, @portabletext/types, react, react-dom, recharts (+26 more)
 
 ### Community 9 - "Architecture Decision Log"
-Cohesion: 0.05
-Nodes (43): [2026-06-18] D050 — Auto-descoberta de schema via MOAS antes de cada DDL, [2026-06-18] D051 — Bronze enche primeiro nos dois ERPs; silver/promoção depois (supersede parcial D041), [2026-06-18] D052 — api_configs do ClickMassa: id TEXT + nunca armazenar token, [2026-06-18] D053 — Backfill idempotente via UPSERT; snapshot via INSERT, [2026-06-18] D054 — Schema bronze segue a lista fechada do Claudinho (anti-PGRST204), [2026-06-18] D055 — ingestion_log: duração vai dentro de counts (sem coluna duration_ms), [2026-06-18] D056 — ClickMassa é fork de Whaticket; JWT externo serve rotas internas, [2026-06-18] D057 — Iddas: escopo do bronze (23 tabelas; 4 vazios e infosolicitacao) (+35 more)
+Cohesion: 0.04
+Nodes (48): [2026-06-18] D050 — Auto-descoberta de schema via MOAS antes de cada DDL, [2026-06-18] D051 — Bronze enche primeiro nos dois ERPs; silver/promoção depois (supersede parcial D041), [2026-06-18] D052 — api_configs do ClickMassa: id TEXT + nunca armazenar token, [2026-06-18] D053 — Backfill idempotente via UPSERT; snapshot via INSERT, [2026-06-18] D054 — Schema bronze segue a lista fechada do Claudinho (anti-PGRST204), [2026-06-18] D055 — ingestion_log: duração vai dentro de counts (sem coluna duration_ms), [2026-06-18] D056 — ClickMassa é fork de Whaticket; JWT externo serve rotas internas, [2026-06-18] D057 — Iddas: escopo do bronze (23 tabelas; 4 vazios e infosolicitacao) (+40 more)
 
 ### Community 10 - "Blog Wireframes"
 Cohesion: 0.06
 Nodes (30): `/admin/blog/[id]`, `/admin/blog/novo`, Bloco 1 · CABEÇALHO, Bloco 1 · CABEÇALHO DO POST, Bloco 2 · CONTEÚDO DO POST, Bloco 2 · FILTROS DE CATEGORIA, Bloco 3 · CTA FINAL DO POST, Bloco 3 · GRID DE POSTS (+22 more)
 
 ### Community 11 - "Infrastructure Planning"
-Cohesion: 0.13
-Nodes (13): IngestionConfigError, resolveClickMassaConfig(), APPLY, argv, main(), onlyArg, skipArg, VERBOSE (+5 more)
+Cohesion: 0.05
+Nodes (73): getAnexos(), brl(), LinhaPendente(), AprovacaoPage(), metadata, ContactExternalLinkRow, getContactExternalLinks(), getContactInteractions() (+65 more)
 
 ### Community 12 - "Contact Page Wireframe"
 Cohesion: 0.08
 Nodes (25): 2.1 · WhatsApp, 2.2 · Instagram, 2.3 · Localização, 2.4 · Horário, Bloco 1 · CABEÇALHO, Bloco 2 · GRID 2 COLUNAS, Coluna direita — Formulário, Coluna esquerda — Lista de contatos (+17 more)
 
 ### Community 13 - "Contact Data Layer"
-Cohesion: 0.13
-Nodes (34): extractIATA(), mapAeroporto(), mapCanal(), mapCartao(), mapCategoriaReceitasDespesas(), mapCompanhia(), mapConta(), mapCruzeiro() (+26 more)
+Cohesion: 0.14
+Nodes (33): extractIATA(), mapAeroporto(), mapCanal(), mapCartao(), mapCategoriaReceitasDespesas(), mapCompanhia(), mapConta(), mapCruzeiro() (+25 more)
 
 ### Community 14 - "CRM Stage Badges"
-Cohesion: 0.10
-Nodes (18): STAGE_CLASSES, StageBadge(), ICON, SyncBadge(), SyncBadgeProps, ESTAGIO_LABELS, EstagioFunil, ESTAGIOS_OPTIONS (+10 more)
+Cohesion: 0.09
+Nodes (22): STAGE_CLASSES, StageBadge(), ContactExternalLink, ExternalProvider, indexLinksByContact(), ContactGapFlags, GapCounts, GapResult (+14 more)
 
 ### Community 15 - "CRM Contacts Module"
 Cohesion: 0.09
 Nodes (22): Campos por agrupamento, Decisões críticas, Decisões pra travar, Estrutura de código, Estrutura visual em 4 grupos, Fluxo de captação, Formulário do site `/contato`, Mock plausível dos 8 contatos (+14 more)
 
 ### Community 16 - "Public Page Components"
-Cohesion: 0.14
-Nodes (9): VALORES, ServiceCard(), ServiceCardProps, ServiceCardTone, TONE, TestimonialCard(), TestimonialCardProps, TestimonialCardTone (+1 more)
+Cohesion: 0.10
+Nodes (14): VALORES, BlogCardProps, Divider(), DividerProps, DividerTone, TONE, ServiceCard(), ServiceCardProps (+6 more)
 
 ### Community 17 - "TypeScript Config"
 Cohesion: 0.10
@@ -229,12 +224,12 @@ Cohesion: 0.15
 Nodes (13): 1.10 Páginas administrativas auxiliares, 1.12 SEO técnico, 1.13 Performance e qualidade, 1.1 Setup do repositório e fundação, 1.2 Design System, 1.3 Páginas públicas, 1.4 Blog público + Admin do blog (estrutura completa, sem Sanity ainda), 1.5 Abstrações para integrações futuras (+5 more)
 
 ### Community 20 - "Contact Form Types"
-Cohesion: 0.15
-Nodes (17): AdminContactFormState, MOCK_INTERACTIONS, ContactInteraction, DESTINO_LABELS, DESTINOS_OPTIONS, ORCAMENTO_LABELS, ORCAMENTOS_OPTIONS, PERFIL_LABELS (+9 more)
+Cohesion: 0.11
+Nodes (25): AdminContactFormState, blankToNull(), ContactFormInput, draftContactFromForm(), createContact(), contactToInsertRow(), DESTINO_LABELS, DESTINOS_OPTIONS (+17 more)
 
 ### Community 21 - "Contact Detail UI"
-Cohesion: 0.11
-Nodes (16): findLink(), ContactInteractionType, AbrirNaOrigem(), ContactDetailClient(), DadosCard(), INTERACTION_ICON, moedaBRL, passageirosResumo() (+8 more)
+Cohesion: 0.10
+Nodes (21): AnexosBlock(), findLink(), ORIGEM_LABELS, ContactDetailClient(), ContatoHeader(), DadosCard(), iniciais(), INTERACTION_ICON (+13 more)
 
 ### Community 22 - "Image Asset Map"
 Cohesion: 0.06
@@ -254,7 +249,7 @@ Nodes (28): Autenticação, ChatFlow, ClickMassa API - Mapa de Endpoints, `DELET
 
 ### Community 26 - "Public Layout Pages"
 Cohesion: 0.11
-Nodes (17): Blog(), CONTATOS, metadata, metadata, metadata, metadata, BreadcrumbLevel, BreadcrumbProps (+9 more)
+Nodes (18): Blog(), CONTATOS, metadata, metadata, metadata, metadata, metadata, BreadcrumbLevel (+10 more)
 
 ### Community 27 - "Site Page Architecture"
 Cohesion: 0.14
@@ -265,16 +260,16 @@ Cohesion: 0.14
 Nodes (13): Blog — como publicar um post, Contexto do projeto, Deploy, Documentação, Estrutura de pastas, Fase 1 (Fundação local) — variáveis necessárias, Fase 3 (Produção) — variáveis adicionais, Fase 4 (Pós-launch) — variáveis adicionais (+5 more)
 
 ### Community 29 - "CTA Button Components"
-Cohesion: 0.15
-Nodes (14): DialogState, Props, Button(), ButtonProps, ButtonSize, buttonStyles(), ButtonVariant, SIZE_PADDING (+6 more)
+Cohesion: 0.26
+Nodes (10): Button(), ButtonProps, ButtonSize, buttonStyles(), ButtonVariant, SIZE_PADDING, SIZE_TEXT, VARIANT (+2 more)
 
 ### Community 30 - "Analytics Providers"
 Cohesion: 0.32
 Nodes (7): ga4Analytics, mockAnalytics, plausibleMetric(), seedFromDate(), AnalyticsProvider, MetricResult, Period
 
 ### Community 31 - "Contact Form Actions"
-Cohesion: 0.12
-Nodes (28): getCachedPipelineSteps(), readAllFromCache(), blankToNull(), ContactFormInput, draftContactFromForm(), addInteraction(), createContact(), ContactInsertRow (+20 more)
+Cohesion: 0.14
+Nodes (19): ICON, SyncBadge(), SyncBadgeProps, ContactInsertRow, ContactInteractionInsertRow, ContactInteractionRow, contactPatchToRow(), ContactRow (+11 more)
 
 ### Community 32 - "Europe Travel Blog Post"
 Cohesion: 0.07
@@ -289,24 +284,24 @@ Cohesion: 0.11
 Nodes (22): API_ID, CM_HEADERS, extractArray(), fetchWithTiming(), getEnvelopeKeys(), getEnvelopeMeta(), getPipelineStepsFromApi(), getPipelineStepsFromSupabase() (+14 more)
 
 ### Community 35 - "Publication Costs Guide"
-Cohesion: 0.14
-Nodes (16): Aba, SITUACAO_OPTIONS, createLancamento(), createNegocio(), LancamentoInsertRow, LancamentoRow, NegocioInsertRow, NegocioRow (+8 more)
+Cohesion: 0.10
+Nodes (25): Aba, SITUACAO_OPTIONS, ContactComercial, getContactComercial(), getIddasComercial(), getManualComercial(), IDDAS_VAZIO, IddasOrcamentoResumo (+17 more)
 
 ### Community 36 - "Destination Choice Blog Post"
-Cohesion: 0.14
-Nodes (18): ContactExternalLinkRow, ContactExternalLink, ExternalProvider, indexLinksByContact(), computeGapSegments(), ContactGapFlags, GapCounts, GapResult (+10 more)
+Cohesion: 0.40
+Nodes (9): computeGapSegments(), getContacts(), getDuplicateContactIds(), getSemEmailCount(), getSemIddasContactIds(), rpcContactIds(), EstagioFunil, AdminContatos() (+1 more)
 
 ### Community 37 - "Wireframe Validation Guide"
-Cohesion: 0.21
-Nodes (12): extractStepsFromApiResponse(), listPipelineStepsResilient(), PipelineStepDbRow, refreshPipelineStepsCache(), forceRefreshPipelineStepsAction(), brl(), dataFormatada(), FunilPage() (+4 more)
+Cohesion: 0.15
+Nodes (24): ActionResult, getAnexoUrlAction(), removeAnexoAction(), revalidarDono(), SignedUrlResult, uploadAnexoAction(), AnexoRow, nomeSeguro() (+16 more)
 
 ### Community 38 - "Project Changelog"
-Cohesion: 0.25
-Nodes (7): 2026, 2026-06-18 — Bronze ClickMassa completo: 1.484 contatos (Lote H/H.1/H.2), Adicionado, CHANGELOG — Spinhardi Turismo Site, INFRA, Pendente, Resolvido
+Cohesion: 0.20
+Nodes (9): 2026, 2026-06-19 — Lote 3 + rodada de fixes: dashboard gerencial real (mock Iddas morto) e ajustes de UI, [2026-06-23] D072 — Funil por jornada: nova entidade silver, 5 estágios canônicos, follow-up ortogonal, [2026-06-23] SITE — Funil de jornadas: UI completa, valor editável, anexos, to-do interno, Adicionado, CHANGELOG — Spinhardi Turismo Site, Pendente, Resolvido (+1 more)
 
 ### Community 39 - "Contacts Supabase Integration"
-Cohesion: 0.18
-Nodes (10): CreateOpportunityInput, ExternalUser, Opportunity, PipelineStep, Product, SendMessageInput, SendMessageResponse, SyncContactInput (+2 more)
+Cohesion: 0.16
+Nodes (15): getPostBySlug(), getPosts(), AdminBlogList(), EditarPost(), NotFound(), getSanityPostBySlug(), generateMetadata(), generateStaticParams() (+7 more)
 
 ### Community 40 - "Real Photos Integration"
 Cohesion: 0.22
@@ -314,11 +309,7 @@ Nodes (9): 2026-06-17 — Lote E + E.1: Auth real, fluxo aprovação manual, con
 
 ### Community 41 - "About Page"
 Cohesion: 0.29
-Nodes (5): metadata, Divider(), DividerProps, DividerTone, TONE
-
-### Community 42 - "Home Page Copy"
-Cohesion: 0.17
-Nodes (14): extractArray(), getOpportunity(), listOpportunities(), listProducts(), listTags(), listUsers(), usersUrl(), brl() (+6 more)
+Nodes (10): getCaptureOrigins(), getTags(), CaptureOriginRow, rowToCaptureOrigin(), rowToTag(), TagRow, AdminConfiguracoes(), metadata (+2 more)
 
 ### Community 43 - "Packages Page Copy"
 Cohesion: 0.12
@@ -337,12 +328,12 @@ Cohesion: 0.20
 Nodes (15): API_ID, API_PARENT, API_URL, extractTopLevelShape(), fetchOnce(), HEADERS, lastSlash, main() (+7 more)
 
 ### Community 47 - "Green Palette Update"
-Cohesion: 0.20
-Nodes (19): requireSession(), deleteNotaInterna(), getContactById(), updateContact(), updateNotaInterna(), rowToContact(), ContactStatus, ActionResult (+11 more)
+Cohesion: 0.19
+Nodes (21): requireSession(), addInteraction(), deleteNotaInterna(), getContactById(), updateContact(), updateNotaInterna(), rowToContact(), ContactStatus (+13 more)
 
 ### Community 48 - "Travel Hub Copy"
-Cohesion: 0.13
-Nodes (20): getSession(), SessionUser, ContactComercial, getContactComercial(), getIddasComercial(), getManualComercial(), IDDAS_VAZIO, IddasOrcamentoResumo (+12 more)
+Cohesion: 0.21
+Nodes (7): getSession(), SessionUser, login(), LoginState, supabaseServer(), AdminUsuarios(), metadata
 
 ### Community 49 - "Custom Travel Copy"
 Cohesion: 0.14
@@ -353,16 +344,16 @@ Cohesion: 0.27
 Nodes (13): API_URL, apiGet(), apiPost(), ApiResult, buildWelcomeMessageBody(), extractFirstStep(), HEADERS, main() (+5 more)
 
 ### Community 51 - "Contact Page Copy"
-Cohesion: 0.15
-Nodes (12): AdminHeader(), HeaderUser, AdminShell(), AdminSidebar(), NAV_GROUPS, hasPermission(), PERMISSIONS, Role (+4 more)
+Cohesion: 0.25
+Nodes (9): AdminHeader(), HeaderUser, AdminShell(), AdminSidebar(), NAV_GROUPS, hasPermission(), PERMISSIONS, Role (+1 more)
 
 ### Community 52 - "Global Navigation Copy"
-Cohesion: 0.28
-Nodes (23): ingestClickMassa(), jwtPreview(), CmResource, extractArray(), PipelineStep, recordResult(), runApiConfig(), runContacts() (+15 more)
+Cohesion: 0.25
+Nodes (3): config, PUBLIC_ADMIN_ROUTES, createClient()
 
 ### Community 53 - "June Update Summary"
-Cohesion: 0.32
-Nodes (6): ClickMassaError, updateOpportunity(), updateOpportunityStatus(), updateOpportunityAction(), updateOpportunityStatusAction(), ActionResult
+Cohesion: 0.40
+Nodes (5): 2026-06-18 — Bronze ClickMassa completo: 1.484 contatos (Lote H/H.1/H.2), Adicionado, INFRA, Pendente, Resolvido
 
 ### Community 54 - "New Contact Page"
 Cohesion: 0.29
@@ -373,8 +364,8 @@ Cohesion: 0.25
 Nodes (10): API_ID, API_PARENT, API_URL, apiFetch(), count(), firstItem(), HEADERS, lastSlash (+2 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.18
-Nodes (17): IngestionResult, GET(), handle(), POST(), safeEqual(), SOURCES, closeIngestionLog(), countsFromResult() (+9 more)
+Cohesion: 0.40
+Nodes (5): 2026-06-19 — Lote C: Contato 360 (timeline, resumo comercial, edição rápida inline), Adicionado, Pendente, Resolvido, SITE
 
 ### Community 64 - "Community 64"
 Cohesion: 0.20
@@ -383,10 +374,6 @@ Nodes (9): `capture_origins`, `contact_interactions`, `contacts`, Detalhamento p
 ### Community 65 - "Community 65"
 Cohesion: 0.12
 Nodes (16): Action items, **Alan Gattiboni**, **Amanda Gattiboni**, **Amanda Gattiboni e equipe financeira**, **Aprimoramento de Ferramentas e Procedimentos Operacionais**, **Controle de Despesas e Saúde Financeira da Agência**, **Estruturação Financeira: Orçamento, Receita, Custos e Margem**, General Summary (+8 more)
-
-### Community 66 - "Community 66"
-Cohesion: 0.39
-Nodes (7): getApiKey(), getClickMassaAuthHeader(), jwtPayload(), clickMassaFetch(), fetchOnce(), getBaseUrl(), RETRY_STATUSES
 
 ### Community 67 - "Community 67"
 Cohesion: 0.22
@@ -401,8 +388,8 @@ Cohesion: 0.31
 Nodes (7): CallResult, EXTERNAL_URL, extractFirstId(), extractSamples(), LogEntry, main(), sleep()
 
 ### Community 70 - "Community 70"
-Cohesion: 0.22
-Nodes (13): buildWelcomeMessageBody(), createOpportunity(), extractPayloadCode(), listPipelineSteps(), mapContact(), mapOpportunity(), mapPipelineStep(), mapResponsible() (+5 more)
+Cohesion: 0.06
+Nodes (51): getApiKey(), getClickMassaAuthHeader(), jwtPayload(), ClickMassaError, clickMassaFetch(), fetchOnce(), getBaseUrl(), RETRY_STATUSES (+43 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.25
@@ -460,10 +447,6 @@ Nodes (6): BASE, env, HEADERS, main(), probe(), safeUrl()
 Cohesion: 0.20
 Nodes (10): 2026-06-18 — Arquitetura de camadas bronze/silver/gold formalizada (D041), 2026-06-19 — Funil: módulo CM desmascarado + pivot pro funil interno (D066), Adicionado, Decisão, DECISÃO, Impacto, Pendente, Resolvido (+2 more)
 
-### Community 85 - "Community 85"
-Cohesion: 0.40
-Nodes (5): 2026-06-19 — Lote 3 + rodada de fixes: dashboard gerencial real (mock Iddas morto) e ajustes de UI, Adicionado, Pendente, Resolvido, SITE
-
 ### Community 86 - "Community 86"
 Cohesion: 0.40
 Nodes (5): 2026-06-18 — Bronze Iddas completo: 23 tabelas, 9.076 rows (Lote Iddas A/B), Adicionado, INFRA, Pendente, Resolvido
@@ -471,14 +454,6 @@ Nodes (5): 2026-06-18 — Bronze Iddas completo: 23 tabelas, 9.076 rows (Lote Id
 ### Community 87 - "Community 87"
 Cohesion: 0.40
 Nodes (5): 2026-06-19 — Contrato de dados do back-office CRM aprovado (Fases 0 a 2), Adicionado, Decisões, DOC, Pendente
-
-### Community 88 - "Community 88"
-Cohesion: 0.40
-Nodes (5): 2026-06-19 — Lote C: Contato 360 (timeline, resumo comercial, edição rápida inline), Adicionado, Pendente, Resolvido, SITE
-
-### Community 89 - "Community 89"
-Cohesion: 0.40
-Nodes (5): SyncContactResult, SyncContactStatus, ContactUpdateRow, mapSyncStatusToDb(), syncResultToContactPatch()
 
 ### Community 90 - "Community 90"
 Cohesion: 0.50
@@ -497,24 +472,24 @@ Cohesion: 0.83
 Nodes (3): isValidSignature(), POST(), safeEqual()
 
 ## Knowledge Gaps
-- **760 isolated node(s):** `contacts`, `eslintConfig`, `moas_result`, `nextConfig`, `name` (+755 more)
+- **777 isolated node(s):** `contacts`, `eslintConfig`, `moas_result`, `nextConfig`, `name` (+772 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `supabaseAdmin()` connect `Travel Hub Copy` to `Auth Session Management`, `Admin UI Components`, `Publication Costs Guide`, `Destination Choice Blog Post`, `Wireframe Validation Guide`, `Community 76`, `Green Palette Update`, `Contact Page Copy`, `New Contact Page`, `Community 63`, `Contact Form Actions`?**
-  _High betweenness centrality (0.075) - this node is a cross-community bridge._
-- **Why does `Button()` connect `CTA Button Components` to `Auth Session Management`, `Admin UI Components`, `Publication Costs Guide`, `Blog Post Management`, `Contacts Supabase Integration`, `CRM Stage Badges`, `Public Page Components`, `Contact Form Types`, `Contact Detail UI`, `Public Layout Pages`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `supabaseAdmin()` connect `Infrastructure Planning` to `Auth Session Management`, `Admin UI Components`, `Publication Costs Guide`, `Destination Choice Blog Post`, `Wireframe Validation Guide`, `Community 70`, `Project Decision History`, `About Page`, `Community 76`, `Green Palette Update`, `Travel Hub Copy`, `Contact Form Types`, `Global Navigation Copy`, `New Contact Page`?**
+  _High betweenness centrality (0.096) - this node is a cross-community bridge._
 - **Why does `@sanity/client` connect `Blog Post Management` to `Project Dependencies`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `Project Dependencies` to `Blog Post Management`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Are the 10 inferred relationships involving `requireSession()` (e.g. with `addContactNote()` and `criarAtendimento()`) actually correct?**
+  _`requireSession()` has 10 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 19 inferred relationships involving `ingestClickMassa()` (e.g. with `runApiConfig()` and `runContacts()`) actually correct?**
   _`ingestClickMassa()` has 19 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 8 inferred relationships involving `requireSession()` (e.g. with `addContactNote()` and `deleteContactNote()`) actually correct?**
-  _`requireSession()` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `contacts`, `eslintConfig`, `moas_result` to the rest of the system?**
-  _760 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Auth Session Management` be split into smaller, more focused modules?**
-  _Cohesion score 0.08985507246376812 - nodes in this community are weakly interconnected._
+  _777 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Admin UI Components` be split into smaller, more focused modules?**
+  _Cohesion score 0.09291521486643438 - nodes in this community are weakly interconnected._
