@@ -46,6 +46,7 @@ export default function Home() {
           src="/hero-principal-01.jpg"
           alt=""
           aspect="3/2"
+          objectPosition="center 65%"
           priority
           sizes="100vw"
           className="absolute inset-0 -z-10 h-full w-full"
@@ -103,7 +104,7 @@ export default function Home() {
             <div className="lg:col-span-1">
               <SpinhardiImage
                 src="/equipe-spinhardi-01-nina.jpg"
-                alt="Nina Spinhardi, sócia da agência"
+                alt="Angelina Saragiotto, sócia da agência"
                 aspect="2/3"
                 className="rounded-md"
                 sizes="(max-width: 1024px) 100vw, 33vw"
@@ -144,20 +145,13 @@ export default function Home() {
             <ServiceCard
               tone="dark"
               number="01"
-              title="Passagens e Serviços Avulsos"
-              description="Passagens aéreas, seguro viagem, hospedagem e transfers para quem já sabe o que quer."
-              href="/viagens"
-            />
-            <ServiceCard
-              tone="dark"
-              number="02"
-              title="Pacotes e Roteiros"
-              description="Cruzeiros, circuitos e pacotes completos para os principais destinos. Coordenamos tudo para você."
+              title="Pacotes e Serviços Avulsos"
+              description="Da passagem ou seguro avulso ao pacote completo com cruzeiros e circuitos. Você contrata só o que precisa, ou deixa toda a logística com a gente."
               href="/viagens/pacotes"
             />
             <ServiceCard
               tone="dark"
-              number="03"
+              number="02"
               title="Viagem Sob Medida"
               description="Curadoria completa desenhada do zero com você. Briefing, proposta e acompanhamento total."
               href="/viagens/sob-medida"
@@ -259,7 +253,7 @@ export default function Home() {
               Quando quiser começar, a gente está aqui.
             </h2>
             <p className="mb-12 font-body text-lg leading-relaxed text-white/80">
-              Sem compromisso. Sem pressão. Conte o que você quer viver e a gente pensa juntos.
+              Sem compromisso. Sem pressão. Conta o que você quer viver e a gente pensa juntos.
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <CTAWhatsApp variant="primary" size="lg" label="Vamos conversar" />

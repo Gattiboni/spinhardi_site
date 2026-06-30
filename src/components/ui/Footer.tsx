@@ -107,13 +107,7 @@ export default function Footer() {
         <Divider tone="light" />
         <div className="py-8">
           <p className="text-center font-body text-xs text-white/50 md:text-left">
-            © 2026 Spinhardi Turismo · Todos os direitos reservados ·{" "}
-            <Link
-              href="/politica-de-privacidade"
-              className="transition-colors duration-short hover:text-white/80"
-            >
-              Política de privacidade
-            </Link>
+            © 2026 Spinhardi Turismo · Todos os direitos reservados
           </p>
         </div>
       </Container>

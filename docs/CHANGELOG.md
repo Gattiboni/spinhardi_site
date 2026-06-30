@@ -15,6 +15,53 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-29] SITE — Lote de fixes do site público (feedback do grupo de marketing)
+
+Ciclo de ajustes recolhidos no grupo SPINHARDI MARKETING (17–18/06) + débitos
+encontrados de passagem. Lote único, sem migração de stack.
+
+- **Serviços 3→2** (ver D078): home, /viagens, /viagens/pacotes e footer passam
+  a expor "Pacotes e Serviços Avulsos" (→ /viagens/pacotes) e "Viagem Sob
+  Medida" (→ /viagens/sob-medida). "Roteiros" eliminado; "Passagens Avulsas"
+  absorvida. /viagens/pacotes: H1 voltou ao padrão tagline ("Do item avulso ao
+  pacote completo."), com o nome do produto em breadcrumb + title; nova linha em
+  "O que está incluído" explicitando contratação avulsa ou em pacote.
+- **Sobre:** fotos das sócias movidas para depois da linha do tempo. Nova seção
+  "Nosso time hoje" (eyebrow "Quem cuida da sua viagem" + parágrafo de time
+  Itália/Portugal/África/Disney + as 2 fotos no mesmo box 3/4). Nova ordem:
+  cabeçalho → linha do tempo → nosso time → valores → CTA.
+- **Voz dos CTAs** padronizada para "Conta..." (encerra a inconsistência
+  Conta/Conte): /viagens, /sobre, /contato, home e a etapa 01 de /sob-medida.
+- **Localização** (/contato): "Atendimento online em todo o Brasil" (ver D077,
+  provisório, diverge do Branding v3).
+- **Hero (home):** `objectPosition="center 65%"` para mostrar a villa/vale no
+  desktop em vez do céu. É recorte reposicionado, não a foto inteira — fix
+  mínimo e local, sem tocar no SpinhardiImage compartilhado.
+- **Favicon:** pássaro novo. `favicon.ico` regenerado multi-resolução (16/32/48)
+  a partir do `icon.png`, + `icon.png` e `apple-icon.png` adicionados.
+- **Footer:** links de serviço por produto (era 3 furados → /viagens); removido
+  o link para /politica-de-privacidade (página inexistente).
+- **alt** da foto na home corrigido para "Angelina Saragiotto" (era "Nina
+  Spinhardi").
+
+Arquivos: home · sobre · viagens · viagens/pacotes · viagens/sob-medida ·
+contato · navigation.ts · Footer.tsx + 3 ícones (favicon.ico, icon.png,
+apple-icon.png).
+
+**Pendências rastreadas (não esquecer):**
+
+- **Validação visual da Nina** (não bloqueou o commit, por decisão do Alan): o
+  hero é recorte reposicionado, não a foto inteira — se ela quiser a foto
+  inteira, é ajuste estrutural da altura do hero (próximo lote). Tamanho final
+  das fotos do Sobre (box 3/4) também depende do olho dela.
+- **LGPD — implementar EM BREVE:** criar a página real /politica-de-privacidade
+  (link removido por ora). Conteúdo jurídico precisa de revisão.
+- **Copy institucional 100% hardcoded** nos `.tsx`; só o blog é Sanity. Toda
+  correção de texto institucional é deploy de código. Avaliar migrar para o
+  Sanity no futuro, para a Nina editar sem deploy.
+
+---
+
 ### [2026-06-23] SITE — Funil de jornadas: UI completa, valor editável, anexos, to-do interno
 
 Ciclo de implementação da UI do funil (D073-D076) sobre o modelo de jornada

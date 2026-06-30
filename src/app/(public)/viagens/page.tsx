@@ -40,7 +40,7 @@ export default function Viagens() {
       <Section spacing="lg" className="bg-white">
         <Container>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12">
-            {/* Card 01 · Pacotes e Roteiros */}
+            {/* Card 01 · Pacotes e Serviços Avulsos */}
             <Link
               href="/viagens/pacotes"
               className="group block overflow-hidden rounded-md border border-dark/10 bg-white transition-all duration-medium ease-smooth hover:border-gold/30 hover:shadow-lg"
@@ -57,11 +57,11 @@ export default function Viagens() {
               <div className="p-8 lg:p-10">
                 <span className="mb-4 block font-display text-4xl text-gold">01</span>
                 <h3 className="mb-4 font-display text-3xl text-navy transition-colors duration-short group-hover:text-gold">
-                  Pacotes e Roteiros
+                  Pacotes e Serviços Avulsos
                 </h3>
                 <p className="mb-6 font-body text-base leading-relaxed text-dark/70">
-                  Cruzeiros, circuitos e pacotes completos. Coordenamos tudo para quem quer viajar
-                  com segurança e sem complicação.
+                  Da passagem ou seguro avulso ao pacote completo com cruzeiros e circuitos. Você
+                  contrata só o que precisa, ou deixa toda a logística com a gente.
                 </p>
                 <p className="inline-flex items-center gap-2 font-body text-sm uppercase tracking-widest text-gold">
                   Ver mais
@@ -115,7 +115,7 @@ export default function Viagens() {
               Não sabe por onde começar?
             </h2>
             <p className="mb-12 font-body text-lg leading-relaxed text-dark/80">
-              Me conta o que você tem em mente.
+              Conta pra gente o que tem em mente?
             </p>
             <div className="flex justify-center">
               <CTAWhatsApp variant="primary" size="lg" label="Fale com a gente" />

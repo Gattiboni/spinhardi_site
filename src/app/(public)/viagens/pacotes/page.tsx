@@ -7,9 +7,9 @@ import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 
 export const metadata: Metadata = {
-  title: "Pacotes e Roteiros",
+  title: "Pacotes e Serviços Avulsos",
   description:
-    "Pacotes pensados para quem quer ir e voltar tranquilo. Cruzeiros, circuitos e pacotes completos para os principais destinos.",
+    "Da passagem ou seguro avulso ao pacote completo com cruzeiros e circuitos. Você contrata só o que precisa ou deixa todo o planejamento com a gente.",
 };
 
 export default function Pacotes() {
@@ -22,19 +22,18 @@ export default function Pacotes() {
             levels={[
               { label: "Home", href: "/" },
               { label: "Viagens", href: "/viagens" },
-              { label: "Pacotes e Roteiros" },
+              { label: "Pacotes e Serviços Avulsos" },
             ]}
             className="mb-6"
           />
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-navy leading-tight mb-6 max-w-4xl">
-            Pacotes pensados para quem quer
-            <br className="hidden md:block" />
-            ir e voltar tranquilo.
+            Do item avulso ao pacote completo.
           </h1>
           <p className="font-body text-lg lg:text-xl text-dark/80 max-w-2xl leading-relaxed">
-            Cruzeiros, circuitos e pacotes completos para os principais destinos. Cuidamos de todo o
-            planejamento e a logística para que você só precise aproveitar.
+            Passagens, seguro, hospedagem, transfers, cruzeiros e circuitos. Você contrata só o que
+            precisa ou deixa todo o planejamento e a logística com a gente — para ir e voltar
+            tranquilo.
           </p>
         </Container>
       </Section>
@@ -45,8 +44,12 @@ export default function Pacotes() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
             {/* Coluna esquerda: lista numerada */}
             <div className="lg:col-span-7">
-              <p className="text-gold uppercase tracking-widest text-sm font-body mb-8">
+              <p className="text-gold uppercase tracking-widest text-sm font-body mb-4">
                 O que está incluído
+              </p>
+              <p className="font-body text-base text-dark/70 leading-relaxed mb-8 max-w-2xl">
+                Você pode contratar cada um desses serviços de forma avulsa, ou todos juntos em um
+                pacote completo.
               </p>
 
               <div className="divide-y divide-dark/10">

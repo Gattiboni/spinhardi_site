@@ -38,41 +38,7 @@ export default function Sobre() {
         </Container>
       </Section>
 
-      {/* Bloco 2 · Sócias (Nina + Julia lado a lado) */}
-      <Section spacing="md" className="bg-white">
-        <Container>
-          <div className="mx-auto max-w-2xl">
-            <div className="grid grid-cols-2 gap-8 md:gap-12">
-              <figure className="flex flex-col items-center">
-                <SpinhardiImage
-                  src="/equipe-spinhardi-01-nina.jpg"
-                  alt="Angelina Saragiotto, sócia da Spinhardi Turismo"
-                  aspect="2/3"
-                  className="max-w-50 rounded-md"
-                  sizes="(max-width: 768px) 40vw, 200px"
-                />
-                <figcaption className="mt-4 font-display text-base text-dark">
-                  Angelina Saragiotto
-                </figcaption>
-              </figure>
-              <figure className="flex flex-col items-center">
-                <SpinhardiImage
-                  src="/equipe-spinhardi-02-julia.jpg"
-                  alt="Julia Scappini, sócia da Spinhardi Turismo"
-                  aspect="9/16"
-                  className="max-w-50 rounded-md"
-                  sizes="(max-width: 768px) 40vw, 200px"
-                />
-                <figcaption className="mt-4 font-display text-base text-dark">
-                  Julia Scappini
-                </figcaption>
-              </figure>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* Bloco 3 · Linha do tempo (navy) */}
+      {/* Bloco 2 · Linha do tempo (navy) */}
       <Section spacing="lg" className="bg-navy text-white">
         <Container>
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
@@ -144,6 +110,52 @@ export default function Sobre() {
         </Container>
       </Section>
 
+      {/* Bloco 3 · Nosso time hoje (miolo entre história e valores) */}
+      <Section spacing="lg" className="bg-white text-dark">
+        <Container>
+          <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
+            Quem cuida da sua viagem
+          </p>
+          <h2 className="mb-6 max-w-3xl font-display text-4xl leading-tight text-navy md:text-5xl">
+            Nosso time hoje
+          </h2>
+          <p className="mb-12 max-w-2xl font-body text-base leading-relaxed text-dark/80 lg:text-lg">
+            Quem conduz a Spinhardi hoje é um time formado por especialistas em diferentes frentes —
+            Itália, Portugal, África, Disney, entre outros destinos. Cada viagem que sai daqui
+            carrega esse conhecimento reunido, do início ao fim da sua viagem.
+          </p>
+
+          <div className="mx-auto max-w-2xl">
+            <div className="grid grid-cols-2 gap-8 md:gap-12">
+              <figure className="flex flex-col items-center">
+                <SpinhardiImage
+                  src="/equipe-spinhardi-01-nina.jpg"
+                  alt="Angelina Saragiotto, sócia da Spinhardi Turismo"
+                  aspect="3/4"
+                  className="max-w-50 rounded-md"
+                  sizes="(max-width: 768px) 40vw, 200px"
+                />
+                <figcaption className="mt-4 font-display text-base text-dark">
+                  Angelina Saragiotto
+                </figcaption>
+              </figure>
+              <figure className="flex flex-col items-center">
+                <SpinhardiImage
+                  src="/equipe-spinhardi-02-julia.jpg"
+                  alt="Julia Scappini, sócia da Spinhardi Turismo"
+                  aspect="3/4"
+                  className="max-w-50 rounded-md"
+                  sizes="(max-width: 768px) 40vw, 200px"
+                />
+                <figcaption className="mt-4 font-display text-base text-dark">
+                  Julia Scappini
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
       {/* Bloco 4 · Valores (4 colunas) */}
       <Section spacing="lg" className="bg-white text-dark">
         <Container>
@@ -200,7 +212,7 @@ export default function Sobre() {
               Quer conversar com a gente?
             </h2>
             <p className="mb-12 font-body text-lg leading-relaxed text-dark/80">
-              A conversa não compromete nada. Me conta o que você tem em mente.
+              A conversa não compromete nada. Conta pra gente o que tem em mente?
             </p>
             <div className="flex justify-center">
               <CTAWhatsApp variant="primary" size="lg" label="Fale com a gente" />

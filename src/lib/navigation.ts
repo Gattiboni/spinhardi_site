@@ -29,11 +29,9 @@ export const NAV_LINKS: NavLink[] = [
 export const FOOTER_PAGE_LINKS: NavLink[] = [{ href: "/", label: "Home" }, ...NAV_LINKS];
 
 /**
- * Coluna "Serviços" do Footer.
- * As subpáginas ainda não existem; por ora os três itens apontam para /viagens.
+ * Coluna "Serviços" do Footer — um link por produto, apontando para a subpágina.
  */
 export const FOOTER_SERVICE_LINKS: NavLink[] = [
-  { href: "/viagens", label: "Pacotes e Roteiros" },
-  { href: "/viagens", label: "Viagem Sob Medida" },
-  { href: "/viagens", label: "Passagens Avulsas" },
+  { href: "/viagens/pacotes", label: "Pacotes e Serviços Avulsos" },
+  { href: "/viagens/sob-medida", label: "Viagem Sob Medida" },
 ];

@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Contato",
   description:
-    "Vamos conversar. Sem compromisso. Sem pressão. Me conte o que você tem em mente e a gente pensa juntos.",
+    "Vamos conversar. Sem compromisso. Sem pressão. Conta o que você tem em mente e a gente pensa juntos.",
 };
 
 const CONTATOS = [
@@ -29,7 +29,7 @@ const CONTATOS = [
   {
     label: "Localização",
     principal: "Serra Negra, SP",
-    secundaria: "Atendimento em todo o Brasil, presencial em Serra Negra.",
+    secundaria: "Atendimento online em todo o Brasil.",
     href: null,
     external: false,
   },
@@ -57,7 +57,7 @@ export default function Contato() {
             Vamos conversar
           </h1>
           <p className="font-body text-lg lg:text-xl text-dark/80 max-w-2xl leading-relaxed">
-            Sem compromisso. Sem pressão. Me conte o que você tem em mente e a gente pensa juntos.
+            Sem compromisso. Sem pressão. Conta o que você tem em mente e a gente pensa juntos.
           </p>
         </Container>
       </Section>

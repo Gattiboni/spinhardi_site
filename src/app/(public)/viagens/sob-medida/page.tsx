@@ -57,8 +57,8 @@ export default function SobMedida() {
                       Conversa inicial
                     </h3>
                     <p className="font-body text-base text-dark/70 leading-relaxed">
-                      Me conte o que você quer viver. Não o destino, a experiência. A partir daí a
-                      gente começa a desenhar.
+                      Conta pra gente o que você quer viver. Não o destino, a experiência. A partir
+                      daí a gente começa a desenhar.
                     </p>
                   </div>
                 </div>

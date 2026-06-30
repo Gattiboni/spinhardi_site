@@ -28,6 +28,71 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-06-29] D078 — Serviços do site: consolidação de 3 frentes para 2
+
+**Contexto:** O site público nasceu com as frentes de serviço expostas de forma
+inconsistente: a home listava 3 cards ("Passagens e Serviços Avulsos" →
+/viagens, "Pacotes e Roteiros" → /viagens/pacotes, "Viagem Sob Medida" →
+/viagens/sob-medida), a /viagens tinha só 2 cards (sem o avulso), o footer tinha
+3 links apontando todos para /viagens, e não existia página de avulsos. No grupo
+(18/06), Amanda e Nina apontaram a confusão: "Roteiros" se sobrepõe a "Sob
+Medida", e o avulso não tinha lar próprio.
+
+**Alternativas consideradas:**
+
+- Criar página dedicada /viagens/avulsas (proposta inicial da Amanda): mais uma
+  rota a manter, sendo que o conteúdo do avulso (passagem, seguro, hospedagem,
+  transfer) já existe dentro de /viagens/pacotes em "O que está incluído".
+- Renomear "Roteiros" para "Itens Avulsos" mantendo 3 frentes (proposta da
+  Nina): ainda 3 cards, ainda sobreposição com Sob Medida.
+- Fundir em 2 frentes: o avulso é absorvido em "Pacotes e Serviços Avulsos".
+
+**Decisão:** 2 frentes em todo o site. (1) "Pacotes e Serviços Avulsos" →
+/viagens/pacotes; (2) "Viagem Sob Medida" → /viagens/sob-medida. "Roteiros"
+eliminado (roteiro = Sob Medida). Sem página de avulsos separada: o avulso é
+apresentado dentro de /viagens/pacotes, com uma linha em "O que está incluído"
+explicitando que cada serviço pode ser contratado avulso ou em pacote. Naming
+"Serviços Avulsos" (não "Itens"), conforme texto final da Amanda. Footer passa a
+linkar por produto, não para /viagens.
+
+**Racional:** Elimina a sobreposição Roteiros/Sob-Medida e dá lar ao avulso sem
+criar rota órfã, já que /viagens/pacotes continha os ingredientes do avulso. O
+link por produto no footer resolve de quebra o pedido da Amanda de "link direto
+para o produto, não para /viagens".
+
+**Responsável:** Alan Gattiboni (decisão Amanda + Nina, grupo 18/06) **Status:**
+Ativa
+
+---
+
+### [2026-06-29] D077 — Localização: atendimento online, sem presencial (provisório)
+
+**Contexto:** O site exibia "Atendimento em todo o Brasil, presencial em Serra
+Negra." Amanda (grupo, 18/06) pediu trocar para "atendimento online em todo o
+Brasil", com a ressalva explícita "por enquanto".
+
+**Alternativas consideradas:**
+
+- Manter "presencial em Serra Negra": alinhado ao Branding Book, mas não reflete
+  o momento operacional atual da agência.
+- Online apenas, mantendo o rótulo "Serra Negra, SP" como sede.
+
+**Decisão:** Texto auxiliar da localização (/contato) passa a ser "Atendimento
+online em todo o Brasil." O rótulo "Serra Negra, SP" permanece (sede e âncora da
+história). Removida a menção a atendimento presencial.
+
+**Racional:** Decisão provisória de comunicação, a pedido da Amanda. **Diverge
+do Branding Book Lite v3**, que coloca o atendimento presencial e Serra Negra
+como base da marca no momento AGORA. Registrada aqui para que a remoção do
+"presencial" não seja interpretada como erro e revertida sem querer: foi
+deliberada, e deve ser revisitada quando/se o presencial voltar a ser
+comunicado.
+
+**Responsável:** Alan Gattiboni (a pedido de Amanda) **Status:** Ativa
+(provisória)
+
+---
+
 ### [2026-06-23] D076 — UI do funil: cards, detalhe e ficha reconstruídos sobre referência de mercado
 
 **Contexto:** A primeira versão da UI do funil (kanban + detalhe + ficha) foi
