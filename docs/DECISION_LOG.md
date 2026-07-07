@@ -56,10 +56,11 @@ lê `?token_hash` e `?type=recovery` e chama
 `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`. Site URL cravado
 em `https://www.spinharditurismo.com.br`; Redirect URLs com o callback de
 localhost (dev) e de prod. Anti-enumeração na tela de solicitação (mensagem
-neutra sempre, exista a conta ou não). **Dependência de produção (pendente):**
-SMTP custom (Resend) — o SMTP default do Supabase só entrega para membros do
-projeto, então em prod o email de reset da Nina só chega com o custom SMTP
-configurado.
+neutra sempre, exista a conta ou não). **Entrega de email:** o SMTP custom via
+Resend (D010) já está configurado no projeto (Enable custom SMTP ligado; sender
+`contato@spinharditurismo.com.br`; `smtp.resend.com:465`; intervalo mínimo 60s),
+então o reset chega a qualquer destinatário, incluindo a Nina, sem depender do
+SMTP default (que só entregaria a membros do projeto).
 
 **Racional:** Cross-device é requisito de UX real para a Nina (abre o email onde
 estiver). O `{{ .RedirectTo }}` elimina o único efeito colateral do token_hash

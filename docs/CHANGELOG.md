@@ -32,17 +32,20 @@ Fluxo de recuperação de senha no /admin (D079), sobre Supabase Auth
   `https://www.spinharditurismo.com.br`; Redirect URLs com callback de localhost
   (dev) + prod; template "Reset Password" com href `{{ .RedirectTo }}` (mantém
   Site URL em prod, link adapta ao origin), identidade Spinhardi (navy/ouro).
+  SMTP custom via Resend ativo (D010): sender `contato@spinharditurismo.com.br`,
+  `smtp.resend.com:465`, intervalo mínimo 60s, então o reset chega a qualquer
+  destinatário, não só a membros do projeto.
 - **Arquivos:** admin/esqueci-senha (page + actions) ·
   admin/auth/callback/route.ts · admin/redefinir-senha (page + form + actions) ·
   admin/login (link) · proxy.ts (allowlist pública das 3 rotas).
 
 **Pendências rastreadas (não esquecer):**
 
-- **SMTP custom (Resend) — pré-requisito de produção:** o SMTP default do
-  Supabase só entrega para membros do projeto (por isso deu pra validar local
-  com o email do Alan). Em prod, o reset da Nina (email não-membro) só chega com
-  o custom SMTP configurado. Sender `nao-responda@spinharditurismo.com.br` no
-  domínio verificado, porta 465. Config de dashboard, gate do Alan.
+- **Validar reset em produção:** validado local, incluindo navegador diferente
+  (prova do cross-device). O e2e em produção com um destinatário não-membro
+  ainda não foi confirmado. Conferir de passagem que o callback de prod
+  (`https://www.spinharditurismo.com.br/admin/auth/callback`) está nas Redirect
+  URLs e que o email chega a um endereço não-membro.
 - **Prefetch de link único:** scanner de email (Safe Links etc) pode consumir o
   link de uso único antes do clique, gerando "link inválido". Comum a qualquer
   link de auth, baixo para o stack da Nina; já tratado com o estado de erro +
