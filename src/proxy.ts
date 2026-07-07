@@ -18,7 +18,16 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/env";
  * O matcher é exatamente `/admin/:path*` — nada público (`/`, `/sobre`,
  * `/viagens/*`, `/blog/*`, `/contato`) é interceptado.
  */
-const PUBLIC_ADMIN_ROUTES = ["/admin/login", "/admin/solicitar-acesso", "/admin/aguardando"];
+const PUBLIC_ADMIN_ROUTES = [
+  "/admin/login",
+  "/admin/solicitar-acesso",
+  "/admin/aguardando",
+  // Fluxo "esqueci minha senha": o usuário chega aqui sem sessão (o callback é
+  // quem estabelece a sessão de recovery), então o proxy não pode barrar.
+  "/admin/esqueci-senha",
+  "/admin/redefinir-senha",
+  "/admin/auth/callback",
+];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

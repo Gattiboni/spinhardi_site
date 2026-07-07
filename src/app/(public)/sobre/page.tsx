@@ -27,7 +27,7 @@ export default function Sobre() {
             Nossa história
           </p>
           <h1 className="mb-6 max-w-4xl font-display text-5xl leading-tight text-navy md:text-6xl lg:text-7xl">
-            Uma agência construída à mão.
+            Uma agência construída à mão.{" "}
             <br className="hidden md:block" />
             Por quase quatro décadas.
           </h1>

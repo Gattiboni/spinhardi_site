@@ -78,7 +78,13 @@ export default function LoginPage() {
             <SubmitButton />
           </form>
 
-          <p className="mt-8 text-center font-body text-sm text-dark/60">
+          <p className="mt-6 text-center font-body text-sm">
+            <Link href="/admin/esqueci-senha" className="text-gold hover:underline">
+              Esqueci minha senha
+            </Link>
+          </p>
+
+          <p className="mt-4 text-center font-body text-sm text-dark/60">
             Não tem acesso?{" "}
             <Link href="/admin/solicitar-acesso" className="text-gold hover:underline">
               Solicitar acesso

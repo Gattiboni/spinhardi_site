@@ -25,7 +25,7 @@ export default function Viagens() {
           />
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">Viagens</p>
           <h1 className="mb-6 max-w-4xl font-display text-5xl leading-tight text-navy md:text-6xl lg:text-7xl">
-            Como podemos ajudar
+            Como podemos ajudar{" "}
             <br className="hidden md:block" />
             na sua próxima viagem.
           </h1>

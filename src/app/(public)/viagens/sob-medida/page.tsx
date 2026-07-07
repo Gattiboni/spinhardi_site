@@ -28,7 +28,7 @@ export default function SobMedida() {
           />
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-navy leading-tight mb-6 max-w-4xl">
-            Cada detalhe de acordo com
+            Cada detalhe de acordo com{" "}
             <br className="hidden md:block" />o que você quer viver.
           </h1>
           <p className="font-body text-lg lg:text-xl text-dark/80 max-w-2xl leading-relaxed">

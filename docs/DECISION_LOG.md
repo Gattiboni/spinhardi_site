@@ -28,6 +28,52 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-07-06] D079 — Esqueci minha senha (back-office): recovery via token_hash + verifyOtp, não PKCE code-based
+
+**Contexto:** O back-office (Supabase Auth, email+senha) não tinha recuperação
+de senha. Nina precisa redefinir sozinha. A primeira implementação usou o fluxo
+PKCE code-based padrão do @supabase/ssr (callback com `exchangeCodeForSession`
+lendo `?code=`), que amarra o link ao mesmo navegador onde foi solicitado (o
+`code_verifier` fica em cookie). Nina pedir no desktop do escritório e abrir no
+celular cairia em "link inválido".
+
+**Alternativas consideradas:**
+
+- PKCE code-based (`exchangeCodeForSession` + template
+  `{{ .ConfirmationURL }}`): padrão do SDK, mas exige mesmo-navegador.
+- token_hash + `verifyOtp` com link baseado em `{{ .SiteURL }}`: cross-device
+  (verifica server-side, sem `code_verifier`), mas a base em SiteURL forçaria
+  trocar o Site URL para localhost a cada teste local.
+- token_hash + `verifyOtp` com link baseado em `{{ .RedirectTo }}`: mesmo
+  cross-device, e o link se adapta ao origin (localhost/preview/prod), mantendo
+  o Site URL cravado em prod.
+
+**Decisão:** Recovery via token_hash + `verifyOtp`. A callback (Route Handler)
+lê `?token_hash` e `?type=recovery` e chama
+`verifyOtp({ type: "recovery", token_hash })`, com `type` comparado ao literal
+`"recovery"` (sem cast de input externo). O `resetPasswordForEmail` mantém
+`redirectTo = ${origin}/admin/auth/callback`. Template "Reset Password" com href
+`{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`. Site URL cravado
+em `https://www.spinharditurismo.com.br`; Redirect URLs com o callback de
+localhost (dev) e de prod. Anti-enumeração na tela de solicitação (mensagem
+neutra sempre, exista a conta ou não). **Dependência de produção (pendente):**
+SMTP custom (Resend) — o SMTP default do Supabase só entrega para membros do
+projeto, então em prod o email de reset da Nina só chega com o custom SMTP
+configurado.
+
+**Racional:** Cross-device é requisito de UX real para a Nina (abre o email onde
+estiver). O `{{ .RedirectTo }}` elimina o único efeito colateral do token_hash
+(base em SiteURL forçaria Site URL em localhost), mantendo a config zero-dívida.
+Validado localmente, incluindo abrir o link em navegador diferente (funcionou,
+provando que não depende do cookie do navegador de origem). Comparar com literal
+em vez de castar valida o input de fato. Caveat conhecido e aceito: link de uso
+único pode ser consumido por prefetch de scanner de email (Safe Links etc),
+efeito comum a qualquer link de auth e baixo para o stack da Nina.
+
+**Responsável:** Alan Gattiboni (validação local) **Status:** Ativa
+
+---
+
 ### [2026-06-29] D078 — Serviços do site: consolidação de 3 frentes para 2
 
 **Contexto:** O site público nasceu com as frentes de serviço expostas de forma

@@ -15,6 +15,41 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-07-06] SITE — Esqueci minha senha (back-office): recovery cross-device via token_hash
+
+Fluxo de recuperação de senha no /admin (D079), sobre Supabase Auth
+(@supabase/ssr).
+
+- **Fluxo:** /admin/login ganha link "Esqueci minha senha" →
+  /admin/esqueci-senha (input de email, mensagem neutra anti-enumeração) → email
+  → /admin/auth/callback (`verifyOtp`) → /admin/redefinir-senha (nova senha,
+  mín. 8 chars, confirma sessão de recovery) → /admin logado.
+- **Mecanismo:** token_hash + `verifyOtp` em vez de PKCE code-based (ver D079).
+  Callback lê `?token_hash&type=recovery` e compara `type` com literal
+  `"recovery"` (sem cast). Cross-device: link funciona aberto em
+  navegador/aparelho diferente, validado local.
+- **Config dashboard:** Site URL cravado em
+  `https://www.spinharditurismo.com.br`; Redirect URLs com callback de localhost
+  (dev) + prod; template "Reset Password" com href `{{ .RedirectTo }}` (mantém
+  Site URL em prod, link adapta ao origin), identidade Spinhardi (navy/ouro).
+- **Arquivos:** admin/esqueci-senha (page + actions) ·
+  admin/auth/callback/route.ts · admin/redefinir-senha (page + form + actions) ·
+  admin/login (link) · proxy.ts (allowlist pública das 3 rotas).
+
+**Pendências rastreadas (não esquecer):**
+
+- **SMTP custom (Resend) — pré-requisito de produção:** o SMTP default do
+  Supabase só entrega para membros do projeto (por isso deu pra validar local
+  com o email do Alan). Em prod, o reset da Nina (email não-membro) só chega com
+  o custom SMTP configurado. Sender `nao-responda@spinharditurismo.com.br` no
+  domínio verificado, porta 465. Config de dashboard, gate do Alan.
+- **Prefetch de link único:** scanner de email (Safe Links etc) pode consumir o
+  link de uso único antes do clique, gerando "link inválido". Comum a qualquer
+  link de auth, baixo para o stack da Nina; já tratado com o estado de erro +
+  botão de novo link. Se aparecer na prática, mitigar com landing intermediária.
+
+---
+
 ### [2026-06-29] SITE — Lote de fixes do site público (feedback do grupo de marketing)
 
 Ciclo de ajustes recolhidos no grupo SPINHARDI MARKETING (17–18/06) + débitos
