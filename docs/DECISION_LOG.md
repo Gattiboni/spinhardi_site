@@ -28,6 +28,54 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-07-08] D080 — Hero da home: parallax de revelação em 3 camadas, sem Ken Burns
+
+**Contexto:** O hero da home usa recorte tipo cover. Quanto mais larga a tela
+(caso extremo: ultrawide), mais o topo da foto é cortado, e a imagem ficava
+estática com corte seco para o navy da seção seguinte. Feedback direto de Alan:
+foto sub-aproveitada e sem vida. O `object-position: center 65%` original
+existia justamente para esconder o topo cortado — sintoma do problema, não
+solução.
+
+**Alternativas consideradas:**
+
+- Só ajustar altura/crop via CSS: resolve parte do recorte, mantém imagem morta.
+- Biblioteca de animação (Framer Motion, GSAP): dependência nova para uma
+  mecânica que vanilla rAF + CSS resolve. Contra zero dívida.
+- Ken Burns (zoom lento contínuo): prototipado no mockup e rejeitado por Alan na
+  avaliação visual.
+- 3 camadas vanilla: altura adaptativa + parallax de revelação + fade pro navy.
+
+**Decisão:** Mecânica de 3 camadas aprovada via mockup HTML standalone antes de
+qualquer código de produção:
+
+1. Altura adaptativa `clamp(520px, 86vh, 1100px)` aplicada de `md` para cima;
+   mobile preserva a altura content-driven original (split deliberado para
+   evitar regressão onde não havia problema).
+2. Parallax de revelação: wrapper da imagem com `height:132%; top:-32%`,
+   `translateY = min(scrollY*0.45, heroHeight*0.32)` via translate3d + rAF +
+   listener passivo. O recorte do topo deixa de ser perda e vira reserva de
+   conteúdo revelada no scroll. `prefers-reduced-motion` desliga tudo.
+3. Fade de 34% na base, gradiente transparente → `#1A2B4A`, eliminando o corte
+   seco para a seção navy.
+
+Client boundary mínima: só o backdrop (`HomeHeroBackdrop.tsx`) é `"use client"`;
+a página e o copy do hero seguem server-rendered. Só a foto se move: overlay de
+legibilidade, fade e copy são estáticos acima dela. `object-position` voltou a
+`center` (a geometria de revelação torna o bias de 65% desnecessário). Sem véu
+de topo: o overlay `bg-navy/60` existente já garante legibilidade da nav
+transparente.
+
+**Racional:** Movimento não se aprova por texto — mockup standalone com toggles
+antes do código de produção evitou retrabalho e matou o Ken Burns barato. Zero
+dependência nova. Nota: o `bg-navy/60` sobre a imagem inteira fica registrado
+como candidato a afinamento futuro (avaliar reduzir ou converter em gradiente
+localizado), fora do escopo desta entrega.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [2026-07-06] D079 — Esqueci minha senha (back-office): recovery via token_hash + verifyOtp, não PKCE code-based
 
 **Contexto:** O back-office (Supabase Auth, email+senha) não tinha recuperação

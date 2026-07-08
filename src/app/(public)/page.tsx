@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import Divider from "@/components/ui/Divider";
+import HomeHeroBackdrop from "@/components/ui/HomeHeroBackdrop";
 import Section from "@/components/ui/Section";
 import ServiceCard from "@/components/ui/ServiceCard";
 import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
@@ -39,20 +40,10 @@ export default function Home() {
       {/* Bloco 1 · Hero */}
       <Section
         spacing="lg"
-        className="relative isolate overflow-hidden bg-navy text-white pt-32 lg:pt-40 lg:min-h-[70vh] lg:max-h-[80vh]"
+        className="relative isolate bg-navy text-white pt-32 lg:pt-40 md:h-[clamp(520px,86vh,1100px)]"
       >
-        {/* Foto de fundo (decorativa) — preenche a seção atrás do conteúdo */}
-        <SpinhardiImage
-          src="/hero-principal-01.jpg"
-          alt=""
-          aspect="3/2"
-          objectPosition="center 65%"
-          priority
-          sizes="100vw"
-          className="absolute inset-0 -z-10 h-full w-full"
-        />
-        {/* Overlay navy para legibilidade do texto branco. Calibrar 50–80% no preview. */}
-        <div className="absolute inset-0 -z-10 bg-navy/60" aria-hidden="true" />
+        {/* Fundo do hero: foto (parallax) + overlay + fade p/ navy. Client mínimo. */}
+        <HomeHeroBackdrop />
         <Container>
           <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">
             Desde 1987 · Serra Negra, SP

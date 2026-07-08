@@ -15,6 +15,40 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-07-08] SITE — Hero da home: parallax de revelação em 3 camadas (D080)
+
+Rework do comportamento da imagem do hero, aprovado via mockup HTML standalone.
+
+- **Camadas:** altura adaptativa `clamp(520px,86vh,1100px)` de `md` pra cima
+  (mobile intocado) · parallax de revelação (wrapper 132%/-32%, fator 0.45,
+  translate3d + rAF, `prefers-reduced-motion` respeitado) · fade de 34% na base
+  para `#1A2B4A`, fim do corte seco pro navy.
+- **Arquivos:** novo `src/components/ui/HomeHeroBackdrop.tsx` (client component
+  mínimo); `src/app/(public)/page.tsx` ajustado. Copy do hero segue
+  server-rendered; só a foto se move.
+- **Ajustes decorrentes:** `priority` → `preload` na imagem do hero (deprecation
+  Next 16; preload de LCP verificado no SSR). `object-position` de `center 65%`
+  para `center`. `overflow-hidden` removido da Section do hero (clip agora é do
+  backdrop; copy flui pro navy em viewports baixas em vez de ser cortado).
+- **Pendência menor:** varrer usos remanescentes de `priority` no
+  `SpinhardiImage` (fora do escopo desta entrega).
+- Validação local por Alan: ultrawide, reduced-motion e perf ok.
+
+---
+
+### [2026-07-08] SITE — /sobre: fotos do time removidas a pedido das sócias
+
+Seção "Nosso time hoje" mantém eyebrow, título e parágrafo; removidos os dois
+cards de foto (Angelina e Julia) e o import morto de `SpinhardiImage` no
+arquivo. `mb-12` do parágrafo removido para ritmo vertical consistente com a
+seção seguinte.
+
+- `equipe-spinhardi-01-nina.jpg` segue em uso na home (decisão: mantém).
+- `equipe-spinhardi-02-julia.jpg` ficou sem referência no source; mantido em
+  `/public` deliberadamente (provável reversão de opinião das sócias).
+
+---
+
 ### [2026-07-06] SITE — Esqueci minha senha (back-office): recovery cross-device via token_hash
 
 Fluxo de recuperação de senha no /admin (D079), sobre Supabase Auth
