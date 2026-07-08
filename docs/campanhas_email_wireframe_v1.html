@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campanhas de Email — Protótipo Spinhardi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1A2B4A; --navy-2:#223760; --navy-soft:#2c4470;
+    --ouro:#AD8330; --ouro-soft:#c9a45c; --ouro-bg:#f5eee0;
+    --verde:#3F5B30; --verde-bg:#eaf0e6;
+    --brick:#A63D2F; --brick-bg:#f7e9e6;
+    --paper:#F6F5F2; --card:#ffffff; --line:#e4e1da;
+    --ink:#242b3d; --muted:#6f7789;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Montserrat',sans-serif;background:var(--paper);color:var(--ink);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:13px}
+
+  /* ===== barra do protótipo ===== */
+  .proto{background:#12182a;color:#cfd6e6;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:90}
+  .proto .tag{background:var(--ouro);color:#fff;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:4px 8px;border-radius:3px}
+  .proto .note{font-size:11px;color:#8794ad}
+  .proto .pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .proto .pills button{background:transparent;border:1px solid #33456b;color:#cfd6e6;font-size:11px;padding:5px 10px;border-radius:20px}
+  .proto .pills button.on{background:var(--ouro);border-color:var(--ouro);color:#fff}
+
+  /* ===== chrome do back-office ===== */
+  .shell{display:flex;min-height:calc(100vh - 44px)}
+  .side{width:190px;background:var(--navy);color:#c9d2e4;padding:22px 0;flex-shrink:0}
+  .side .brand{padding:0 20px 24px;color:var(--ouro);font-weight:700;letter-spacing:2px;font-size:13px}
+  .side .brand small{display:block;color:#8b98b5;font-weight:400;letter-spacing:1px;font-size:10px;margin-top:2px}
+  .side a{display:block;padding:11px 20px;color:#c9d2e4;text-decoration:none;font-size:12.5px;letter-spacing:.4px;border-left:3px solid transparent}
+  .side a.active{background:var(--navy-2);color:#fff;border-left-color:var(--ouro)}
+  .main{flex:1;padding:32px 40px 80px;max-width:1180px}
+
+  h1{font-family:'Playfair Display',serif;font-weight:600;font-size:27px;color:var(--navy);margin-bottom:4px}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:2.5px;color:var(--ouro);text-transform:uppercase;margin-bottom:8px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:26px}
+
+  .view{display:none}
+  .view.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.view.on{animation:none}}
+
+  /* ===== componentes ===== */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px}
+  .btn{border:none;border-radius:5px;padding:11px 20px;font-size:13px;font-weight:600;letter-spacing:.3px}
+  .btn-gold{background:var(--ouro);color:#fff}
+  .btn-gold:hover{background:#9a7429}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn-quiet{background:transparent;border:none;color:var(--muted);font-size:12.5px;text-decoration:underline}
+  .btn[disabled]{background:#d8d4cb;color:#948f84;cursor:not-allowed}
+  .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1.2px;padding:4px 9px;border-radius:3px}
+  .b-sent{background:var(--verde-bg);color:var(--verde)}
+  .b-sched{background:var(--ouro-bg);color:#8a6520}
+  .b-draft{background:#ececec;color:#666}
+  .b-test{background:#e3ecf7;color:#2c5282}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:12px 22px;border-radius:6px;font-size:13px;opacity:0;transition:.3s;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* lista */
+  .camp-card{padding:20px 24px;margin-bottom:14px;display:flex;justify-content:space-between;gap:20px;align-items:flex-start;cursor:default}
+  .camp-card h3{font-size:15.5px;font-weight:600;color:var(--navy);margin:8px 0 6px}
+  .camp-card .meta{font-size:12.5px;color:var(--muted)}
+  .camp-card .mets{margin-top:10px;font-size:12.5px;color:var(--ink)}
+  .camp-card .mets b{color:var(--navy)}
+  .camp-card .acts{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .linkish{background:none;border:none;color:var(--ouro);font-weight:600;font-size:12.5px;text-decoration:underline;padding:0}
+
+  /* steps */
+  .steps{display:flex;gap:0;margin-bottom:26px;font-size:12px;color:var(--muted);align-items:center}
+  .steps .st{display:flex;align-items:center;gap:8px}
+  .steps .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:#fff}
+  .steps .st.now .dot{border-color:var(--ouro);color:var(--ouro)}
+  .steps .st.done .dot{background:var(--verde);border-color:var(--verde);color:#fff}
+  .steps .st.now{color:var(--navy);font-weight:600}
+  .steps .bar{width:56px;height:2px;background:var(--line);margin:0 10px}
+
+  .grid2{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:30px;align-items:start}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .field input[type=text],.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:5px;padding:10px 12px;background:#fff;color:var(--ink)}
+  .field textarea{resize:vertical}
+  .field input:focus,.field textarea:focus{outline:2px solid var(--ouro-soft);border-color:var(--ouro)}
+  .radios{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+  .radios label{border:1.5px solid var(--line);border-radius:6px;padding:10px 16px;font-size:13px;font-weight:500;display:flex;gap:8px;align-items:center;background:#fff;cursor:pointer}
+  .radios label.on{border-color:var(--ouro);background:var(--ouro-bg);color:#7a5a1c;font-weight:600}
+  .radios input{accent-color:var(--ouro)}
+
+  /* preview do email — assinatura visual */
+  .mailwrap{position:sticky;top:70px}
+  .mailtools{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .mailtools .mode button{background:#fff;border:1px solid var(--line);font-size:11px;padding:5px 12px}
+  .mailtools .mode button:first-child{border-radius:4px 0 0 4px}
+  .mailtools .mode button:last-child{border-radius:0 4px 4px 0;border-left:none}
+  .mailtools .mode button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .mail{background:#fff;border-radius:6px;box-shadow:0 14px 40px rgba(26,43,74,.16),0 2px 6px rgba(26,43,74,.08);max-width:520px;margin:0 auto;overflow:hidden;transition:max-width .3s}
+  .mail.mobile{max-width:340px}
+  .mail .mhead{background:var(--navy);padding:22px;text-align:center;color:var(--ouro);font-weight:700;letter-spacing:2.5px;font-size:13px}
+  .mail .mhead small{display:block;color:#93a2c0;font-weight:400;letter-spacing:1px;font-size:9px;margin-top:2px}
+  .mail .mbanner{display:none;background:var(--ouro);color:#fff;text-align:center;font-size:11px;font-weight:700;letter-spacing:2px;padding:7px}
+  .mail.t-grupo .mbanner{display:block}
+  .mail .mimg{display:none;background:linear-gradient(135deg,#31456e,#5b6f96);height:120px;color:#c8d2e6;font-size:11px;align-items:center;justify-content:center}
+  .mail.t-anuncio .mimg{display:flex}
+  .mail .mbody{padding:26px 28px 20px}
+  .mail h2{font-family:'Playfair Display',serif;font-weight:600;font-size:21px;color:var(--navy);margin-bottom:12px;line-height:1.25}
+  .mail .mintro{font-size:13px;line-height:1.65;color:#3c4356;margin-bottom:12px}
+  .mail .mcorpo{font-size:13px;line-height:1.65;color:#3c4356;margin-bottom:20px;white-space:pre-line}
+  .mail .mcta{display:inline-block;background:var(--ouro);color:#fff;font-size:12.5px;font-weight:600;padding:11px 22px;border-radius:4px;margin-bottom:18px}
+  .mail .mnota{font-size:11.5px;color:var(--muted);font-style:italic}
+  .mail .mfoot{border-top:1px solid var(--line);padding:16px 28px 20px;font-size:10.5px;color:#9aa0b0;line-height:1.6}
+  .mail .mfoot u{color:#7a819a}
+  .lockhint{font-size:10.5px;color:var(--muted);text-align:center;margin-top:8px}
+
+  /* destinatários */
+  .destop{border:1.5px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:12px;background:#fff;display:flex;gap:12px;cursor:pointer}
+  .destop.on{border-color:var(--ouro);background:var(--ouro-bg)}
+  .destop input{accent-color:var(--ouro);margin-top:3px}
+  .destop b{color:var(--navy)}
+  .destop .d{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .infobox{background:#eef1f6;border:1px solid #dbe1ec;border-radius:8px;padding:16px 18px;font-size:12.5px;color:#465067;line-height:1.6;margin-top:20px}
+  .infobox b{color:var(--navy)}
+
+  /* revisão */
+  .gatebox{padding:20px 22px;margin-bottom:18px}
+  .gatebox h4{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px}
+  .gatebox h4 .n{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:8px}
+  .testrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .testok{display:none;margin-top:12px;background:var(--verde-bg);color:var(--verde);font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:5px}
+  .testok.show{display:inline-block}
+  .schedrow{display:flex;gap:10px;align-items:center;margin:8px 0 0 26px}
+  .schedrow input{border:1px solid var(--line);border-radius:5px;padding:8px 10px}
+  .sendrow{margin-top:18px;text-align:center}
+  .sendrow .btn{font-size:14px;padding:14px 30px}
+  .gatehint{font-size:11.5px;color:var(--muted);margin-top:8px;text-align:center}
+
+  /* resultados */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+  .kpi{padding:18px;text-align:left}
+  .kpi .lbl{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .kpi .num{font-family:'Playfair Display',serif;font-size:34px;font-weight:600;color:var(--navy);margin:6px 0 2px}
+  .kpi .pct{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .delta{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px}
+  .d-up{background:var(--verde-bg);color:var(--verde)}
+  .d-down{background:var(--brick-bg);color:var(--brick)}
+  .d-flat{background:#ececec;color:#777}
+  .attn{border-left:4px solid var(--ouro);padding:16px 20px}
+  .attn h4{font-size:13px;color:var(--navy);margin-bottom:8px}
+  .attn p{font-size:12.5px;color:#465067;line-height:1.7}
+
+  /* ficha */
+  .fichaline{display:flex;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);font-size:13px}
+  .tl{padding:10px 18px;display:flex;gap:14px;font-size:12.5px;color:#465067;border-bottom:1px dashed var(--line)}
+  .tl .when{color:var(--muted);min-width:96px}
+
+  /* re-permissão */
+  .warn{background:var(--ouro-bg);border:1.5px solid var(--ouro-soft);border-radius:8px;padding:20px 22px;margin-bottom:20px}
+  .warn h3{font-family:'Playfair Display',serif;color:#7a5a1c;font-size:18px;margin-bottom:10px}
+  .warn ul{margin:10px 0 0 18px;font-size:12.5px;color:#5c4718;line-height:1.8}
+  .confirmrow{display:flex;gap:10px;align-items:center;margin-top:14px}
+  .confirmrow input{border:1.5px solid var(--ouro-soft);border-radius:5px;padding:10px 12px;letter-spacing:2px;font-weight:600;width:220px}
+
+  .footnav{margin-top:34px;display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+
+<div class="proto">
+  <span class="tag">PROTÓTIPO</span>
+  <span class="note">Todos os nomes e números são fictícios. Cliquem à vontade: nada aqui envia email de verdade.</span>
+  <div class="pills">
+    <button data-go="lista" class="on">Campanhas</button>
+    <button data-go="passo1">Criar: conteúdo</button>
+    <button data-go="passo2">Criar: destinatários</button>
+    <button data-go="passo3">Criar: revisão</button>
+    <button data-go="resultados">Resultados</button>
+    <button data-go="ficha">Ficha do contato</button>
+    <button data-go="reperm">Re-permissão</button>
+  </div>
+</div>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">SPINHARDI<small>back-office</small></div>
+    <a href="#">Funil</a>
+    <a href="#">Contatos</a>
+    <a href="#" class="active">Campanhas</a>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ LISTA ============ -->
+    <section class="view on" id="v-lista">
+      <div class="eyebrow">Email</div>
+      <h1>Campanhas</h1>
+      <p class="sub">Crie, teste e envie emails para seus contatos, tudo daqui de dentro.</p>
+
+      <div style="text-align:right;margin-bottom:18px">
+        <button class="btn btn-gold" data-go="passo1">+ Nova campanha</button>
+      </div>
+
+      <div class="card camp-card">
+        <div>
+          <span class="badge b-sent">ENVIADA</span>
+          <h3>Saída de grupo — Itália, setembro 2026</h3>
+          <div class="meta">Enviada em 02/07 às 09:00 · 214 destinatários</div>
+          <div class="mets">Entregues <b>210</b> · Abertos <b>122</b> · Cliques <b>34</b> · Descadastros <b>2</b></div>
+        </div>
+        <div class="acts"><button class="linkish" data-go="resultados">Ver resultados</button></div>
+      </div>
+
+      <div class="card camp-card">
+        <div>
+          <span class="badge b-sched">AGENDADA</span>
+          <h3>Newsletter — Julho</h3>
+          <div class="meta">Agendada para 14/07 às 09:00 · 387 destinatários</div>
+        </div>
+        <div class="acts">
+          <button class="linkish" data-go="passo1">Editar</button>
+          <button class="btn-quiet" onclick="toast('Agendamento cancelado. A campanha voltou para Testada.')">Cancelar agendamento</button>
+        </div>
+      </div>
+
+      <div class="card camp-card">
+        <div>
+          <span class="badge b-draft">RASCUNHO</span>
+          <h3>Anúncio — Cruzeiro Mediterrâneo</h3>
+          <div class="meta">Editada por último em 05/07</div>
+        </div>
+        <div class="acts"><button class="linkish" data-go="passo1">Continuar editando</button></div>
+      </div>
+
+      <div style="margin-top:30px;text-align:center">
+        <button class="btn-quiet" data-go="reperm">Campanha de re-permissão (contatos sem permissão confirmada)</button>
+      </div>
+    </section>
+
+    <!-- ============ PASSO 1 ============ -->
+    <section class="view" id="v-passo1">
+      <div class="eyebrow">Nova campanha</div>
+      <h1>Conteúdo</h1>
+      <p class="sub">Escolha o tipo, preencha os campos e veja o email tomando forma ao lado.</p>
+
+      <div class="steps">
+        <div class="st now"><span class="dot">1</span> Conteúdo</div><span class="bar"></span>
+        <div class="st"><span class="dot">2</span> Destinatários</div><span class="bar"></span>
+        <div class="st"><span class="dot">3</span> Revisão e envio</div>
+      </div>
+
+      <div class="radios" id="tipoRadios">
+        <label class="on"><input type="radio" name="tipo" value="news" checked> Newsletter</label>
+        <label><input type="radio" name="tipo" value="anuncio"> Anúncio de viagem</label>
+        <label><input type="radio" name="tipo" value="grupo"> Saída de grupo</label>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="field"><label>Nome interno (só vocês veem)</label>
+            <input type="text" id="fNome" value="Saída de grupo — Itália, setembro 2026"></div>
+          <div class="field"><label>Assunto do email</label>
+            <input type="text" id="fAssunto" value="Itália em setembro: restam 6 lugares"></div>
+          <div class="field"><label>Título</label>
+            <input type="text" id="fTitulo" value="A Toscana está chamando"></div>
+          <div class="field"><label>Introdução</label>
+            <textarea id="fIntro" rows="2">Nossa saída de grupo para a Itália em setembro está quase completa, e queríamos avisar você antes de todo mundo.</textarea></div>
+          <div class="field"><label>Corpo</label>
+            <textarea id="fCorpo" rows="5">São 10 dias entre Roma, Florença e a região do Chianti, com guia brasileiro e o cuidado de sempre.
+
+Saída: 12 de setembro
+Grupo pequeno: máximo 16 pessoas</textarea></div>
+          <div class="field"><label>Texto do botão</label>
+            <input type="text" id="fCta" value="Quero saber mais"></div>
+          <div class="field"><label>Link do botão</label>
+            <input type="text" id="fLink" value="https://wa.me/5519..."></div>
+          <div class="field"><label>Nota de rodapé (opcional)</label>
+            <input type="text" id="fNota" value="Qualquer dúvida, é só responder este email. A gente lê tudo."></div>
+        </div>
+
+        <div class="mailwrap">
+          <div class="mailtools">
+            <span style="font-size:11px;color:var(--muted)">Assim o email chega:</span>
+            <span class="mode">
+              <button class="on" id="mDesk">Computador</button><button id="mMob">Celular</button>
+            </span>
+          </div>
+          <div class="mail t-news" id="mail">
+            <div class="mhead">SPINHARDI<small>TURISMO</small></div>
+            <div class="mbanner">SAÍDA DE GRUPO · VAGAS LIMITADAS</div>
+            <div class="mimg">[ foto do destino entra aqui ]</div>
+            <div class="mbody">
+              <h2 id="pTitulo">A Toscana está chamando</h2>
+              <p class="mintro" id="pIntro">···</p>
+              <p class="mcorpo" id="pCorpo">···</p>
+              <span class="mcta" id="pCta">Quero saber mais</span>
+              <p class="mnota" id="pNota">···</p>
+            </div>
+            <div class="mfoot">
+              Spinhardi Turismo · Rua Monsenhor Manzini, 146 · Serra Negra, SP<br>
+              Você recebe este email porque autorizou. <u>Não quero mais receber</u> · <u>Preferências de email</u>
+            </div>
+          </div>
+          <div class="lockhint">O rodapé com o link de descadastro é fixo por lei — faz parte do modelo e não precisa (nem dá) pra mexer.</div>
+        </div>
+      </div>
+
+      <div class="footnav">
+        <button class="btn btn-ghost" onclick="toast('Rascunho salvo. Pode fechar e voltar quando quiser.')">Salvar rascunho</button>
+        <button class="btn btn-gold" data-go="passo2">Próximo: destinatários →</button>
+      </div>
+    </section>
+
+    <!-- ============ PASSO 2 ============ -->
+    <section class="view" id="v-passo2">
+      <div class="eyebrow">Nova campanha</div>
+      <h1>Destinatários</h1>
+      <p class="sub">Quem vai receber este email?</p>
+
+      <div class="steps">
+        <div class="st done"><span class="dot">✓</span> Conteúdo</div><span class="bar"></span>
+        <div class="st now"><span class="dot">2</span> Destinatários</div><span class="bar"></span>
+        <div class="st"><span class="dot">3</span> Revisão e envio</div>
+      </div>
+
+      <label class="destop on" id="dTodos">
+        <input type="radio" name="dest" checked>
+        <span><b>Todos os contatos elegíveis</b>
+        <span class="d">387 contatos com permissão de receber emails</span></span>
+      </label>
+      <label class="destop" id="dSeg">
+        <input type="radio" name="dest">
+        <span><b>Um segmento</b>
+        <span class="d">
+          <select style="margin-top:6px;border:1px solid var(--line);border-radius:5px;padding:7px 10px" onclick="event.preventDefault()">
+            <option>Clientes Itália (58)</option>
+            <option>Interessados em cruzeiro (41)</option>
+            <option>Viajou nos últimos 12 meses (112)</option>
+          </select>
+        </span></span>
+      </label>
+
+      <div class="infobox">
+        <b>Fora deste envio, automaticamente:</b> 142 contatos sem permissão confirmada ·
+        8 que pediram para não receber · 3 com email inválido.<br>
+        Isso protege vocês (é lei) e protege a reputação do email da Spinhardi —
+        emails enviados sem permissão acabam indo para o spam de todo mundo, inclusive dos clientes que querem receber.
+      </div>
+
+      <div class="footnav">
+        <button class="btn btn-ghost" data-go="passo1">← Voltar</button>
+        <button class="btn btn-gold" data-go="passo3">Próximo: revisão e envio →</button>
+      </div>
+    </section>
+
+    <!-- ============ PASSO 3 ============ -->
+    <section class="view" id="v-passo3">
+      <div class="eyebrow">Nova campanha</div>
+      <h1>Revisão e envio</h1>
+      <p class="sub">Última parada. Teste primeiro, envie depois.</p>
+
+      <div class="steps">
+        <div class="st done"><span class="dot">✓</span> Conteúdo</div><span class="bar"></span>
+        <div class="st done"><span class="dot">✓</span> Destinatários</div><span class="bar"></span>
+        <div class="st now"><span class="dot">3</span> Revisão e envio</div>
+      </div>
+
+      <div class="card gatebox">
+        <h4>Resumo</h4>
+        <p style="font-size:13px;line-height:1.8;color:#465067">
+          <b>Tipo:</b> Saída de grupo · <b>Assunto:</b> <span id="rAssunto">Itália em setembro: restam 6 lugares</span><br>
+          <b>Destinatários:</b> Todos os elegíveis (387) · <button class="linkish" data-go="passo1">ver preview completo</button>
+        </p>
+      </div>
+
+      <div class="card gatebox">
+        <h4><span class="n">1</span>Teste primeiro</h4>
+        <div class="testrow">
+          <select style="border:1px solid var(--line);border-radius:5px;padding:9px 12px">
+            <option>nina@spinharditurismo.com.br</option>
+            <option>julia@spinharditurismo.com.br</option>
+          </select>
+          <button class="btn btn-ghost" id="btnTest">Enviar email de teste</button>
+        </div>
+        <span class="testok" id="testOk">✓ Teste enviado às 11:32 para nina@spinharditurismo.com.br</span>
+      </div>
+
+      <div class="card gatebox">
+        <h4><span class="n">2</span>Envio real</h4>
+        <label style="display:flex;gap:8px;font-size:13px;margin-bottom:6px">
+          <input type="radio" name="quando" checked style="accent-color:var(--ouro)"> Enviar agora
+        </label>
+        <label style="display:flex;gap:8px;font-size:13px">
+          <input type="radio" name="quando" id="rAgendar" style="accent-color:var(--ouro)"> Agendar para depois
+        </label>
+        <div class="schedrow" id="schedRow" style="display:none">
+          <input type="date" value="2026-07-14"> <input type="time" value="09:00">
+        </div>
+        <div class="sendrow">
+          <button class="btn btn-gold" id="btnSend" disabled>Enviar para 387 contatos</button>
+          <div class="gatehint" id="gateHint">O botão libera depois que você enviar (e conferir) um email de teste.</div>
+        </div>
+      </div>
+
+      <div class="footnav">
+        <button class="btn btn-ghost" data-go="passo2">← Voltar</button>
+        <button class="btn-quiet" onclick="toast('Rascunho salvo.')">Salvar rascunho</button>
+      </div>
+    </section>
+
+    <!-- ============ RESULTADOS ============ -->
+    <section class="view" id="v-resultados">
+      <div class="eyebrow"><button class="linkish" data-go="lista" style="text-transform:none;letter-spacing:0">← Campanhas</button></div>
+      <h1>Saída de grupo — Itália, setembro 2026</h1>
+      <p class="sub"><span class="badge b-sent">ENVIADA</span> &nbsp; 02/07 às 09:00 · comparação com a saída de grupo anterior (Portugal, abril)</p>
+
+      <div class="kpis">
+        <div class="card kpi"><div class="lbl">Enviados</div><div class="num">214</div><div class="pct">&nbsp;</div><span class="delta d-flat">—</span></div>
+        <div class="card kpi"><div class="lbl">Entregues</div><div class="num">210</div><div class="pct">98% dos enviados</div><span class="delta d-up">▲ +1 pp</span></div>
+        <div class="card kpi"><div class="lbl">Abertos</div><div class="num">122</div><div class="pct">58% dos entregues</div><span class="delta d-up">▲ +6 pp</span></div>
+        <div class="card kpi"><div class="lbl">Cliques</div><div class="num">34</div><div class="pct">16% dos entregues</div><span class="delta d-up">▲ +3 pp</span></div>
+        <div class="card kpi"><div class="lbl">Descadastros</div><div class="num">2</div><div class="pct">&nbsp;</div><span class="delta d-flat">igual</span></div>
+        <div class="card kpi"><div class="lbl">Não entregues</div><div class="num">4</div><div class="pct">emails inválidos</div><span class="delta d-down">▼ −2</span></div>
+      </div>
+
+      <p style="margin-bottom:18px"><button class="linkish" data-go="passo1">Ver o email que foi enviado</button></p>
+
+      <div class="card attn">
+        <h4>Para ficar de olho</h4>
+        <p>
+          <b>4 emails não chegaram</b> (endereço inválido) — esses contatos ficaram marcados como
+          "email inválido" na ficha e saem dos próximos envios automaticamente. <button class="linkish" data-go="ficha">Ver quem são</button><br>
+          <b>2 pessoas pediram para não receber mais</b> — o sistema já cuidou disso: elas estão fora das próximas campanhas.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ FICHA ============ -->
+    <section class="view" id="v-ficha">
+      <div class="eyebrow">Contatos · trecho da ficha</div>
+      <h1>Maria Fernanda Almeida</h1>
+      <p class="sub">O que muda na ficha que vocês já usam: um status novo e os eventos de email na linha do tempo.</p>
+
+      <div class="card" style="margin-bottom:22px">
+        <div class="fichaline">
+          <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);min-width:130px">Email marketing</span>
+          <span class="badge b-sent">COM PERMISSÃO</span>
+          <span style="font-size:12px;color:var(--muted)">desde 12/07/2026 · confirmou pelo link de permissão</span>
+        </div>
+        <div class="fichaline" style="border-bottom:none">
+          <span style="font-size:11px;color:var(--muted)">Outros status possíveis:</span>
+          <span class="badge b-draft">SEM PERMISSÃO</span>
+          <span class="badge" style="background:var(--brick-bg);color:var(--brick)">DESCADASTRADO</span>
+          <span class="badge" style="background:var(--brick-bg);color:var(--brick)">EMAIL INVÁLIDO</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="padding:14px 18px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)">Linha do tempo</div>
+        <div class="tl"><span class="when">02/07 · 09:42</span> Clicou no link da campanha "Itália, setembro 2026"</div>
+        <div class="tl"><span class="when">02/07 · 09:41</span> Abriu o email "Itália em setembro: restam 6 lugares"</div>
+        <div class="tl"><span class="when">02/07 · 09:04</span> Recebeu a campanha "Itália, setembro 2026"</div>
+        <div class="tl" style="border-bottom:none"><span class="when">28/06 · 15:10</span> Nota interna: "Ligou pedindo detalhes do roteiro da Toscana" — Nina</div>
+      </div>
+    </section>
+
+    <!-- ============ RE-PERMISSÃO ============ -->
+    <section class="view" id="v-reperm">
+      <div class="eyebrow"><button class="linkish" data-go="lista" style="text-transform:none;letter-spacing:0">← Campanhas</button></div>
+      <h1>Campanha de re-permissão</h1>
+      <p class="sub">Uma campanha diferente, com um objetivo só: pedir permissão a quem ainda não deu.</p>
+
+      <div class="warn">
+        <h3>Antes de enviar, entenda o que isso faz</h3>
+        Este email vai para os <b>142 contatos</b> que ainda não confirmaram que querem receber emails da Spinhardi.
+        <ul>
+          <li>O conteúdo é um modelo pronto de pedido de permissão — só o assunto e um parágrafo pessoal são editáveis</li>
+          <li>Quem clicar em <b>"Quero receber"</b> passa a receber as campanhas normais</li>
+          <li>Quem não responder continua fora de tudo, como já está hoje</li>
+          <li>Este envio fica registrado para sempre no histórico</li>
+        </ul>
+      </div>
+
+      <div class="card gatebox">
+        <div class="field"><label>Assunto</label>
+          <input type="text" value="Podemos continuar te contando das nossas viagens?"></div>
+        <div class="field"><label>Parágrafo pessoal</label>
+          <textarea rows="3">Você já viajou com a gente (ou chegou perto!). Estamos organizando nossas comunicações e queremos ter certeza: você quer receber nossas novidades de viagens por email?</textarea></div>
+      </div>
+
+      <div class="card gatebox">
+        <h4>Confirmação</h4>
+        <p style="font-size:12.5px;color:#465067;margin-bottom:4px">Para liberar o envio, digite <b>REPERMISSAO</b> no campo abaixo:</p>
+        <div class="confirmrow">
+          <input type="text" id="confirmInput" placeholder="digite aqui" autocomplete="off">
+          <button class="btn btn-gold" id="btnReperm" disabled>Enviar pedido para 142 contatos</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---------- navegação ----------
+  const views = document.querySelectorAll('.view');
+  const pills = document.querySelectorAll('.proto .pills button');
+  function go(name){
+    views.forEach(v=>v.classList.toggle('on', v.id==='v-'+name));
+    pills.forEach(p=>p.classList.toggle('on', p.dataset.go===name));
+    window.scrollTo({top:0});
+  }
+  document.querySelectorAll('[data-go]').forEach(el=>{
+    el.addEventListener('click', e=>{e.preventDefault(); go(el.dataset.go);});
+  });
+
+  // ---------- toast ----------
+  let tt;
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  // ---------- passo 1: preview ao vivo ----------
+  const bind = [['fTitulo','pTitulo'],['fIntro','pIntro'],['fCorpo','pCorpo'],['fCta','pCta'],['fNota','pNota']];
+  function sync(){
+    bind.forEach(([i,o])=>{document.getElementById(o).textContent=document.getElementById(i).value;});
+    document.getElementById('rAssunto').textContent=document.getElementById('fAssunto').value;
+  }
+  bind.concat([['fAssunto','rAssunto']]).forEach(([i])=>{
+    document.getElementById(i).addEventListener('input', ()=>{ sync(); invalidateTest(); });
+  });
+  sync();
+
+  // tipo de campanha → template do preview
+  const mail=document.getElementById('mail');
+  document.querySelectorAll('#tipoRadios input').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      document.querySelectorAll('#tipoRadios label').forEach(l=>l.classList.toggle('on', l.contains(r)));
+      mail.className='mail '+({news:'t-news',anuncio:'t-anuncio',grupo:'t-grupo'})[r.value];
+      if(document.getElementById('mMob').classList.contains('on')) mail.classList.add('mobile');
+      invalidateTest();
+    });
+  });
+
+  // desktop / celular
+  const mDesk=document.getElementById('mDesk'), mMob=document.getElementById('mMob');
+  mDesk.onclick=()=>{mail.classList.remove('mobile'); mDesk.classList.add('on'); mMob.classList.remove('on');};
+  mMob.onclick=()=>{mail.classList.add('mobile'); mMob.classList.add('on'); mDesk.classList.remove('on');};
+
+  // ---------- passo 3: gate de teste ----------
+  const btnSend=document.getElementById('btnSend'), btnTest=document.getElementById('btnTest'),
+        testOk=document.getElementById('testOk'), gateHint=document.getElementById('gateHint');
+  let tested=false;
+  btnTest.addEventListener('click', ()=>{
+    tested=true; testOk.classList.add('show');
+    btnSend.disabled=false;
+    gateHint.textContent='Teste feito. Confira sua caixa de entrada e, se estiver tudo certo, pode enviar.';
+    toast('Email de teste enviado (fictício).');
+  });
+  function invalidateTest(){
+    if(!tested) return;
+    tested=false; testOk.classList.remove('show'); btnSend.disabled=true;
+    gateHint.textContent='O conteúdo mudou depois do último teste — envie um novo teste para liberar o envio.';
+  }
+  btnSend.addEventListener('click', ()=>{
+    const agendar=document.getElementById('rAgendar').checked;
+    toast(agendar ? 'Campanha agendada. Você pode cancelar até a hora do envio.' : 'Campanha enviada para 387 contatos (fictício).');
+    if(!agendar) setTimeout(()=>go('resultados'), 1200);
+  });
+  document.getElementById('rAgendar').addEventListener('change', e=>{
+    document.getElementById('schedRow').style.display=e.target.checked?'flex':'none';
+    btnSend.textContent=e.target.checked?'Agendar envio para 387 contatos':'Enviar para 387 contatos';
+  });
+  document.querySelector('input[name="quando"]').addEventListener('change', ()=>{
+    document.getElementById('schedRow').style.display='none';
+    btnSend.textContent='Enviar para 387 contatos';
+  });
+
+  // ---------- destinatários ----------
+  document.querySelectorAll('.destop').forEach(d=>{
+    d.addEventListener('click', ()=>{
+      document.querySelectorAll('.destop').forEach(x=>x.classList.remove('on'));
+      d.classList.add('on'); d.querySelector('input').checked=true;
+    });
+  });
+
+  // ---------- re-permissão ----------
+  const ci=document.getElementById('confirmInput'), br=document.getElementById('btnReperm');
+  ci.addEventListener('input', ()=>{ br.disabled = ci.value.trim().toUpperCase()!=='REPERMISSAO'; });
+  br.addEventListener('click', ()=>toast('Pedido de permissão enviado para 142 contatos (fictício). Registrado no histórico.'));
+</script>
+
+</body>
+</html>
