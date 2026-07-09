@@ -249,7 +249,7 @@ export default function Home() {
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <CTAWhatsApp variant="primary" size="lg" label="Vamos conversar" />
               <Link href="/blog">
-                <Button variant="ghost" size="lg" className="text-white hover:text-gold">
+                <Button variant="secondary" size="lg">
                   Nosso blog
                 </Button>
               </Link>
