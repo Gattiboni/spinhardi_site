@@ -28,6 +28,59 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D081] Lead do site entra no funil como jornada + revisão do outbound ClickMassa (revisa D044)
+
+**Data:** 2026-07-10 **Contexto:** Nina reportou que preenchimentos do site não
+apareciam no funil. Investigação em três frentes (código via Codinho, banco via
+Claudinho, docs) mostrou: (1) o submit criava contato + interaction mas nenhuma
+jornada; a emenda histórica é que o D044 roteava o lead pro funil do ClickMassa,
+removido da nav pelo D066/D072, e ninguém re-roteou a ponta; (2) o outbound
+ClickMassa do D044 estava quebrado em produção de forma silenciosa:
+fire-and-forget via promise flutuante morre quando a Vercel congela a lambda
+pós-response. Oportunidade nunca foi criada nenhuma vez, write-back nunca
+executou (status pending eterno), mensagem de boas-vindas saiu em 1 de 2
+submits. Nenhum lead real perdido (os únicos submits da história eram testes
+internos). **Decisões:**
+
+1. **Site → funil direto:** submit cria jornada `aprovada` em "primeiro
+   contato", `origem_dado="site"`, título automático `Site: {destino}`. Entrada
+   direta em vez de `pendente`: card fantasma se previne com título automático,
+   e tela de aprovação sem volume atrofia o hábito de triagem. A tela de
+   aprovação fica reservada pro lote Iddas→pendente (futuro).
+2. **Guardrails no form:** validação server-side com erro por campo (bug de
+   propagação corrigido: validação nativa HTML5 interceptava o submit; form
+   agora usa noValidate e o servidor é fonte da verdade), honeypot com teste
+   E2E, e normalização BR canônica de telefone (só dígitos, DDD, sem 55).
+   Celular de 10 dígitos em input novo é REJEITADO com orientação, nunca
+   "promovido" (promoção do nono dígito sobrevive só no fallback de dedup contra
+   legado; promover input novo fabricava número errado a partir de typo).
+3. **Dedup:** telefone/email existente reusa o contato; jornada aberta em
+   "primeiro contato" de origem site não duplica (re-submit vira só
+   interaction). Payload completo do form preservado no metadata da interaction
+   e exibido na ficha. Contato com nome placeholder (vazio ou dígitos = próprio
+   telefone, caso dos importados) é renomeado com o nome do form, com rename
+   auditado na interaction; nome real nunca é sobrescrito.
+4. **Título obrigatório na criação manual** de atendimento (borda de UI; banco
+   permanece nullable pelas 586 jornadas históricas).
+5. **ClickMassa outbound:** perna de oportunidade REMOVIDA (nunca funcionou;
+   alimentava board removido da nav). Mensagem de boas-vindas mantida e
+   consertada: `after()` do Next (estável desde 15.1, doc embarcada verificada)
+   substitui a promise flutuante; write-back honesto em todo desfecho (`synced`
+   com IDs ou `failed` com erro + interaction; `pending` vira só transitório).
+   `CLICKMASSA_DEFAULT_AGENT_ID` sai do código e da Vercel pós-deploy. Sync
+   dispara só pra contato novo. **Alternativas rejeitadas:** entrada como
+   pendente via tela de aprovação (clique a mais sem resolver a causa do card
+   fantasma); NOT NULL em titulo_jornada (quebraria histórico); consertar a
+   criação de oportunidade (destino morto); inline await do sync (acoplaria a
+   latência do form ao ClickMassa; after() resolve sem custo de UX).
+   **Pendências:** smoke test em produção pós-deploy (primeira execução real do
+   after() na Vercel, com número controlado); limpeza dos contatos de teste da
+   Amanda; validação com máscara também no cadastro manual do admin (telefone
+   sujo ainda entra pelo back-office); item pra auditoria: badge de estágio no
+   "Histórico do cliente" sem rótulo de contexto confunde.
+
+---
+
 ### [2026-07-08] D080 — Hero da home: parallax de revelação em 3 camadas, sem Ken Burns
 
 **Contexto:** O hero da home usa recorte tipo cover. Quanto mais larga a tela

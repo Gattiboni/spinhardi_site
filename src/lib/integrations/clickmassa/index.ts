@@ -9,7 +9,6 @@ import type {
   ExternalUser,
   SendMessageInput,
   SendMessageResponse,
-  CreateOpportunityInput,
   SyncContactInput,
   SyncContactResult,
 } from "./types";
@@ -22,7 +21,6 @@ export type {
   ExternalUser,
   SendMessageInput,
   SendMessageResponse,
-  CreateOpportunityInput,
   SyncContactInput,
   SyncContactResult,
 };
@@ -153,13 +151,6 @@ function extractArray<T>(
 }
 
 // ─── Funções públicas ──────────────────────────────────────────────────────
-
-// Delega ao cache resiliente (Quirk 2: /pipeline-steps tem 500 intermitente).
-// Mantem assinatura compativel com consumidores existentes.
-export async function listPipelineSteps(): Promise<PipelineStep[]> {
-  const { steps } = await listPipelineStepsResilient();
-  return steps;
-}
 
 /**
  * Lista oportunidades filtradas por step ou contato.
@@ -337,58 +328,34 @@ export async function sendWelcomeMessage(input: {
   });
 }
 
-// Cria oportunidade no funil. POST /opportunities.
-export async function createOpportunity(
-  input: CreateOpportunityInput,
-): Promise<Opportunity> {
-  const body: Record<string, unknown> = {
-    name: input.name,
-    value: input.value,
-    expectedCloseDate: input.expectedCloseDate,
-    contactId: input.contactId,
-    responsibleId: input.responsibleId,
-    pipelineStepId: input.pipelineStepId,
-    userId: input.userId,
-  };
-  if (input.description != null) body.description = input.description;
-  if (input.productsOpportunity) body.productsOpportunity = input.productsOpportunity;
-
-  const res = await clickMassaFetch<unknown>("/opportunities", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-
-  if (res && typeof res === "object" && !Array.isArray(res)) {
-    const obj = res as Record<string, unknown>;
-    const raw = obj.data ?? obj.opportunity ?? res;
-    return mapOpportunity(raw);
-  }
-  return mapOpportunity(res);
-}
-
-// Orquestra o fluxo de sync de um lead do site: envia boas-vindas + cria opp.
+// Orquestra o fluxo de sync de um lead novo do site: envia a mensagem de
+// boas-vindas no WhatsApp. É o desfecho terminal do fluxo — a perna de
+// oportunidade (listPipelineSteps + createOpportunity) foi removida no Lote 2.
 // Funcao pura: nao grava no Supabase. Quem chama e responsavel por persistir.
 export async function syncContactFlow(
   input: SyncContactInput,
 ): Promise<SyncContactResult> {
   const phone = normalizePhone(input.phone);
 
-  // 1. Envia mensagem de boas-vindas
-  let sendRes: SendMessageResponse;
+  // Envia mensagem de boas-vindas. Sucesso aqui = sucesso terminal: capturamos
+  // os IDs do response (contactId + ticketId) e paramos.
   try {
-    sendRes = await sendMessage({
+    const sendRes = await sendMessage({
       number: phone,
       body: buildWelcomeMessageBody(input.name),
       externalKey: input.id,
     });
+    return {
+      status: "message_sent",
+      clickmassaContactId: sendRes.message.contactId,
+      clickmassaTicketId: sendRes.message.ticketId,
+    };
   } catch (err) {
     if (err instanceof ClickMassaError) {
       return {
         status: "failed",
         clickmassaContactId: null,
         clickmassaTicketId: null,
-        clickmassaOpportunityId: null,
-        clickmassaPipelineStepId: null,
         error: err.message,
         errorCode: extractPayloadCode(err),
       };
@@ -397,104 +364,6 @@ export async function syncContactFlow(
       status: "failed",
       clickmassaContactId: null,
       clickmassaTicketId: null,
-      clickmassaOpportunityId: null,
-      clickmassaPipelineStepId: null,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-
-  const clickmassaContactId = sendRes.message.contactId;
-  const clickmassaTicketId = sendRes.message.ticketId;
-
-  // 2. Busca o primeiro pipeline step (menor order)
-  let steps: PipelineStep[];
-  try {
-    steps = await listPipelineSteps();
-  } catch (err) {
-    return {
-      status: "failed",
-      clickmassaContactId,
-      clickmassaTicketId,
-      clickmassaOpportunityId: null,
-      clickmassaPipelineStepId: null,
-      error: err instanceof Error ? err.message : String(err),
-      errorCode: err instanceof ClickMassaError ? extractPayloadCode(err) : undefined,
-    };
-  }
-
-  const firstStep = [...steps].sort((a, b) => a.order - b.order)[0] ?? null;
-  if (!firstStep) {
-    return {
-      status: "failed",
-      clickmassaContactId,
-      clickmassaTicketId,
-      clickmassaOpportunityId: null,
-      clickmassaPipelineStepId: null,
-      error: "Nenhum pipeline step disponivel no ClickMassa",
-    };
-  }
-
-  const pipelineStepId = firstStep.id;
-  const agentId = process.env.CLICKMASSA_DEFAULT_AGENT_ID ?? "";
-  const firstName = input.name?.trim().split(/\s+/)[0] ?? null;
-  const displayName = firstName ?? phone;
-
-  // expectedCloseDate: hoje + 30 dias
-  const closeDate = new Date();
-  closeDate.setDate(closeDate.getDate() + 30);
-  const expectedCloseDate = closeDate.toISOString().slice(0, 10);
-
-  // 3. Cria oportunidade
-  try {
-    const opp = await createOpportunity({
-      name: `Lead via Site - ${displayName}`,
-      value: 0,
-      expectedCloseDate,
-      contactId: clickmassaContactId,
-      responsibleId: agentId,
-      pipelineStepId,
-      userId: agentId,
-    });
-    return {
-      status: "opportunity_created",
-      clickmassaContactId,
-      clickmassaTicketId,
-      clickmassaOpportunityId: opp.id,
-      clickmassaPipelineStepId: pipelineStepId,
-    };
-  } catch (err) {
-    if (err instanceof ClickMassaError) {
-      const errorCode = extractPayloadCode(err);
-      const isBlocked =
-        errorCode === "ERR_CONTACT_PIPELINE_NOT_FOUND" ||
-        err.message.includes("ERR_CONTACT_PIPELINE_NOT_FOUND");
-      if (isBlocked) {
-        return {
-          status: "blocked",
-          clickmassaContactId,
-          clickmassaTicketId,
-          clickmassaOpportunityId: null,
-          clickmassaPipelineStepId: pipelineStepId,
-          error: "Módulo de Oportunidades não configurado no ClickMassa",
-          errorCode,
-        };
-      }
-      return {
-        status: "failed",
-        clickmassaContactId,
-        clickmassaTicketId,
-        clickmassaOpportunityId: null,
-        clickmassaPipelineStepId: pipelineStepId,
-        error: err.message,
-        errorCode,
-      };
-    }
-    return {
-      status: "failed",
-      clickmassaContactId,
-      clickmassaTicketId,
-      clickmassaOpportunityId: null,
-      clickmassaPipelineStepId: pipelineStepId,
       error: err instanceof Error ? err.message : String(err),
     };
   }

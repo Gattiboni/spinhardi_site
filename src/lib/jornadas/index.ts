@@ -275,12 +275,15 @@ export async function getJornadaById(id: string): Promise<JornadaComContato | nu
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Cria uma jornada manual ("novo atendimento" na ficha do contato).
- * Nasce aberta, já aprovada e em "primeiro contato" — entra direto no kanban.
+ * Cria uma jornada já aprovada e aberta em "primeiro contato" — entra direto no
+ * kanban. Um único caminho de INSERT parametrizado: o "novo atendimento" da ficha
+ * usa os defaults (origem "manual", sem título); a captura do site passa
+ * `origemDado: "site"` + o título automático. `origemDado` tem default "manual"
+ * pra preservar o comportamento dos chamadores existentes.
  */
 export async function createJornadaManual(
   contactId: string,
-  opts?: { tituloJornada?: string | null; valor?: number | null },
+  opts?: { tituloJornada?: string | null; valor?: number | null; origemDado?: string },
 ): Promise<Jornada> {
   const { data, error } = await supabaseAdmin()
     .from("jornadas")
@@ -290,7 +293,7 @@ export async function createJornadaManual(
       estagio_atualizado_em: new Date().toISOString(),
       aberta: true,
       aprovacao_status: "aprovada",
-      origem_dado: "manual",
+      origem_dado: opts?.origemDado ?? "manual",
       titulo_jornada: opts?.tituloJornada ?? null,
       valor: opts?.valor ?? null,
     })

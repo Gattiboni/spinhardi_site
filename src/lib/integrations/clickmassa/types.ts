@@ -73,18 +73,6 @@ export interface SendMessageResponse {
   };
 }
 
-export interface CreateOpportunityInput {
-  name: string;
-  description?: string;
-  value: number;
-  expectedCloseDate: string; // YYYY-MM-DD
-  contactId: number;
-  responsibleId: string;
-  pipelineStepId: number;
-  userId: string;
-  productsOpportunity?: Array<{ productId: number; amount: number; value: number }>;
-}
-
 export interface SyncContactInput {
   id: string; // UUID Supabase, vira externalKey
   name: string | null;
@@ -92,18 +80,14 @@ export interface SyncContactInput {
   email?: string | null;
 }
 
-export type SyncContactStatus =
-  | "opportunity_created"
-  | "message_sent"
-  | "blocked"
-  | "failed";
+// A perna de oportunidade saiu do fluxo de captura (Lote 2): mensagem de
+// boas-vindas enviada É o sucesso terminal. Sobram só dois desfechos.
+export type SyncContactStatus = "message_sent" | "failed";
 
 export interface SyncContactResult {
   status: SyncContactStatus;
   clickmassaContactId: number | null;
   clickmassaTicketId: number | null;
-  clickmassaOpportunityId: number | null;
-  clickmassaPipelineStepId: number | null;
   error?: string;
   errorCode?: string;
 }

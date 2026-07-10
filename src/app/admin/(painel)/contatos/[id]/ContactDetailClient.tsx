@@ -34,6 +34,7 @@ import {
   PRAZO_LABELS,
   PERFIL_LABELS,
 } from "@/lib/contacts/types";
+import type { FormSubmissionPayload } from "@/lib/contacts/from-form";
 
 const SYNC_STATUS_LABEL: Record<Contact["iddasSyncStatus"], string> = {
   synced: "✓ Sincronizado",
@@ -123,6 +124,8 @@ function ContatoHeader({
   fechadas: Jornada[];
 }) {
   const router = useRouter();
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [titulo, setTitulo] = useState("");
   const [criando, setCriando] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "ok" | "erro"; text: string } | null>(null);
 
@@ -134,12 +137,30 @@ function ContatoHeader({
   const cmUrl = clickmassaContactUrl(contact.clickmassaContactId);
   const temCmId = contact.clickmassaContactId != null;
 
-  const handleNovoAtendimento = async () => {
+  const inputClass =
+    "px-3 py-2 border border-dark/20 rounded-md font-body text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
+
+  const abrirForm = () => {
+    setFeedback(null);
+    setMostrarForm(true);
+  };
+
+  const cancelarForm = () => {
+    setMostrarForm(false);
+    setTitulo("");
+    setFeedback(null);
+  };
+
+  const handleCriarAtendimento = async () => {
+    const t = titulo.trim();
+    if (!t) return;
     setCriando(true);
     setFeedback(null);
-    const result = await criarAtendimento(contact.id);
+    const result = await criarAtendimento(contact.id, t);
     setCriando(false);
     if (result.success) {
+      setTitulo("");
+      setMostrarForm(false);
       router.refresh();
     } else {
       setFeedback({ type: "erro", text: result.error ?? "Não foi possível criar o atendimento." });
@@ -163,7 +184,7 @@ function ContatoHeader({
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-2">
           <div className="flex flex-wrap items-center gap-3">
             {temCmId &&
               (cmUrl ? (
@@ -185,10 +206,60 @@ function ContatoHeader({
                   💬 WhatsApp
                 </button>
               ))}
-            <Button variant="secondary" size="sm" onClick={handleNovoAtendimento} disabled={criando}>
-              {criando ? "Criando..." : "+ Novo atendimento"}
-            </Button>
+            {!mostrarForm && (
+              <Button variant="secondary" size="sm" onClick={abrirForm}>
+                + Novo atendimento
+              </Button>
+            )}
           </div>
+
+          {/* Um campo só, obrigatório — a usuária é leiga: label clara + exemplo. */}
+          {mostrarForm && (
+            <div className="w-72 max-w-full text-left">
+              <label
+                htmlFor="titulo-atendimento"
+                className="text-gold uppercase tracking-widest text-xs font-body mb-1 block"
+              >
+                Título do atendimento
+              </label>
+              <input
+                id="titulo-atendimento"
+                type="text"
+                autoFocus
+                maxLength={80}
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleCriarAtendimento();
+                  } else if (e.key === "Escape") {
+                    cancelarForm();
+                  }
+                }}
+                placeholder="Ex.: Cancún família Silva"
+                className={`${inputClass} w-full`}
+              />
+              <div className="mt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cancelarForm}
+                  className="font-body text-sm text-dark/60 hover:text-dark"
+                >
+                  Cancelar
+                </button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCriarAtendimento}
+                  disabled={criando || !titulo.trim()}
+                >
+                  {criando ? "Criando..." : "Criar"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {feedback && (
             <span
               className={`font-body text-sm ${feedback.type === "ok" ? "text-green-700" : "text-red-600"}`}
@@ -599,6 +670,95 @@ function InteracoesTimeline({
   );
 }
 
+// Payload do form gravado no metadata da interaction `form_submission` (ver
+// `buildFormSubmissionPayload`). Leitura defensiva: metadata é jsonb solto e
+// interactions antigas não têm `formSubmission`.
+function parseFormSubmission(
+  metadata: Record<string, unknown>,
+): Partial<FormSubmissionPayload> | null {
+  const fs = metadata?.formSubmission;
+  if (!fs || typeof fs !== "object") return null;
+  return fs as Partial<FormSubmissionPayload>;
+}
+
+function labelOf<K extends string>(map: Record<K, string>, key: unknown): string | null {
+  return typeof key === "string" && key in map ? map[key as K] : null;
+}
+
+function passageirosLinha(a: number, c: number, b: number): string {
+  const partes = [`${a} adulto${a !== 1 ? "s" : ""}`];
+  if (c > 0) partes.push(`${c} criança${c !== 1 ? "s" : ""}`);
+  if (b > 0) partes.push(`${b} bebê${b !== 1 ? "s" : ""}`);
+  return partes.join(" · ");
+}
+
+// Renderização legível (nada de JSON cru) do que a pessoa preencheu no form —
+// pros dois caminhos da captura (contato novo e reincidente). Só mostra os campos
+// que vieram preenchidos.
+function FormSubmissionDetails({ data }: { data: Partial<FormSubmissionPayload> }) {
+  const rows: Array<{ label: string; value: string }> = [];
+
+  if (data.nome) rows.push({ label: "Nome informado", value: data.nome });
+  if (data.whatsapp) rows.push({ label: "WhatsApp", value: data.whatsapp });
+  if (data.email) rows.push({ label: "E-mail", value: data.email });
+
+  const destino = labelOf(DESTINO_LABELS, data.destinoTipo);
+  if (destino) {
+    rows.push({
+      label: "Destino",
+      value: data.destinoTexto ? `${destino} — ${data.destinoTexto}` : destino,
+    });
+  }
+
+  const prazo = labelOf(PRAZO_LABELS, data.prazoIdeal);
+  if (prazo) {
+    rows.push({ label: "Quando", value: data.dataIda ? `${prazo} · data ${data.dataIda}` : prazo });
+  }
+
+  if (typeof data.passageirosAdultos === "number") {
+    rows.push({
+      label: "Passageiros",
+      value: passageirosLinha(
+        data.passageirosAdultos,
+        data.passageirosCriancas ?? 0,
+        data.passageirosBebes ?? 0,
+      ),
+    });
+  }
+
+  const perfil = labelOf(PERFIL_LABELS, data.perfilViajante);
+  if (perfil) rows.push({ label: "Perfil", value: perfil });
+
+  const orcamento = labelOf(ORCAMENTO_LABELS, data.orcamentoEstimado);
+  if (orcamento) rows.push({ label: "Orçamento", value: orcamento });
+
+  if (rows.length === 0 && !data.observacao) return null;
+
+  return (
+    <div className="mt-3 rounded-md border border-dark/10 bg-dark/3 px-4 py-3">
+      <p className="text-gold uppercase tracking-widest text-[11px] font-body mb-2">
+        O que pediu no formulário
+      </p>
+      <dl className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex flex-wrap gap-x-2 gap-y-0.5">
+            <dt className="font-body text-xs text-dark/50 min-w-[92px]">{r.label}</dt>
+            <dd className="font-body text-sm text-dark flex-1 min-w-0 break-words">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {data.observacao && (
+        <div className="mt-2">
+          <p className="font-body text-xs text-dark/50 mb-0.5">Observação</p>
+          <p className="font-body text-sm text-dark whitespace-pre-wrap break-words">
+            {data.observacao}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TimelineItem({
   interaction: it,
   contactId,
@@ -608,6 +768,7 @@ function TimelineItem({
 }) {
   const router = useRouter();
   const isNota = it.tipo === "nota_interna";
+  const formSub = it.tipo === "form_submission" ? parseFormSubmission(it.metadata) : null;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [texto, setTexto] = useState(it.descricao);
@@ -744,6 +905,8 @@ function TimelineItem({
             )}
           </div>
         )}
+
+        {!editing && formSub && <FormSubmissionDetails data={formSub} />}
 
         {erro && <p className="font-body text-xs text-red-600 mt-1">{erro}</p>}
       </div>

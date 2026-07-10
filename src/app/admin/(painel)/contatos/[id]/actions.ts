@@ -59,19 +59,36 @@ export async function saveGestaoInterna(
   }
 }
 
+// Cap do título do atendimento — alinhado ao do título automático do site.
+const TITULO_ATENDIMENTO_MAX = 80;
+
 /**
  * "Novo atendimento" na ficha do contato — cria uma jornada manual (D072).
  * Nasce aberta, já aprovada, em "primeiro contato": entra direto no kanban.
+ *
+ * O título passa a ser OBRIGATÓRIO na borda (o banco segue nullable de propósito,
+ * por causa das jornadas históricas). Sem título → erro amigável, nada é criado.
  */
-export async function criarAtendimento(contactId: string): Promise<ActionResult> {
+export async function criarAtendimento(
+  contactId: string,
+  titulo: string,
+): Promise<ActionResult> {
   try {
     await requireSession();
+
+    const tituloLimpo = titulo?.trim() ?? "";
+    if (!tituloLimpo) {
+      return { success: false, error: "Dê um título pro atendimento." };
+    }
+
     const contact = await getContactById(contactId);
     if (!contact) {
       return { success: false, error: "Contato não encontrado." };
     }
 
-    await createJornadaManual(contactId);
+    await createJornadaManual(contactId, {
+      tituloJornada: tituloLimpo.slice(0, TITULO_ATENDIMENTO_MAX),
+    });
 
     revalidatePath(`/admin/contatos/${contactId}`);
     revalidatePath("/admin/jornadas");

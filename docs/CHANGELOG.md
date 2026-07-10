@@ -15,6 +15,23 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-07-10
+
+**Site → Funil (D081):** formulário de /contato agora cria jornada direto no
+kanban ("primeiro contato", título "Site: {destino}"). Dedup por telefone/email
+com normalização BR canônica, validação server-side com erro por campo, máscara
+de telefone, honeypot validado E2E. Re-submit não duplica jornada; payload do
+form preservado e visível na ficha; contatos placeholder renomeados com
+auditoria. Título obrigatório na criação manual de atendimento. **ClickMassa
+consertado (D081):** causa raiz do sync fantasma era promise flutuante morta
+pela lambda da Vercel; substituída por after(). Write-back honesto
+(synced/failed, nunca pending eterno). Perna de oportunidade removida. Env
+CLICKMASSA_DEFAULT_AGENT_ID descontinuada (remover da Vercel pós-deploy).
+**Pendências:** smoke test de prod pós-deploy (número controlado); limpeza dos
+testes da Amanda; máscara/validação de telefone no cadastro manual do admin.
+
+---
+
 ### [2026-07-08] SITE — Hero da home: parallax de revelação em 3 camadas (D080)
 
 Rework do comportamento da imagem do hero, aprovado via mockup HTML standalone.

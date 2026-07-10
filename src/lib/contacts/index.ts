@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { Contact, ContactInteraction, CaptureOrigin } from "./types";
+import { normalizeBrPhoneLegacy } from "./phone";
 import {
   rowToContact,
   rowToInteraction,
@@ -96,6 +97,83 @@ export async function getContactById(id: string): Promise<Contact | null> {
   }
 
   return data ? rowToContact(data as ContactRow) : null;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Dedup por telefone/e-mail (captura do site)
+//
+// A partir do Lote 1.1 os registros NOVOS gravam o WhatsApp canônico (só dígitos,
+// com DDD, sem 55 — ver phone.ts), então o match principal é canônico vs canônico
+// (igualdade direta). Mas o banco tem registros HISTÓRICOS sujos ("+55 11 9...",
+// "119 8334 044", formatos mistos por origem): pra casar com eles mantemos o
+// fallback por sufixo (últimos 11/10 dígitos, tolera prefixo 55 e ausência de
+// DDD). E-mail casa exato, case-insensitive. Volume boutique: um select enxuto
+// (id/whatsapp/email) dos ativos e varredura em memória — padrão de `getContacts`.
+// ─────────────────────────────────────────────────────────────────
+
+// `canonical` é a chave forte (só existe quando o número normaliza como BR
+// válido); `d11`/`d10` são o fallback por sufixo pros registros legados sujos.
+function phoneKeys(raw: string): { canonical: string | null; d11: string; d10: string } | null {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  // Dedup usa a variante COM promoção do nono dígito de propósito: um registro
+  // legado de 10 díg (celular antigo) casa via canônico com um cadastro novo de
+  // 11. É o único lugar onde a promoção é correta (comparar, não gravar).
+  const norm = normalizeBrPhoneLegacy(raw);
+  return {
+    canonical: norm.ok ? norm.canonical : null,
+    d11: digits.slice(-11),
+    d10: digits.slice(-10),
+  };
+}
+
+/**
+ * Acha um contato ATIVO já existente pelo telefone (últimos 11/10 dígitos) ou
+ * pelo e-mail exato (case-insensitive). E-mail tem prioridade. Retorna só o id
+ * (é o que os chamadores precisam) ou null se não houver match.
+ */
+export async function findExistingContact(input: {
+  whatsapp: string;
+  email?: string | null;
+}): Promise<{ id: string } | null> {
+  const target = phoneKeys(input.whatsapp ?? "");
+  const email = input.email?.trim().toLowerCase() || null;
+  if (!target && !email) return null;
+
+  const { data, error } = await supabaseAdmin()
+    .from("contacts")
+    .select("id, whatsapp, email")
+    .eq("status", "ativo")
+    .limit(5000);
+
+  if (error) {
+    throw new Error(`Erro ao buscar contato existente: ${error.message}`);
+  }
+
+  const rows = (data as { id: string; whatsapp: string; email: string | null }[]) ?? [];
+
+  if (email) {
+    const byEmail = rows.find(
+      (r) => r.email && r.email.trim().toLowerCase() === email,
+    );
+    if (byEmail) return { id: byEmail.id };
+  }
+
+  if (target) {
+    const byPhone = rows.find((r) => {
+      const k = phoneKeys(r.whatsapp ?? "");
+      if (k === null) return false;
+      // Match forte: canônico vs canônico (registros novos).
+      if (target.canonical && k.canonical && target.canonical === k.canonical) {
+        return true;
+      }
+      // Fallback por sufixo: casa com o legado sujo do banco.
+      return k.d11 === target.d11 || k.d10 === target.d10;
+    });
+    if (byPhone) return { id: byPhone.id };
+  }
+
+  return null;
 }
 
 export async function getContactInteractions(contactId: string): Promise<ContactInteraction[]> {

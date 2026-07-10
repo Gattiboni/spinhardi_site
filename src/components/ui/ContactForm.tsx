@@ -4,6 +4,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import { submitContact, type ContactFormData } from "@/app/(public)/contato/actions";
+import { whatsappValidationError } from "@/lib/contacts/phone";
 import {
   DESTINOS_OPTIONS,
   PRAZOS_OPTIONS,
@@ -15,8 +16,33 @@ import {
   ORCAMENTO_LABELS,
 } from "@/lib/contacts/types";
 
+// Estado do form + o honeypot `website` (isca anti-bot, não faz parte do
+// ContactFormData). Humano nunca vê nem preenche; bot que preenche é barrado no
+// servidor.
+type FormState = ContactFormData & { website: string };
+
+/**
+ * Máscara de conveniência do WhatsApp: formata enquanto digita, ex.:
+ * "(11) 98765-4321". É SÓ apresentação — a fonte da verdade é a normalização
+ * canônica do servidor (phone.ts), que re-normaliza o que for enviado. Por isso
+ * a máscara pode ser tolerante (aceita colar "+55 ..." e tira o 55).
+ */
+function formatWhatsappInput(raw: string): string {
+  let d = raw.replace(/\D/g, "");
+  // Colou com DDI? Tira o 55 (mesma regra da normalização canônica).
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) {
+    d = d.slice(2);
+  }
+  d = d.slice(0, 11); // teto: DDD (2) + celular (9)
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 export default function ContactForm() {
-  const [values, setValues] = useState<ContactFormData>({
+  const [values, setValues] = useState<FormState>({
     name: "",
     whatsapp: "",
     email: "",
@@ -30,33 +56,86 @@ export default function ContactForm() {
     perfilViajante: "outro",
     orcamentoEstimado: "nao_informado",
     observacao: "",
+    website: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // `error` = erro geral (banner no topo, ex.: falha de rede/persistência).
+  // `fieldErrors` = erros de validação colados no campo (whatsapp, email, ...).
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
-    setValues({
-      ...values,
-      [name]: type === "number" ? Number(value) : value,
+    const nextValue =
+      name === "whatsapp"
+        ? formatWhatsappInput(value)
+        : type === "number"
+          ? Number(value)
+          : value;
+
+    setValues((prev) => ({ ...prev, [name]: nextValue }));
+
+    // Digitou no campo que estava com erro? Limpa o erro dele (feedback vivo).
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
+
+  // Feedback imediato: valida o WhatsApp no blur reusando a MESMA normalização/
+  // mensagem do servidor (phone.ts é TS puro, sem server-only). Só cola erro se o
+  // campo tiver conteúdo — não incomoda um campo ainda-não-tocado (o "required" é
+  // do submit/servidor). Servidor continua a fonte da verdade.
+  const handleWhatsappBlur = () => {
+    const trimmed = values.whatsapp.trim();
+    if (!trimmed) return;
+    const err = whatsappValidationError(trimmed);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (err) next.whatsapp = err;
+      else delete next.whatsapp;
+      return next;
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setFieldErrors({});
+
+    // Cortesia de UX: barra o WhatsApp claramente inválido/incompleto antes de ir
+    // à rede (nada é gravado). Mesma normalização/mensagem do servidor, que segue
+    // revalidando quando o client deixa passar.
+    const whatsappErr = whatsappValidationError(values.whatsapp.trim());
+    if (whatsappErr) {
+      setFieldErrors({ whatsapp: whatsappErr });
+      document.getElementById("whatsapp")?.focus();
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const result = await submitContact(values);
       if (result.success) {
         setSubmitted(true);
       } else {
-        setError(result.error || "Algo deu errado. Tente novamente.");
+        const msg = result.error || "Algo deu errado. Tente novamente.";
+        // Erro de validação de um campo específico → cola no campo e foca nele.
+        // Erro geral (sem `field`) → banner no topo. Assim TODO erro do servidor
+        // aparece no form, sem exceção.
+        if (result.field) {
+          setFieldErrors({ [result.field]: msg });
+          document.getElementById(result.field)?.focus();
+        } else {
+          setError(msg);
+        }
       }
     } catch {
       setError("Algo deu errado. Tente novamente.");
@@ -84,14 +163,42 @@ export default function ContactForm() {
   const labelClass = "block font-body text-sm font-medium text-dark mb-2";
   const groupClass = "space-y-5";
   const groupHeaderClass = "text-gold uppercase tracking-widest text-xs font-body mb-6";
+  const fieldErrorClass = "mt-2 font-body text-sm text-red-700";
+  // Anel vermelho no campo em erro (não conflita com a cor da borda do inputClass).
+  const errRing = (field: string) => (fieldErrors[field] ? " ring-2 ring-red-400" : "");
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10">
+    // noValidate: a validação nativa do browser fica DESLIGADA de propósito — a
+    // fonte da verdade é a validação/normalização server-side, e ela precisa
+    // rodar SEMPRE. Sem isso, o balão nativo (ex.: type=email) interceptava o
+    // submit e o erro do servidor (ex.: WhatsApp) nunca chegava a renderizar.
+    <form onSubmit={handleSubmit} className="space-y-10" noValidate>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
+
+      {/* Honeypot anti-bot: invisível pra humano (jogado pra fora da tela, sem
+          type=hidden pra enganar bots que ignoram campos escondidos). Se vier
+          preenchido, o servidor descarta o envio em silêncio. tabIndex/-1 +
+          autoComplete off pra teclado e gerenciador de senhas não tocarem. */}
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", left: "-9999px", width: 0, height: 0, overflow: "hidden" }}
+      >
+        <label htmlFor="website">Deixe este campo em branco</label>
+        <input
+          type="text"
+          id="website"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={values.website}
+          onChange={handleChange}
+        />
+      </div>
 
       {/* Grupo 1 - Sobre você */}
       <div className={groupClass}>
@@ -108,10 +215,18 @@ export default function ContactForm() {
             required
             disabled={loading}
             placeholder="Seu nome"
+            autoComplete="name"
             value={values.name}
             onChange={handleChange}
-            className={inputClass}
+            aria-invalid={!!fieldErrors.name}
+            aria-describedby={fieldErrors.name ? "name-error" : undefined}
+            className={`${inputClass}${errRing("name")}`}
           />
+          {fieldErrors.name && (
+            <p id="name-error" className={fieldErrorClass}>
+              {fieldErrors.name}
+            </p>
+          )}
         </div>
 
         <div>
@@ -124,11 +239,21 @@ export default function ContactForm() {
             name="whatsapp"
             required
             disabled={loading}
-            placeholder="+55 11 99876-5432"
+            placeholder="(11) 98765-4321"
+            inputMode="tel"
+            autoComplete="tel"
             value={values.whatsapp}
             onChange={handleChange}
-            className={inputClass}
+            onBlur={handleWhatsappBlur}
+            aria-invalid={!!fieldErrors.whatsapp}
+            aria-describedby={fieldErrors.whatsapp ? "whatsapp-error" : undefined}
+            className={`${inputClass}${errRing("whatsapp")}`}
           />
+          {fieldErrors.whatsapp && (
+            <p id="whatsapp-error" className={fieldErrorClass}>
+              {fieldErrors.whatsapp}
+            </p>
+          )}
         </div>
 
         <div>
@@ -141,10 +266,19 @@ export default function ContactForm() {
             name="email"
             disabled={loading}
             placeholder="seu.email@exemplo.com"
+            inputMode="email"
+            autoComplete="email"
             value={values.email}
             onChange={handleChange}
-            className={inputClass}
+            aria-invalid={!!fieldErrors.email}
+            aria-describedby={fieldErrors.email ? "email-error" : undefined}
+            className={`${inputClass}${errRing("email")}`}
           />
+          {fieldErrors.email && (
+            <p id="email-error" className={fieldErrorClass}>
+              {fieldErrors.email}
+            </p>
+          )}
         </div>
       </div>
 
@@ -185,8 +319,15 @@ export default function ContactForm() {
             placeholder="Cidades, regiões, ou referências que você tem em mente"
             value={values.destinoTexto}
             onChange={handleChange}
-            className={`${inputClass} resize-none`}
+            aria-invalid={!!fieldErrors.destinoTexto}
+            aria-describedby={fieldErrors.destinoTexto ? "destinoTexto-error" : undefined}
+            className={`${inputClass} resize-none${errRing("destinoTexto")}`}
           />
+          {fieldErrors.destinoTexto && (
+            <p id="destinoTexto-error" className={fieldErrorClass}>
+              {fieldErrors.destinoTexto}
+            </p>
+          )}
         </div>
 
         <div>
@@ -221,8 +362,15 @@ export default function ContactForm() {
             disabled={loading}
             value={values.dataIda}
             onChange={handleChange}
-            className={inputClass}
+            aria-invalid={!!fieldErrors.dataIda}
+            aria-describedby={fieldErrors.dataIda ? "dataIda-error" : undefined}
+            className={`${inputClass}${errRing("dataIda")}`}
           />
+          {fieldErrors.dataIda && (
+            <p id="dataIda-error" className={fieldErrorClass}>
+              {fieldErrors.dataIda}
+            </p>
+          )}
         </div>
 
         <div>
@@ -346,8 +494,15 @@ export default function ContactForm() {
             placeholder="Conta um pouco mais sobre o que tem em mente. Quanto mais a gente souber, melhor a conversa fica."
             value={values.observacao}
             onChange={handleChange}
-            className={`${inputClass} resize-none`}
+            aria-invalid={!!fieldErrors.observacao}
+            aria-describedby={fieldErrors.observacao ? "observacao-error" : undefined}
+            className={`${inputClass} resize-none${errRing("observacao")}`}
           />
+          {fieldErrors.observacao && (
+            <p id="observacao-error" className={fieldErrorClass}>
+              {fieldErrors.observacao}
+            </p>
+          )}
         </div>
       </div>
 
