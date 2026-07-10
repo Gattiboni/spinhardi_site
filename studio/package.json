@@ -1,0 +1,16 @@
+{
+  "name": "spinhardi-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fonte versionada do schema Sanity da Spinhardi (projeto wtc1swpj). Nao e o editor de conteudo — existe para o schema ter dono, versao e deploy reproduzivel via CLI.",
+  "scripts": {
+    "deploy-schema": "sanity schema deploy",
+    "dev": "sanity dev"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sanity": "^4.0.0",
+    "styled-components": "^6.1.0"
+  }
+}

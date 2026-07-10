@@ -18,7 +18,9 @@ const POST_PROJECTION = `{
   mainImage,
   body,
   author->{name, image},
-  categories[]->{title}
+  categories[]->{title},
+  seoTitle,
+  seoDescription
 }`;
 
 export async function getAllSanityPosts(): Promise<SanityPost[]> {

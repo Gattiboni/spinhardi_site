@@ -15,6 +15,19 @@ Ordem: mais recente no topo.
 
 ---
 
+**Blog no back-office (D082):** admin /blog sai do mock e grava de verdade no
+Sanity: rascunho/publicar/excluir via write client server-only, slug automático,
+categorias por reference, title/excerpt/body obrigatórios com erro inline, corpo
+em md-leve convertido pra Portable Text (round-trip na edição). Schema ganhou
+fonte versionada no repo (studio/) com excerpt + campos de SEO, deployado via
+CLI; Studio hospedado re-deployado da nossa fonte. Leitura pública corrigida pra
+live (useCdn false + perspective published): a CDN da Sanity segurava post
+publicado invisível. seoTitle/seoDescription fluem até o metadata público.
+**Pendências:** B2 (upload de thumbnail), B3 (Open Graph completo), trial do
+Sanity expira ~16/07.
+
+---
+
 ## 2026-07-10
 
 **Site → Funil (D081):** formulário de /contato agora cria jornada direto no

@@ -28,6 +28,63 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D082] Blog: escrita 100% no back-office via API do Sanity; schema com fonte versionada no repo
+
+**Data:** 2026-07-10
+
+**Contexto:** o admin /blog era mock desde a Fase 3 prometida (alert no form,
+botões que não gravavam nada), enquanto o blog público já lia do Sanity desde o
+Lote F. Investigação em duas frentes (Codinho no código, Claudinho via Sanity
+MCP) mostrou descasamento de modelo: o form coletava seoTitle/seoDescription que
+não existiam no schema, thumbnail por URL vs image asset, categorias fixas no
+front vs livres no Sanity com fallback silencioso pra "Destinos", e status
+rascunho fake. O schema vivia só no Studio hospedado criado de template (sem
+fonte sob nosso controle no repo). Descoberto e corrigido no caminho: o client
+público lia via CDN de edge da Sanity (useCdn true), que não é purgada pelo
+revalidatePath do Next — post publicado não aparecia no público.
+
+**Decisões:**
+
+1. **Escrita 100% no back-office** (modelo do email/CRM: Nina nunca sai do
+   admin). Server actions gravam no Sanity via write client server-only
+   (SANITY_API_WRITE_TOKEN, useCdn false, perspective raw). Salvar = draft
+   nativo do Sanity; Publicar = publish com publishedAt setado na 1ª publicação
+   e preservado nas seguintes.
+2. **Schema com dono:** pasta studio/ versionada no repo (package.json próprio),
+   replicando os 7 campos vivos e adicionando excerpt, seoTitle, seoDescription
+   e ogImage. Deploy reproduzível via CLI; Studio hospedado re-deployado da
+   nossa fonte (mesmo hostname/appId), matando o schema do template.
+3. **Corpo do post:** textarea com md-leve (parágrafos, # h2, ## h3) convertido
+   pra Portable Text por conversor hand-rolled, round-trip na edição com perdas
+   documentadas no módulo (marks e blocos não-block criados fora do admin não
+   sobrevivem).
+4. **Leitura pública live:** useCdn false + perspective "published" explícito.
+   Cache é responsabilidade do Next (ISR 60s + revalidatePath no
+   publish/delete); a CDN da Sanity embaixo servia estado velho sem controle
+   nosso.
+5. **Validação na borda:** title, excerpt e body obrigatórios com erro inline
+   por campo (padrão ContactForm); slug automático do título com unicidade;
+   categoria gravada como reference resolvida por title (4 canônicas semeadas e
+   publicadas no dataset).
+6. **Fora deste ciclo, por decisão:** upload de thumbnail (B2), autor no form
+   (fallback público "Spinhardi Turismo"), Open Graph completo com og:image
+   (B3).
+
+**Alternativas rejeitadas:** abrir o Sanity Studio pras sócias como editor
+(quebra a regra da casa de nunca sair do back-office e adiciona segundo
+vocabulário de UI pra Nina); lib de conversão markdown↔Portable Text
+(dependência nova pra um subconjunto que 30 linhas cobrem); manter useCdn true
+com webhook de revalidação (a CDN da Sanity não obedece o revalidatePath;
+webhook só cobre edição via Studio, não via nossa API).
+
+**Pendências:** B2 (upload de thumbnail como image asset), B3 (og:image +
+openGraph/twitter completos no generateMetadata + higiene de rótulos "Fase 3"
+remanescentes), trial Growth do Sanity expira ~16/07 (verificar impacto do
+downgrade pro Free), UI do admin ainda exibe rótulos em inglês (Excerpt, SEO
+Title) — entra na auditoria do back-office.
+
+---
+
 ### [D081] Lead do site entra no funil como jornada + revisão do outbound ClickMassa (revisa D044)
 
 **Data:** 2026-07-10 **Contexto:** Nina reportou que preenchimentos do site não

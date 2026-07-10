@@ -3,42 +3,100 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import { Post, CATEGORIES } from "@/lib/blog/types";
+import { Post, PostCategory, CATEGORIES } from "@/lib/blog/types";
+import { savePostAction, deletePostAction } from "@/lib/blog/actions";
 
 type PostFormProps = {
   /** Se fornecido, é edição; se ausente, é criação. */
   initialPost?: Post;
 };
 
+/** Qual ação está em voo — dá a cada botão seu próprio loading e evita submit
+ *  duplo. `null` = nada rodando. */
+type PendingAction = "draft" | "publish" | "delete" | null;
+
 export default function PostForm({ initialPost }: PostFormProps) {
   const router = useRouter();
+  // `error` = banner geral (colisão de slug, falha de rede). `fieldErrors` =
+  // erros colados no campo (ex.: excerpt vazio). Mesmo padrão do ContactForm.
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState<PendingAction>(null);
+  const busy = pending !== null;
+  const postId = initialPost?.id;
+
   const [values, setValues] = useState({
     title: initialPost?.title ?? "",
     slug: initialPost?.slug ?? "",
-    category: initialPost?.category ?? "Destinos",
+    category: (initialPost?.category ?? "Destinos") as PostCategory,
     excerpt: initialPost?.excerpt ?? "",
     body: initialPost?.body ?? "",
-    thumbnail: initialPost?.thumbnail ?? "",
     seoTitle: initialPost?.seoTitle ?? "",
     seoDescription: initialPost?.seoDescription ?? "",
-    status: initialPost?.status ?? "rascunho",
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
-    setValues({ ...values, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setValues((prev) => ({ ...prev, [name]: value }));
+    // Digitou no campo que estava com erro? Limpa o erro dele (feedback vivo).
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   };
 
-  // CRUD desativado na Fase 1.4 — implementação real virá com Sanity (Fase 3).
-  const handleSave = () => {
-    alert(
-      "Implementação completa virá com Sanity (Fase 3). Por enquanto, posts são gerenciados via mock.",
-    );
+  const submit = async (publish: boolean) => {
+    setError(null);
+    setFieldErrors({});
+    setPending(publish ? "publish" : "draft");
+    try {
+      const result = await savePostAction({ id: postId, input: values, publish });
+      if (result.ok) {
+        // A action já revalidou `/admin/blog`; navega limpo (sem `router.refresh`,
+        // que travava a transition). Mantém o loading até desmontar.
+        router.push("/admin/blog");
+        return;
+      }
+      if (result.field) {
+        setFieldErrors({ [result.field]: result.error });
+        document.getElementById(result.field)?.focus();
+      } else {
+        setError(result.error);
+      }
+      setPending(null);
+    } catch {
+      setError("Algo deu errado ao salvar. Tente novamente.");
+      setPending(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!postId) return;
+    if (!confirm("Excluir este post? Rascunho e versão publicada são removidos. Não dá pra desfazer.")) {
+      return;
+    }
+    setError(null);
+    setPending("delete");
+    try {
+      const result = await deletePostAction(postId);
+      if (result.ok) {
+        router.push("/admin/blog");
+        return;
+      }
+      setError(result.error);
+      setPending(null);
+    } catch {
+      setError("Algo deu errado ao excluir. Tente novamente.");
+      setPending(null);
+    }
   };
 
   const inputClass =
-    "w-full px-4 py-3 border border-dark/20 rounded-md font-body text-base text-dark placeholder:text-dark/40 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
+    "w-full px-4 py-3 border border-dark/20 rounded-md font-body text-base text-dark placeholder:text-dark/40 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short disabled:opacity-60";
 
   const labelClass = "block font-body text-sm font-medium text-dark mb-2";
 
@@ -56,21 +114,31 @@ export default function PostForm({ initialPost }: PostFormProps) {
             required
             value={values.title}
             onChange={handleChange}
-            className={inputClass}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.title}
+            aria-describedby={fieldErrors.title ? "title-error" : undefined}
+            className={`${inputClass}${fieldErrors.title ? " ring-2 ring-red-400" : ""}`}
           />
+          {fieldErrors.title && (
+            <p id="title-error" className="mt-2 font-body text-sm text-red-700">
+              {fieldErrors.title}
+            </p>
+          )}
         </div>
 
         <div>
           <label htmlFor="slug" className={labelClass}>
-            Slug *
+            Slug{" "}
+            <span className="text-dark/50 font-normal">(deixe em branco para gerar do título)</span>
           </label>
           <input
             type="text"
             id="slug"
             name="slug"
-            required
             value={values.slug}
             onChange={handleChange}
+            disabled={busy}
+            placeholder="ex.: meu-post"
             className={inputClass}
           />
         </div>
@@ -85,6 +153,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
             required
             value={values.category}
             onChange={handleChange}
+            disabled={busy}
             className={`${inputClass} bg-white`}
           >
             {CATEGORIES.map((c) => (
@@ -106,8 +175,16 @@ export default function PostForm({ initialPost }: PostFormProps) {
             required
             value={values.excerpt}
             onChange={handleChange}
-            className={`${inputClass} resize-none`}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.excerpt}
+            aria-describedby={fieldErrors.excerpt ? "excerpt-error" : undefined}
+            className={`${inputClass} resize-none${fieldErrors.excerpt ? " ring-2 ring-red-400" : ""}`}
           />
+          {fieldErrors.excerpt && (
+            <p id="excerpt-error" className="mt-2 font-body text-sm text-red-700">
+              {fieldErrors.excerpt}
+            </p>
+          )}
         </div>
 
         <div>
@@ -124,26 +201,16 @@ export default function PostForm({ initialPost }: PostFormProps) {
             required
             value={values.body}
             onChange={handleChange}
-            className={`${inputClass} resize-y font-mono text-sm`}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.body}
+            aria-describedby={fieldErrors.body ? "body-error" : undefined}
+            className={`${inputClass} resize-y font-mono text-sm${fieldErrors.body ? " ring-2 ring-red-400" : ""}`}
           />
-        </div>
-
-        <div>
-          <label htmlFor="thumbnail" className={labelClass}>
-            Thumbnail{" "}
-            <span className="text-dark/50 font-normal">
-              (URL — upload virá na Fase 3 com Sanity)
-            </span>
-          </label>
-          <input
-            type="text"
-            id="thumbnail"
-            name="thumbnail"
-            value={values.thumbnail ?? ""}
-            onChange={handleChange}
-            placeholder="https://..."
-            className={inputClass}
-          />
+          {fieldErrors.body && (
+            <p id="body-error" className="mt-2 font-body text-sm text-red-700">
+              {fieldErrors.body}
+            </p>
+          )}
         </div>
 
         <div>
@@ -156,6 +223,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
             name="seoTitle"
             value={values.seoTitle}
             onChange={handleChange}
+            disabled={busy}
             className={inputClass}
           />
         </div>
@@ -170,36 +238,46 @@ export default function PostForm({ initialPost }: PostFormProps) {
             rows={2}
             value={values.seoDescription}
             onChange={handleChange}
+            disabled={busy}
             className={`${inputClass} resize-none`}
           />
         </div>
-
-        <div>
-          <label htmlFor="status" className={labelClass}>
-            Status
-          </label>
-          <select
-            id="status"
-            name="status"
-            value={values.status}
-            onChange={handleChange}
-            className={`${inputClass} bg-white`}
-          >
-            <option value="rascunho">Rascunho</option>
-            <option value="publicado">Publicado</option>
-          </select>
-        </div>
       </div>
 
-      <div className="flex justify-end gap-3 mt-8 pt-8 border-t border-dark/10">
-        <Button variant="ghost" size="md" onClick={() => router.push("/admin/blog")}>
+      {error && (
+        <p
+          role="alert"
+          className="mt-6 px-4 py-3 rounded-md bg-red-50 border border-red-200 font-body text-sm text-red-700"
+        >
+          {error}
+        </p>
+      )}
+
+      <div className="flex flex-wrap justify-end items-center gap-3 mt-8 pt-8 border-t border-dark/10">
+        {postId && (
+          <Button
+            variant="ghost"
+            size="md"
+            onClick={handleDelete}
+            disabled={busy}
+            className="mr-auto text-red-600 hover:text-red-700"
+          >
+            {pending === "delete" ? "Excluindo…" : "Excluir"}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="md"
+          onClick={() => router.push("/admin/blog")}
+          disabled={busy}
+        >
           Cancelar
         </Button>
-        <Button variant="secondary" size="md" onClick={handleSave}>
-          Salvar como rascunho
+        <Button variant="secondary" size="md" onClick={() => submit(false)} disabled={busy}>
+          {pending === "draft" ? "Salvando…" : "Salvar como rascunho"}
         </Button>
-        <Button variant="primary" size="md" onClick={handleSave}>
-          Publicar
+        <Button variant="primary" size="md" onClick={() => submit(true)} disabled={busy}>
+          {pending === "publish" ? "Publicando…" : "Publicar"}
         </Button>
       </div>
     </div>

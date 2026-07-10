@@ -37,10 +37,10 @@ spinhardi_site/
 │   │   └── ui/             # Componentes base (Button, Card, Section, etc)
 │   └── lib/                # Utilitários, integrações e abstrações
 │       ├── ai/             # Camada de IA (abstração sobre provider)
-│       ├── blog/           # Acesso a posts (mock na Fase 1, Sanity na Fase 3)
+│       ├── blog/           # Acesso a posts (leitura + escrita/publicação via Sanity)
 │       ├── email/          # E-mail transacional (mock na Fase 1, Resend na Fase 3)
 │       ├── integrations/   # IDAS, ClickMassa, Make (abstrações preparadas)
-│       ├── sanity/         # Cliente Sanity (Fase 3)
+│       ├── sanity/         # Clientes Sanity (leitura pública + escrita server-only)
 │       └── supabase/       # Cliente Supabase
 ├── public/                 # Assets estáticos
 └── docs/                   # Documentação do projeto
@@ -123,6 +123,7 @@ SUPABASE_SERVICE_ROLE_KEY=*  # nunca expor no frontend
 NEXT_PUBLIC_SANITY_PROJECT_ID=
 NEXT_PUBLIC_SANITY_DATASET=production
 SANITY_API_TOKEN=
+SANITY_API_WRITE_TOKEN=  # server-only; escrita/publicação de posts pelo /admin/blog
 
 # Resend (e-mail transacional do formulário)
 RESEND_API_KEY=
@@ -169,13 +170,14 @@ Detalhes em `docs/DECISION_LOG.md` (D008).
 
 ## Blog — como publicar um post
 
-Na Fase 3 em diante, posts são publicados pela Amanda via Sanity Studio.
+Posts são criados, editados e publicados pela Amanda direto no back-office, em
+`/admin/blog` (escrita via write client da Sanity). A lista mostra rascunhos e
+publicados com o status real; "Salvar como rascunho" grava um draft (invisível
+no site) e "Publicar" põe no ar, revalidando `/blog` na hora. Edição também é
+possível pelo Sanity Studio — nesse caso o webhook `/api/revalidate` cuida da
+revalidação.
 
-Ver `docs/COMO_PUBLICAR_POST.md` para o fluxo completo (criado durante a Fase
-3).
-
-Durante a Fase 1, posts ficam mockados em `lib/blog/mock-posts.ts` apenas para
-fins de desenvolvimento.
+Ver `docs/COMO_PUBLICAR_POST.md` para o fluxo completo.
 
 ---
 

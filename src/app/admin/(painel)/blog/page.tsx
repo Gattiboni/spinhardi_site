@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { getPosts } from "@/lib/blog";
+import { getAdminPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/utils/date";
 import type { Metadata } from "next";
 
@@ -8,8 +8,11 @@ export const metadata: Metadata = {
   title: "Posts · Admin",
 };
 
+// Escrita/leitura via write client: sempre fresco, sem cache estático.
+export const dynamic = "force-dynamic";
+
 export default async function AdminBlogList() {
-  const posts = await getPosts(); // todos, inclusive rascunhos
+  const posts = await getAdminPosts(); // rascunhos E publicados, com status real
 
   return (
     <div>

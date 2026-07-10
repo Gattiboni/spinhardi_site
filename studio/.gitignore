@@ -1,0 +1,10 @@
+# Artefatos do Studio Sanity — nao versionar
+node_modules/
+dist/
+.sanity/
+
+# Logs
+*.log
+
+# Env local do studio (se algum dia existir)
+.env*
