@@ -28,6 +28,78 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D083] Blog: capa como image asset do Sanity, alt obrigatório e coleta de assets órfãos
+
+**Data:** 2026-07-12
+
+**Contexto:** o B1 entregou escrita real do blog no back-office, mas sem capa: o
+campo de imagem nem existia no PostForm, todo post nascia sem mainImage e o card
+público caía num placeholder cinza. O blog não era usável de verdade. Além
+disso, a leitura do dataset revelou um asset de imagem (2.png, 18/06) sem
+nenhuma referência: lixo já acumulado antes de qualquer upload nosso, prova de
+que o Sanity não coleta asset órfão sozinho.
+
+**Decisões:**
+
+1. **Capa obrigatória para publicar, livre no rascunho.** Salvar rascunho sem
+   imagem é legítimo. Publicar sem imagem trava com erro inline no campo, mesmo
+   padrão de title/excerpt/body. Consequência aceita: post publicado sempre tem
+   capa, então o placeholder cinza só existe para posts legados.
+2. **Texto alternativo obrigatório junto com a imagem.** Campo `alt` aninhado
+   dentro do `mainImage` no schema (studio/, deployado por CLI). A
+   obrigatoriedade é regra da nossa server action, não do schema: validação de
+   schema do Sanity só vale dentro do Studio, o Content Lake não valida escrita
+   via API. No público, sem fallback pro título: `alt={thumbnailAlt ?? ""}`,
+   porque repetir o título no alt faz o leitor de tela ler a mesma frase duas
+   vezes.
+3. **Upload via Server Action, não Route Handler.** O File viaja num FormData
+   como segundo argumento; o resto continua tipado no PostInput (`imageAlt`,
+   `removeImage`). Limite de 4 MB (`experimental.serverActions.bodySizeLimit`),
+   formatos jpeg/png/webp, validado nos dois lados. O upload só roda **depois**
+   da validação passar.
+4. **Coleta de assets órfãos (GC), best effort, em três momentos:** salvar
+   rascunho, publicar e excluir post. Colhe os assetIds antes de mutar, e depois
+   do commit tenta apagar os que ficaram sem referência
+   (`count(*[references($id)]) == 0`). Erro de qualquer natureza é engolido e
+   logado: o GC nunca pode derrubar a ação da Nina. O 409 do Content Lake
+   ("asset ainda referenciado") é rede de segurança esperada, não bug. Cobre
+   `mainImage` e `ogImage` desde já, para o B3 não reescrever.
+5. **Auth server-side nas actions do blog.** `savePostAction` e
+   `deletePostAction` passam a checar sessão e role (`CAN_MANAGE_POSTS`) antes
+   de qualquer escrita. Fecha dívida do B1, onde a role só era validada no
+   client, e é pré-requisito do upload: sem isso, qualquer requisição mandava 4
+   MB pro nosso Sanity.
+6. **Botão "Ver no site" (B2.1)** na lista e no form, apontando sempre para a
+   versão **publicada** (`publishedSlug` projetado no admin). Rascunho nunca
+   publicado: botão desabilitado, não escondido. Publicado com rascunho por
+   cima: botão ativo mais helper explicando que as alterações só aparecem depois
+   de publicar. Publish passa a navegar para a página de edição do post, não
+   para a lista.
+
+**Alternativas rejeitadas:** upload no momento em que a Nina escolhe o arquivo
+(cria asset órfão se ela abandonar o post); Route Handler para o upload (o
+client subiria o arquivo antes da validação, e um asset criado e nunca
+referenciado é lixo que nenhuma rotina nossa alcança); deixar asset órfão
+acumular e "resolver depois" (é literalmente dívida técnica, e o 2.png prova que
+ela acontece); preview de rascunho junto deste lote (exige Next draft mode e
+mexer no perspective do client público, onde já nos queimamos uma vez: vira lote
+próprio).
+
+**Racional:** o GC é destrutivo, mas nunca opera sobre hipótese. O alvo é sempre
+um asset que a própria mutação acabou de desreferenciar, e a verificação final é
+do servidor da Sanity, não nossa. Validado com evidência em três ciclos de
+teste: o dataset voltou ao estado inicial (1 asset, o 2.png legado) depois de
+múltiplos uploads, trocas e exclusões, sem tocar no asset de controle.
+
+**Pendências:** preview de rascunho (draft mode) em lote próprio; asset legado
+2.png ainda por remover; "Remover imagem" em post publicado salva rascunho mas
+trava no publish (coerente com a decisão 1, mas confuso, revisar UX); role de
+blog validada por leitura de código, não por execução (falta segundo usuário).
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [D082] Blog: escrita 100% no back-office via API do Sanity; schema com fonte versionada no repo
 
 **Data:** 2026-07-10

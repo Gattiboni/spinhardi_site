@@ -56,7 +56,10 @@ function groupByBase(docs: SanityPost[]): DocGroup[] {
  *  - conteúdo exibido/editado = o draft se existir, senão o publicado;
  *  - status REAL = "publicado" sse há versão publicada, senão "rascunho"
  *    (um post publicado com edições pendentes continua "publicado");
- *  - `id` = ID base, pra as actions saberem qual documento gravar.
+ *  - `id` = ID base, pra as actions saberem qual documento gravar;
+ *  - `publishedSlug` = slug da versão publicada (o de exibição pode ser o do
+ *    draft, que não tem página pública); `hasPendingDraft` = draft por cima de
+ *    publicado. Ambos vêm dos docs já projetados, sem heurística no client.
  */
 function toAdminPost(group: DocGroup): Post {
   const display = group.draft ?? group.published;
@@ -65,6 +68,8 @@ function toAdminPost(group: DocGroup): Post {
     ...sanityPostToPost(display),
     id: group.id,
     status: group.published ? "publicado" : "rascunho",
+    publishedSlug: group.published?.slug ?? null,
+    hasPendingDraft: !!(group.draft && group.published),
   };
 }
 

@@ -15,6 +15,41 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-07-12
+
+**Blog: capa, alt e coleta de órfãos (D083):** o `/admin/blog` ganha upload de
+imagem de capa (image asset real no Sanity, não URL), com preview, troca e
+remoção. Capa e texto alternativo são obrigatórios para publicar, livres no
+rascunho, com erro inline por campo. Limite de 4 MB, jpeg/png/webp, validado no
+client e revalidado no servidor; upload roda só depois da validação passar.
+Schema ganhou `alt` aninhado no `mainImage` (deployado da fonte em `studio/`).
+Coleta de assets órfãos best effort em três momentos (rascunho, publish,
+delete), cobrindo `mainImage` e `ogImage`: valida com `count(*[references()])` e
+engole qualquer erro, porque nunca pode derrubar a ação da usuária. Público
+passa a renderizar a capa em `/blog` e `/blog/[slug]` com `alt` real e sem CLS,
+preservando o placeholder como fallback.
+
+**Auth server-side do blog (D083):** `savePostAction` e `deletePostAction` agora
+checam sessão e role antes de qualquer escrita. Fecha a dívida do B1, em que a
+role do blog só era validada no client.
+
+**"Ver no site" e rótulos em pt-BR (D083):** botão de link direto para o post
+publicado na lista e no form do admin, desabilitado quando o post nunca foi
+publicado, com helper quando existe rascunho por cima da versão publicada.
+Publish passa a navegar para a página de edição. Rótulos do form traduzidos
+(Resumo, Conteúdo, SEO — Título, SEO — Descrição).
+
+**INFRA:** `studio/dist/**` ignorado no ESLint. O `npm run lint` completo
+estourava OOM varrendo bundle minificado (gitignored, nunca versionado).
+
+**Validação:** GC provado com evidência de dataset em três ciclos (múltiplos
+uploads, trocas e exclusões): o dataset volta ao estado inicial e o asset de
+controle sobrevive intacto. **Pendências:** preview de rascunho (draft mode) em
+lote próprio; asset órfão legado `2.png` (18/06) a remover; role do blog
+validada por código, não por execução.
+
+---
+
 **Blog no back-office (D082):** admin /blog sai do mock e grava de verdade no
 Sanity: rascunho/publicar/excluir via write client server-only, slug automático,
 categorias por reference, title/excerpt/body obrigatórios com erro inline, corpo

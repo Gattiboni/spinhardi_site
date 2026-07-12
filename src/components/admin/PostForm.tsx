@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/ui/Button";
-import { Post, PostCategory, CATEGORIES } from "@/lib/blog/types";
+import Button, { buttonStyles } from "@/components/ui/Button";
+import {
+  Post,
+  PostCategory,
+  CATEGORIES,
+  IMAGE_ALLOWED_TYPES,
+  IMAGE_MAX_BYTES,
+} from "@/lib/blog/types";
 import { savePostAction, deletePostAction } from "@/lib/blog/actions";
 
 type PostFormProps = {
@@ -33,7 +39,41 @@ export default function PostForm({ initialPost }: PostFormProps) {
     body: initialPost?.body ?? "",
     seoTitle: initialPost?.seoTitle ?? "",
     seoDescription: initialPost?.seoDescription ?? "",
+    // Conteúdo serializável da capa (o arquivo em si vive à parte, ver abaixo).
+    imageAlt: initialPost?.thumbnailAlt ?? "",
+    removeImage: false,
   });
+
+  // O `File` NÃO entra em `values` (não é serializável e não casa com o padrão
+  // de `handleChange`). Ele e o preview local vivem em estado próprio. O upload
+  // só acontece ao salvar/publicar (dentro da action) — não na seleção — pra não
+  // criar asset órfão se a Nina abandonar o post.
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // O objectURL do preview é criado no handler de seleção; este efeito só o
+  // REVOGA (quando troca ou no unmount), sem setState no corpo — assim não
+  // dispara renders em cascata.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  // O que mostrar: arquivo novo (blob) tem prioridade; senão a capa do Sanity
+  // (a menos que a Nina tenha marcado remover). Sem nenhum → sem preview.
+  const displayUrl =
+    previewUrl ?? (values.removeImage ? null : initialPost?.thumbnail ?? null);
+  const hasImage = !!displayUrl;
+
+  // Estado do botão "Ver no site". Só a versão PUBLICADA tem página pública, e o
+  // alvo é o `publishedSlug` (não o de exibição, que pode ser o do draft). Seed
+  // do servidor; atualizado do RETORNO da action ao publicar (sem refetch, sem
+  // router.refresh) pra funcionar sem F5 mesmo com o slug recém-criado.
+  const [viewSlug, setViewSlug] = useState<string | null>(initialPost?.publishedSlug ?? null);
+  const [isPublished, setIsPublished] = useState(initialPost?.status === "publicado");
+  const [hasPendingDraft, setHasPendingDraft] = useState(initialPost?.hasPendingDraft ?? false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -49,16 +89,84 @@ export default function PostForm({ initialPost }: PostFormProps) {
     });
   };
 
+  /** Zera só o erro de um campo (usado nos handlers de imagem, que não passam
+   *  pelo `handleChange` genérico). */
+  const clearFieldError = (name: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validação client-side (formato + tamanho), erro inline no campo de imagem.
+    // O servidor revalida — isto é só pra Nina não esperar um upload que vai falhar.
+    if (!(IMAGE_ALLOWED_TYPES as readonly string[]).includes(file.type)) {
+      setFieldErrors((prev) => ({ ...prev, image: "Formato inválido. Envie JPG, PNG ou WebP." }));
+      e.target.value = "";
+      return;
+    }
+    if (file.size > IMAGE_MAX_BYTES) {
+      setFieldErrors((prev) => ({ ...prev, image: "A imagem passa de 4 MB. Escolha um arquivo menor." }));
+      e.target.value = "";
+      return;
+    }
+
+    setImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    // Escolher arquivo cancela um "remover" pendente (o arquivo novo vence).
+    setValues((prev) => ({ ...prev, removeImage: false }));
+    clearFieldError("image");
+  };
+
+  const handleChangeImage = () => fileInputRef.current?.click();
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    // `removeImage: true` só faz efeito real quando havia capa existente; num post
+    // sem capa é inócuo. Limpa o alt junto (sem imagem, não há o que descrever).
+    setValues((prev) => ({ ...prev, removeImage: true, imageAlt: "" }));
+    clearFieldError("image");
+    clearFieldError("imageAlt");
+  };
+
   const submit = async (publish: boolean) => {
     setError(null);
     setFieldErrors({});
     setPending(publish ? "publish" : "draft");
     try {
-      const result = await savePostAction({ id: postId, input: values, publish });
+      // Só o arquivo vai por fora, em FormData; o resto (incl. imageAlt/removeImage)
+      // segue tipado no `input`.
+      let imageForm: FormData | undefined;
+      if (imageFile) {
+        imageForm = new FormData();
+        imageForm.append("image", imageFile);
+      }
+      const result = await savePostAction({ id: postId, input: values, publish }, imageForm);
       if (result.ok) {
-        // A action já revalidou `/admin/blog`; navega limpo (sem `router.refresh`,
-        // que travava a transition). Mantém o loading até desmontar.
-        router.push("/admin/blog");
+        if (publish) {
+          // Publicou: fica no editor do post (agora publicado) e o botão "Ver no
+          // site" passa a funcionar na hora — slug vem do RETORNO da action, não
+          // de refetch. Navega pra própria página de edição (`result.slug` pode
+          // ser um slug recém-criado); se for a mesma URL, o estado local abaixo
+          // já deixa o botão certo. Sem `router.refresh` (travava a transition).
+          setViewSlug(result.slug);
+          setIsPublished(true);
+          setHasPendingDraft(false);
+          setPending(null);
+          router.push(`/admin/blog/${result.slug}`);
+        } else {
+          // Rascunho: sem página pública pra ver; volta pra lista (já revalidada
+          // pela action). Mantém o loading até desmontar.
+          router.push("/admin/blog");
+        }
         return;
       }
       if (result.field) {
@@ -102,6 +210,34 @@ export default function PostForm({ initialPost }: PostFormProps) {
 
   return (
     <div className="bg-white rounded-md border border-dark/10 p-8">
+      {/* Barra do topo: "Ver no site" (só a versão publicada tem página pública).
+          Rascunho nunca publicado → desabilitado, com o porquê no title. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-dark/10 pb-6">
+        <div className="max-w-md">
+          {isPublished && hasPendingDraft && (
+            <p className="font-body text-sm text-dark/60">
+              Você está vendo a versão publicada. Suas alterações só aparecem depois de publicar.
+            </p>
+          )}
+        </div>
+        {isPublished && viewSlug ? (
+          <a
+            href={`/blog/${viewSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonStyles("secondary", "sm")}
+          >
+            Ver no site
+          </a>
+        ) : (
+          <span title="Publique o post para vê-lo no site." className="inline-block">
+            <Button variant="secondary" size="sm" disabled>
+              Ver no site
+            </Button>
+          </span>
+        )}
+      </div>
+
       <div className="space-y-6">
         <div>
           <label htmlFor="title" className={labelClass}>
@@ -165,8 +301,107 @@ export default function PostForm({ initialPost }: PostFormProps) {
         </div>
 
         <div>
+          <label htmlFor="image" className={labelClass}>
+            Imagem de capa{" "}
+            <span className="text-dark/50 font-normal">(obrigatória para publicar)</span>
+          </label>
+
+          {/* Input nativo escondido — cru ele não passa pra usuária. Fica `sr-only`
+              (não `hidden`) pra continuar focável quando o erro manda o foco pra cá.
+              Os botões abaixo é que disparam a seleção. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            id="image"
+            name="image"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            disabled={busy}
+            aria-invalid={!!fieldErrors.image}
+            aria-describedby={fieldErrors.image ? "image-error" : undefined}
+            className="sr-only"
+          />
+
+          {hasImage ? (
+            <div className="space-y-3">
+              <div
+                className={`relative aspect-video w-full max-w-md overflow-hidden rounded-md border border-dark/10 bg-dark/5${
+                  fieldErrors.image ? " ring-2 ring-red-400" : ""
+                }`}
+              >
+                {/* Preview local (blob) e capa do Sanity num só caminho; `img` cru
+                    evita o otimizador do next/image com blob: URLs. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={displayUrl!}
+                  alt="Pré-visualização da capa"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="secondary" size="sm" onClick={handleChangeImage} disabled={busy}>
+                  Trocar imagem
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveImage}
+                  disabled={busy}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remover imagem
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="secondary" size="md" onClick={handleChangeImage} disabled={busy}>
+              Escolher imagem
+            </Button>
+          )}
+
+          {fieldErrors.image && (
+            <p id="image-error" className="mt-2 font-body text-sm text-red-700">
+              {fieldErrors.image}
+            </p>
+          )}
+          <p className="mt-2 font-body text-xs text-dark/50">
+            JPG, PNG ou WebP, até 4 MB.
+          </p>
+
+          {hasImage && (
+            <div className="mt-4">
+              <label htmlFor="imageAlt" className={labelClass}>
+                Texto alternativo *
+              </label>
+              <input
+                type="text"
+                id="imageAlt"
+                name="imageAlt"
+                value={values.imageAlt}
+                onChange={handleChange}
+                disabled={busy}
+                placeholder="ex.: Vista da Toscana ao pôr do sol"
+                aria-invalid={!!fieldErrors.imageAlt}
+                aria-describedby={fieldErrors.imageAlt ? "imageAlt-error" : "imageAlt-help"}
+                className={`${inputClass}${fieldErrors.imageAlt ? " ring-2 ring-red-400" : ""}`}
+              />
+              {fieldErrors.imageAlt ? (
+                <p id="imageAlt-error" className="mt-2 font-body text-sm text-red-700">
+                  {fieldErrors.imageAlt}
+                </p>
+              ) : (
+                <p id="imageAlt-help" className="mt-2 font-body text-xs text-dark/50">
+                  Descreva a imagem em uma frase — é o que o leitor de tela lê e o que o Google usa
+                  pra entender a foto.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="excerpt" className={labelClass}>
-            Excerpt *
+            Resumo *
           </label>
           <textarea
             id="excerpt"
@@ -189,7 +424,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
 
         <div>
           <label htmlFor="body" className={labelClass}>
-            Body *{" "}
+            Conteúdo *{" "}
             <span className="text-dark/50 font-normal">
               (use # para h2, ## para h3, parágrafos separados por linha em branco)
             </span>
@@ -215,7 +450,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
 
         <div>
           <label htmlFor="seoTitle" className={labelClass}>
-            SEO Title
+            SEO — Título
           </label>
           <input
             type="text"
@@ -230,7 +465,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
 
         <div>
           <label htmlFor="seoDescription" className={labelClass}>
-            SEO Description
+            SEO — Descrição
           </label>
           <textarea
             id="seoDescription"

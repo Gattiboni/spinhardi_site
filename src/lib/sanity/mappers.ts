@@ -6,6 +6,19 @@ import { portableTextToMdLight } from "@/lib/blog/portable-text";
 import { urlForImage } from "./image";
 
 /**
+ * Imagem da Sanity com o `alt` aninhado (schema do `mainImage`). Tipada de
+ * verdade — em vez do `SanityImageSource` opaco — pra podermos ler `.alt` no
+ * mapper. `urlForImage` continua aceitando este objeto (o cast no call site).
+ */
+export type SanityImage = {
+  _type?: "image";
+  asset?: { _ref?: string; _type?: string };
+  alt?: string | null;
+  hotspot?: unknown;
+  crop?: unknown;
+};
+
+/**
  * Shape cru que a GROQ (`queries.ts`) entrega para um post do template `blog`.
  * Campos podem vir `null` quando não preenchidos no Studio.
  */
@@ -17,7 +30,7 @@ export type SanityPost = {
   slug: string | null;
   publishedAt: string | null;
   excerpt: string | null;
-  mainImage: SanityImageSource | null;
+  mainImage: SanityImage | null;
   body: PortableTextBlock[] | null;
   author: { name: string | null; image: SanityImageSource | null } | null;
   categories: { title: string | null }[] | null;
@@ -54,7 +67,8 @@ export function sanityPostToPost(sanityPost: SanityPost): Post {
     date: publishedAt.slice(0, 10),
     body: plain,
     richBody: sanityPost.body ?? null,
-    thumbnail: urlForImage(sanityPost.mainImage),
+    thumbnail: urlForImage(sanityPost.mainImage as SanityImageSource | null),
+    thumbnailAlt: sanityPost.mainImage?.alt ?? null,
     seoTitle: sanityPost.seoTitle || undefined,
     seoDescription: sanityPost.seoDescription || undefined,
     // Leitura pública sem token só retorna posts publicados.

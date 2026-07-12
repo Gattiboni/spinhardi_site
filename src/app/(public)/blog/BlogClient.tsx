@@ -59,6 +59,7 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
                   category={post.category}
                   date={formatDate(post.date)}
                   thumbnail={post.thumbnail}
+                  thumbnailAlt={post.thumbnailAlt}
                   className="transition-transform duration-medium hover:-translate-y-1"
                 />
               ))}

@@ -14,6 +14,9 @@ type BlogCardProps = {
   excerpt: string;
   /** URL da imagem. Vazio ou `null` renderiza um placeholder neutro. */
   thumbnail: string | null;
+  /** Texto alternativo da capa. `null`/ausente → `alt=""` (imagem decorativa);
+   *  nunca cai pro título, que faria o leitor de tela repetir a mesma frase. */
+  thumbnailAlt?: string | null;
   className?: string;
 };
 
@@ -35,6 +38,7 @@ export default function BlogCard({
   date,
   excerpt,
   thumbnail,
+  thumbnailAlt,
   className = "",
 }: BlogCardProps) {
   return (
@@ -44,7 +48,7 @@ export default function BlogCard({
           {thumbnail ? (
             <Image
               src={thumbnail}
-              alt=""
+              alt={thumbnailAlt ?? ""}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover transition-transform duration-long ease-smooth group-hover:scale-105"

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Button from "@/components/ui/Button";
+import Button, { buttonStyles } from "@/components/ui/Button";
 import { getAdminPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/utils/date";
 import type { Metadata } from "next";
@@ -74,12 +74,36 @@ export default async function AdminBlogList() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    href={`/admin/blog/${post.slug}`}
-                    className="text-gold hover:underline font-body text-sm"
-                  >
-                    Editar
-                  </Link>
+                  <div className="flex items-center justify-end gap-4">
+                    {/* Só a versão PUBLICADA tem página pública (client roda
+                        perspective: "published"). Rascunho nunca publicado →
+                        botão desabilitado, não escondido, com o porquê no title. */}
+                    {post.status === "publicado" && post.publishedSlug ? (
+                      <a
+                        href={`/blog/${post.publishedSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonStyles("ghost", "sm")}
+                      >
+                        Ver no site
+                      </a>
+                    ) : (
+                      <span
+                        title="Publique o post para vê-lo no site."
+                        className="inline-block"
+                      >
+                        <Button variant="ghost" size="sm" disabled>
+                          Ver no site
+                        </Button>
+                      </span>
+                    )}
+                    <Link
+                      href={`/admin/blog/${post.slug}`}
+                      className="text-gold hover:underline font-body text-sm"
+                    >
+                      Editar
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

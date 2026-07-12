@@ -28,6 +28,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build minificado do Studio (gitignored, existe só no disco). Lintá-lo
+    // estoura OOM. Ignoramos SÓ o dist — o source do Studio segue lintável.
+    "studio/dist/**",
   ]),
 ]);
 

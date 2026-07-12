@@ -3,10 +3,16 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { PortableTextBlock } from "@portabletext/types";
 import { Post, PostCategory, PostInput } from "./types";
+import { FieldError } from "./errors";
 import { mdLightToPortableText } from "./portable-text";
 import { getAllSanityPosts, getSanityPostBySlug } from "@/lib/sanity/queries";
 import { sanityPostToPost } from "@/lib/sanity/mappers";
 import { sanityWriteClient } from "@/lib/sanity/write-client";
+import {
+  uploadImageAsset,
+  deleteAssetIfOrphan,
+  collectImageAssetIds,
+} from "@/lib/sanity/assets";
 import {
   DRAFT_PREFIX,
   isSlugTaken,
@@ -133,6 +139,73 @@ function stripSystemFields(doc: Record<string, unknown> | null): Record<string, 
   return rest;
 }
 
+// ---------------------------------------------------------------------------
+// Capa (mainImage): escrita EXPLÍCITA + garbage collection do asset.
+// O B1 preservava o mainImage passivamente (buildManagedFields não o incluía).
+// Aqui ele passa a ser escrito de propósito, seguindo a matriz do B2.
+// ---------------------------------------------------------------------------
+
+/** Intenção do form sobre a capa nesta gravação. O `File` só é subido dentro
+ *  destas funções (após validar slug/categoria), pra não gerar asset órfão. */
+type ImageMutation = { file: File | null; alt?: string; remove?: boolean };
+
+type SanityMainImage = {
+  _type: "image";
+  asset: { _type: "reference"; _ref: string };
+  alt?: string;
+  [key: string]: unknown;
+};
+
+/** Valor final do `mainImage` a partir do estado atual + intenção + asset novo.
+ *
+ *  - asset novo → escreve capa nova (com o alt do form);
+ *  - remover    → `undefined` (o caller faz unset);
+ *  - senão      → preserva o existente, aplicando o alt do form se veio.
+ *
+ *  Preserva hotspot/crop do objeto atual via spread. */
+function resolveMainImage(
+  current: unknown,
+  image: ImageMutation | undefined,
+  newAssetId: string | null,
+): SanityMainImage | undefined {
+  const cur = current as SanityMainImage | undefined;
+
+  if (newAssetId) {
+    return {
+      _type: "image",
+      asset: { _type: "reference", _ref: newAssetId },
+      ...(image?.alt !== undefined ? { alt: image.alt } : {}),
+    };
+  }
+  if (image?.remove) return undefined;
+  if (cur && image?.alt !== undefined) return { ...cur, alt: image.alt };
+  return cur;
+}
+
+/** Regra de negócio do publish: capa obrigatória, e alt obrigatório junto com a
+ *  capa. Roda ANTES do upload, pra abortar sem gerar asset órfão. Erros sobem
+ *  como `FieldError` (a action cola inline). */
+function assertPublishImage(willHaveImage: boolean, finalAlt: string): void {
+  if (!willHaveImage) {
+    throw new FieldError("Para publicar, escolha uma imagem de capa.", "image");
+  }
+  if (!finalAlt.trim()) {
+    throw new FieldError(
+      "Para publicar, descreva a imagem no texto alternativo.",
+      "imageAlt",
+    );
+  }
+}
+
+/** Roda o GC (best-effort) para cada asset que ESTAVA no post antes da mutação.
+ *  `deleteAssetIfOrphan` recheca referência, então passar assets ainda em uso é
+ *  seguro (viram no-op). Nunca lança. */
+async function collectGarbage(oldAssetIds: string[]): Promise<void> {
+  for (const assetId of [...new Set(oldAssetIds)]) {
+    await deleteAssetIfOrphan(assetId);
+  }
+}
+
 /**
  * Cria um post novo. `publish=false` grava como DRAFT (`drafts.<novoId>`);
  * `publish=true` grava direto como publicado, com `publishedAt = agora`.
@@ -140,6 +213,7 @@ function stripSystemFields(doc: Record<string, unknown> | null): Record<string, 
 export async function createPost(
   input: PostInput,
   { publish }: { publish: boolean },
+  image?: ImageMutation,
 ): Promise<{ slug: string }> {
   const slug = ensureSlug(input);
   await assertSlugFree(slug);
@@ -147,16 +221,34 @@ export async function createPost(
   const fields = buildManagedFields(input, slug, categoryId);
   const id = randomUUID();
 
+  // Post novo: não há capa existente, então "tem imagem" = veio arquivo.
+  const hasFile = !!image?.file;
+  if (publish) {
+    assertPublishImage(hasFile, image?.alt ?? "");
+  }
+
+  const newAssetId = hasFile ? await uploadImageAsset(image!.file!) : null;
+  const mainImage = resolveMainImage(undefined, image, newAssetId);
+  // Tipar como opcional único (não `{mainImage} | {}`) mantém a inferência do
+  // `create` limpa quando espalhado.
+  const imagePart: { mainImage?: SanityMainImage } = mainImage ? { mainImage } : {};
+
   if (publish) {
     await sanityWriteClient.create({
       _id: id,
       _type: "post",
       ...fields,
+      ...imagePart,
       publishedAt: new Date().toISOString(),
     });
     revalidateBlog(slug);
   } else {
-    await sanityWriteClient.create({ _id: `${DRAFT_PREFIX}${id}`, _type: "post", ...fields });
+    await sanityWriteClient.create({
+      _id: `${DRAFT_PREFIX}${id}`,
+      _type: "post",
+      ...fields,
+      ...imagePart,
+    });
   }
 
   return { slug };
@@ -174,6 +266,7 @@ export async function updatePost(
   id: string,
   input: PostInput,
   { publish }: { publish: boolean },
+  image?: ImageMutation,
 ): Promise<{ slug: string }> {
   const slug = ensureSlug(input);
   await assertSlugFree(slug, id);
@@ -181,36 +274,69 @@ export async function updatePost(
   const fields = buildManagedFields(input, slug, categoryId);
   const draftId = `${DRAFT_PREFIX}${id}`;
 
+  // Lê as duas faces ANTES de mutar: os assetIds atuais alimentam o GC pós-commit.
+  const [draft, published] = await Promise.all([
+    sanityWriteClient.getDocument(draftId),
+    sanityWriteClient.getDocument(id),
+  ]);
+  const oldAssetIds = [...collectImageAssetIds(draft), ...collectImageAssetIds(published)];
+
+  const hasFile = !!image?.file;
+
+  // Valida imagem/alt no publish ANTES do upload (aborta sem gerar asset órfão).
+  // "Fonte" da capa atual = o que seria exibido/editado (draft se houver).
   if (publish) {
-    const [draft, published] = await Promise.all([
-      sanityWriteClient.getDocument(draftId),
-      sanityWriteClient.getDocument(id),
-    ]);
+    const source = (draft ?? published) as { mainImage?: SanityMainImage } | null;
+    const currentImage = source?.mainImage;
+    const willHaveImage = hasFile ? true : image?.remove ? false : !!currentImage;
+    const finalAlt = hasFile
+      ? image?.alt ?? ""
+      : image?.alt ?? currentImage?.alt ?? "";
+    assertPublishImage(willHaveImage, finalAlt);
+  }
+
+  const newAssetId = hasFile ? await uploadImageAsset(image!.file!) : null;
+
+  if (publish) {
     const base = stripSystemFields(draft ?? published ?? null);
     const publishedAt =
       published?.publishedAt ?? draft?.publishedAt ?? new Date().toISOString();
-    const doc = { ...base, _id: id, _type: "post", ...fields, publishedAt };
+    const mainImage = resolveMainImage(base.mainImage, image, newAssetId);
+    // Tira o mainImage antigo do base e recompõe via imagePart: o createOrReplace
+    // troca o doc inteiro, então NÃO incluir mainImage = unset (caso "remover").
+    const { mainImage: _oldImage, ...baseNoImage } = base;
+    void _oldImage;
+    const imagePart: { mainImage?: SanityMainImage } = mainImage ? { mainImage } : {};
+    const doc = { ...baseNoImage, _id: id, _type: "post" as const, ...fields, ...imagePart, publishedAt };
 
     const tx = sanityWriteClient.transaction().createOrReplace(doc);
     if (draft) tx.delete(draftId);
     await tx.commit();
     revalidateBlog(slug);
+  } else if (draft) {
+    const mainImage = resolveMainImage(
+      (draft as { mainImage?: unknown }).mainImage,
+      image,
+      newAssetId,
+    );
+    const patch = sanityWriteClient.patch(draftId).set(fields);
+    if (mainImage) patch.set({ mainImage });
+    else patch.unset(["mainImage"]);
+    await patch.commit();
   } else {
-    const existingDraft = await sanityWriteClient.getDocument(draftId);
-    if (existingDraft) {
-      await sanityWriteClient.patch(draftId).set(fields).commit();
-    } else {
-      // Sem draft: parte do publicado (se houver) pra não perder mainImage/author.
-      const published = await sanityWriteClient.getDocument(id);
-      const base = stripSystemFields(published ?? null);
-      await sanityWriteClient.createOrReplace({
-        ...base,
-        _id: draftId,
-        _type: "post",
-        ...fields,
-      });
-    }
+    // Sem draft: parte do publicado (se houver) pra não perder author etc.
+    const base = stripSystemFields(published ?? null);
+    const mainImage = resolveMainImage(base.mainImage, image, newAssetId);
+    const { mainImage: _oldImage, ...baseNoImage } = base;
+    void _oldImage;
+    const imagePart: { mainImage?: SanityMainImage } = mainImage ? { mainImage } : {};
+    const doc = { ...baseNoImage, _id: draftId, _type: "post" as const, ...fields, ...imagePart };
+    await sanityWriteClient.createOrReplace(doc);
   }
+
+  // GC só depois do commit: enquanto o published referenciar a capa velha, o
+  // delete toma 409 de propósito; é no publish que ela de fato fica órfã.
+  await collectGarbage(oldAssetIds);
 
   return { slug };
 }
@@ -218,6 +344,17 @@ export async function updatePost(
 /** Remove o post por completo — draft e publicado. Apagar ID inexistente é
  *  no-op na Sanity, então cobrir as duas faces é seguro. */
 export async function deletePost(id: string): Promise<void> {
-  await sanityWriteClient.transaction().delete(id).delete(`${DRAFT_PREFIX}${id}`).commit();
+  const draftId = `${DRAFT_PREFIX}${id}`;
+  // Coleta os assetIds das duas faces ANTES de apagar — depois de deletadas não dá
+  // mais pra saber quais assets ficaram órfãos.
+  const [draft, published] = await Promise.all([
+    sanityWriteClient.getDocument(draftId),
+    sanityWriteClient.getDocument(id),
+  ]);
+  const oldAssetIds = [...collectImageAssetIds(draft), ...collectImageAssetIds(published)];
+
+  await sanityWriteClient.transaction().delete(id).delete(draftId).commit();
   revalidateBlog();
+
+  await collectGarbage(oldAssetIds);
 }

@@ -17,7 +17,19 @@ export type Post = {
    *  o corpo rico via `<PortableText>`; senão usa `body` (markdown-leve). */
   richBody?: PortableTextBlock[] | null;
   thumbnail: string | null;
+  /** Texto alternativo da capa (`mainImage.alt`). `null` quando não há imagem
+   *  ou alt. Nunca cai pro título como fallback — repetir o título no alt faz o
+   *  leitor de tela ler a mesma frase duas vezes. */
+  thumbnailAlt: string | null;
   status: "rascunho" | "publicado";
+  /** Admin-only: slug da versão PUBLICADA (não o de exibição, que pode ser o do
+   *  draft). É o único slug com página pública real — alvo do botão "Ver no site".
+   *  `null` quando o post nunca foi publicado. Só as leituras do admin preenchem. */
+  publishedSlug?: string | null;
+  /** Admin-only: `true` quando há um rascunho por cima de uma versão publicada
+   *  (edições ainda não republicadas). Usado pra avisar que o "Ver no site" abre a
+   *  versão publicada, não as alterações pendentes. */
+  hasPendingDraft?: boolean;
   seoTitle?: string;
   seoDescription?: string;
   ogImage?: string;
@@ -35,14 +47,21 @@ export type PostInput = {
   body: string;
   seoTitle: string;
   seoDescription: string;
+  /** Texto alternativo da capa. Conteúdo serializável, então viaja no input (o
+   *  arquivo, não). Obrigatório junto com a imagem para PUBLICAR (regra da action). */
+  imageAlt?: string;
+  /** `true` quando a Nina clicou em "Remover imagem" — distingue "não mandou
+   *  arquivo novo" de "quer apagar a capa". O `File` em si vai por fora, em FormData. */
+  removeImage?: boolean;
 };
 
 /** Resultado serializável das server actions de escrita (para o form exibir).
  *  No caso de falha, `field` (quando presente) nomeia o campo culpado, pro form
- *  colar o erro inline nele — mesmo padrão do ContactForm. */
+ *  colar o erro inline nele — mesmo padrão do ContactForm. `"image"` é o campo de
+ *  arquivo (fora do `PostInput`); erros de alt usam a chave `imageAlt`. */
 export type SaveResult =
   | { ok: true; slug: string }
-  | { ok: false; error: string; field?: keyof PostInput };
+  | { ok: false; error: string; field?: keyof PostInput | "image" };
 
 export const CATEGORIES: PostCategory[] = [
   "Destinos",
@@ -50,3 +69,10 @@ export const CATEGORIES: PostCategory[] = [
   "Dicas de Viagem",
   "História da Agência",
 ];
+
+/** Limite de tamanho da capa (4 MB). Validado no client (antes de mandar) e no
+ *  servidor (de novo, sem confiar no client). */
+export const IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+
+/** Formatos aceitos para a capa. Mesma lista nos dois lados da validação. */
+export const IMAGE_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;

@@ -46,6 +46,15 @@ export default defineType({
       options: {
         hotspot: true,
       },
+      fields: [
+        defineField({
+          name: "alt",
+          title: "Texto alternativo",
+          type: "string",
+          description:
+            "Descreve a imagem em uma frase, pra quem usa leitor de tela e pro Google. Ex: 'Vista da Toscana ao por do sol'.",
+        }),
+      ],
     }),
     defineField({
       name: "categories",

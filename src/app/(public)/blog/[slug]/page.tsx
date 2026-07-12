@@ -5,6 +5,7 @@ import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import { getPostBySlug, getPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
 
@@ -131,6 +132,27 @@ export default async function Post({ params }: Props) {
           </div>
         </Container>
       </Section>
+
+      {/* Bloco 1.5 - Capa (mainImage). Ausente em rascunho/legado → some sem quebrar.
+          Aspect ratio fixo evita CLS; alt vem do campo, sem cair pro título. */}
+      {post.thumbnail && (
+        <Section spacing="sm" className="bg-white text-dark">
+          <Container>
+            <div className="max-w-3xl mx-auto">
+              <div className="relative aspect-video w-full overflow-hidden rounded-md bg-dark/10">
+                <Image
+                  src={post.thumbnail}
+                  alt={post.thumbnailAlt ?? ""}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* Bloco 2 - Conteúdo */}
       <Section spacing="md" className="bg-white text-dark">
