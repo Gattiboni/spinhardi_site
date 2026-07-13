@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Contato",
   description:
     "Vamos conversar. Sem compromisso. Sem pressão. Conta o que você tem em mente e a gente pensa juntos.",
+  alternates: { canonical: "/contato" },
 };
 
 const CONTATOS = [

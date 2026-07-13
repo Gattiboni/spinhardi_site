@@ -124,6 +124,10 @@ function revalidateBlog(slug?: string): void {
   revalidatePath("/blog");
   revalidatePath("/(public)/blog/[slug]", "page");
   if (slug) revalidatePath(`/blog/${slug}`);
+  // O sitemap.xml deriva dos posts publicados: revalida na hora, senão ele fica
+  // até 60s (o ISR) atrás da listagem — duas semânticas de frescor pro mesmo
+  // dado. É um Route Handler, invalidável pelo seu path literal.
+  revalidatePath("/sitemap.xml");
   revalidatePath("/admin/blog");
 }
 

@@ -15,6 +15,45 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-07-13
+
+**SEO global do site (D085):** o site ganha `sitemap.xml` (6 rotas
+institucionais + `/blog` + todos os posts publicados, com `lastmod`),
+`robots.txt` corrigido (agora bloqueia `/api/`, que estava aberto ao crawler) e
+JSON-LD de `TravelAgency` na home, com telefone, logo, fundação em 1987,
+Instagram e endereço a nível de cidade. Sem inventar endereço, email nem
+horário: dado institucional errado no schema.org é pior que dado ausente.
+Canonical em todas as páginas públicas.
+
+**Fonte única de URL (D085):** `src/lib/site.ts` centraliza `SITE_URL` e
+`SITE_DESCRIPTION`. O `robots.ts` apontava o sitemap para o domínio SEM www
+enquanto os canonicals saíam COM www (o sem-www responde 308 pro com-www).
+Acabou o domínio hardcoded em dois lugares divergentes.
+
+**BUG: sitemap congelava no deploy (D085):** o `sitemap.ts` saía como rota
+estática. Em produção, post publicado depois do build nunca entraria no sitemap.
+Invisível em dev, que é sempre dinâmico. Corrigido com `revalidate = 60` mais
+`revalidatePath("/sitemap.xml")` nos dois caminhos de escrita (admin e webhook
+do Studio). Provado em build de produção com sonda de cache: sitemap vira MISS,
+o robots (controle) segue HIT — invalidação cirúrgica, não flush global.
+
+**Limite de upload 4 MB → 3 MB (D085):** a Vercel corta requisição em ~4,5 MB no
+serverless; a margem era fina demais. A string "4 MB" vivia em quatro lugares da
+tela.
+
+**UX (D085):** "Remover imagem" fica desabilitado em post publicado, com
+explicação. Antes salvava o rascunho e depois travava no publish, o que era
+coerente mas confuso.
+
+**INFRA:** Isaura Bianca (`isaura.teixeira@spinharditurismo.com.br`) estava
+`pending` desde 29/06 sem ninguém aprovar. Aprovada como `editor`.
+
+**Pendências:** email institucional não configurado no Resend nem publicado;
+Google Business Profile nunca criado; copy de horário divergente entre código e
+mapa aprovado.
+
+---
+
 **Blog: SEO ponta a ponta (D084):** post compartilhado passa a ter preview de
 verdade. `generateMetadata` emite Open Graph completo (type article, title,
 description, url canônica, siteName, locale, published_time em UTC, author) e

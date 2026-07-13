@@ -124,7 +124,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
       return;
     }
     if (file.size > IMAGE_MAX_BYTES) {
-      setFieldErrors((prev) => ({ ...prev, image: "A imagem passa de 4 MB. Escolha um arquivo menor." }));
+      setFieldErrors((prev) => ({ ...prev, image: "A imagem passa de 3 MB. Escolha um arquivo menor." }));
       e.target.value = "";
       return;
     }
@@ -377,15 +377,35 @@ export default function PostForm({ initialPost }: PostFormProps) {
                 <Button variant="secondary" size="sm" onClick={handleChangeImage} disabled={busy}>
                   Trocar imagem
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRemoveImage}
-                  disabled={busy}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remover imagem
-                </Button>
+                {/* Num post publicado, capa é obrigatória: remover levaria a um
+                    rascunho que não republica. "Trocar" resolve o caso real, então
+                    "Remover" fica desabilitado (mesmo padrão <span title> do "Ver no
+                    site"). Em rascunho/post novo, remover continua livre. */}
+                {isPublished ? (
+                  <span
+                    title="Um post publicado precisa de capa. Troque a imagem em vez de remover."
+                    className="inline-block"
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remover imagem
+                    </Button>
+                  </span>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    disabled={busy}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remover imagem
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -400,7 +420,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
             </p>
           )}
           <p className="mt-2 font-body text-xs text-dark/50">
-            JPG, PNG ou WebP, até 4 MB.
+            JPG, PNG ou WebP, até 3 MB.
           </p>
 
           {hasImage && (

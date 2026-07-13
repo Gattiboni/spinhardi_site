@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Viagens", // vira "Viagens | Spinhardi Turismo"
   description:
     "Como podemos ajudar na sua próxima viagem. Atendemos do viajante que quer uma passagem ao que quer delegar uma viagem inteira.",
+  alternates: { canonical: "/viagens" },
 };
 
 export default function Viagens() {

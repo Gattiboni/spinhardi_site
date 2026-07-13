@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
     // revalidatePath('page') casa — sem ele as páginas de post não invalidam.
     revalidatePath("/blog");
     revalidatePath("/(public)/blog/[slug]", "page");
+    // O sitemap também fala do post: revalida junto pra não ficar 60s atrás da
+    // listagem (o sitemap.xml é um Route Handler, invalidável por path).
+    revalidatePath("/sitemap.xml");
 
     return Response.json({ revalidated: true, now: Date.now() });
   } catch (err) {

@@ -28,6 +28,78 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D085] SEO global do site: sitemap, robots, JSON-LD de organização, canonical e fonte única de URL
+
+**Data:** 2026-07-13
+
+**Contexto:** o D084 (B3) cobriu o SEO do blog e SÓ do blog, de propósito. Fora
+dele, o site não tinha sitemap.xml, o `robots.ts` existia mas apontava o sitemap
+para um domínio que não é o canônico, não havia JSON-LD de organização em lugar
+nenhum, e as páginas institucionais não tinham canonical. O `metadataBase`
+estava hardcoded.
+
+**Decisões:**
+
+1. **Fonte única de URL e descrição:** `src/lib/site.ts` (`SITE_URL`,
+   `SITE_DESCRIPTION`), consumido pelo layout, pelo robots e pelo sitemap.
+   Acabou o domínio hardcoded em dois lugares divergentes. A `SITE_DESCRIPTION`
+   é a string original do layout, extraída verbatim (provado por SHA1 idêntico):
+   copy não nasce em lote de SEO.
+2. **Domínio canônico é com `www`.** Verificado por curl: o sem-www responde 308
+   para o com-www. O `robots.ts` apontava o sitemap para o sem-www enquanto os
+   canonicals saíam com www; o Google veria sitemap num host e canônico noutro.
+3. **sitemap.xml** com as 6 rotas institucionais, `/blog` e todos os posts
+   publicados (lidos pelo client público, `perspective: "published"`, para que
+   rascunho jamais vaze), com `lastmod` do `_updatedAt`. `/dev/components` e
+   `/admin` ficam de fora.
+4. **`robots.txt`:** disallow em `/admin/`, `/dev/` e `/api/` (que estava
+   liberado, expondo `/api/cron/sync/[source]` e `/api/revalidate` ao crawler).
+5. **JSON-LD `TravelAgency`** (subtipo de `LocalBusiness`), com `name`, `url`,
+   `logo` (SVG, que o Google suporta em structured data), `telephone` derivado
+   da constante do WhatsApp, `foundingDate: "1987"`, `sameAs` só com o
+   Instagram, e `address` a nível de cidade (Serra Negra, SP, BR). **Sem
+   `streetAddress`, sem email, sem CNPJ, sem `openingHours`:** esses dados não
+   existem no repo e dado institucional errado no schema.org é pior que dado
+   ausente. Endereço incompleto é lacuna, não mentira; o custo (não ser elegível
+   a rich result de negócio local) já era pago de qualquer jeito.
+6. **Canonical em todas as páginas públicas.**
+7. **Limite de upload de capa: 4 MB → 3 MB.** A Vercel corta requisição em ~4.5
+   MB no runtime serverless; 4 MB deixava 500 KB de margem. A string "4 MB"
+   vivia em quatro lugares da tela, não dois.
+8. **"Remover imagem" desabilitado em post publicado**, com explicação. Coerente
+   com a capa obrigatória (D083) e sem o beco sem saída de salvar rascunho e
+   travar no publish.
+9. **`revalidatePath("/sitemap.xml")` nos DOIS caminhos de escrita:** o
+   `revalidateBlog()` (publish/delete pelo admin) e o webhook do Studio.
+   Revalidar só um dos dois não resolvia a inconsistência, só mudava de porta. O
+   `revalidate = 60` do sitemap fica como rede de segurança para qualquer
+   caminho de escrita não coberto.
+
+**Bug latente encontrado e corrigido:** o `sitemap.ts` saía como rota
+**estática**. Em produção ele congelaria no deploy, e post publicado depois
+nunca entraria no sitemap até o próximo build. Era invisível: o dev server é
+sempre dinâmico e passaria mesmo com o código quebrado. Só apareceu porque a
+validação exigiu prova em build de produção, com um post real fabricado no
+dataset, em vez de aceitar a hipótese de que "quando tiver post, aparece".
+
+**Alternativas rejeitadas:** `Organization` em vez de `TravelAgency` (menos
+específico sem ganhar nada); converter o logo para raster (desnecessário: o
+Google aceita SVG em structured data); inventar endereço, email ou horário para
+completar o schema; deixar o sitemap só no ISR de 60s (duas semânticas de
+frescor para o mesmo dado é inconsistência que ninguém lembra depois).
+
+**Pendências:** email institucional (`contato@spinharditurismo.com.br` existe no
+Google Workspace mas não está configurado no Resend, não está publicado em lugar
+nenhum e ninguém confirmou que a caixa é lida); endereço físico não será
+publicado (decisão do Alan); Google Business Profile nunca criado, e para uma
+agência local com 40 anos de reputação isso vale mais que todo o SEO técnico
+feito até aqui; divergência de copy entre o código ("Segunda a sábado · 9h às
+19h") e o mapa de copies aprovado ("Trabalhamos sob agendamento").
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [D084] Blog: Open Graph completo, JSON-LD, data em fuso BR e feedback local sem navegação forçada
 
 **Data:** 2026-07-12

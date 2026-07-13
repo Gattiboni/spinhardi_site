@@ -20,7 +20,7 @@ import { getSession } from "@/lib/auth/session";
  * SEGURANÇA: toda action checa sessão + role NO SERVIDOR (`getSession` só
  * devolve usuário `approved` com role admin/editor). O `/admin` valida role no
  * client, mas isso é decorativo — a fonte da verdade é aqui, e sem esta checagem
- * qualquer requisição podia mandar 4MB pro nosso Sanity. Usamos `getSession`
+ * qualquer requisição podia mandar 3MB pro nosso Sanity. Usamos `getSession`
  * (não `requireSession`, que faz `redirect()`): a action é RPC e devolve um erro
  * serializável, e um `redirect` dentro do try seria engolido pelo catch.
  */
@@ -83,7 +83,7 @@ export async function savePostAction(
       return { ok: false, error: "Formato inválido. Envie JPG, PNG ou WebP.", field: "image" };
     }
     if (file.size > IMAGE_MAX_BYTES) {
-      return { ok: false, error: "A imagem passa de 4 MB. Escolha um arquivo menor.", field: "image" };
+      return { ok: false, error: "A imagem passa de 3 MB. Escolha um arquivo menor.", field: "image" };
     }
   }
 

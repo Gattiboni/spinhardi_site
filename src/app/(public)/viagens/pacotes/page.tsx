@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Pacotes e Serviços Avulsos",
   description:
     "Da passagem ou seguro avulso ao pacote completo com cruzeiros e circuitos. Você contrata só o que precisa ou deixa todo o planejamento com a gente.",
+  alternates: { canonical: "/viagens/pacotes" },
 };
 
 export default function Pacotes() {

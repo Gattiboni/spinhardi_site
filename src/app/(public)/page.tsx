@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
+import { WHATSAPP_NUMBER } from "@/lib/whatsapp/constants";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
@@ -9,6 +12,40 @@ import Section from "@/components/ui/Section";
 import ServiceCard from "@/components/ui/ServiceCard";
 import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 import TestimonialCard from "@/components/ui/TestimonialCard";
+
+// Canonical da home. Título/descrição herdam do metadata global do layout — copy
+// da home é decisão do Alan/Amanda, não se inventa aqui.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+/**
+ * JSON-LD de organização na HOME (não no layout raiz): a marcação representa a
+ * ENTIDADE, e a home é a URL canônica dela — assim não vaza pra /admin nem duplica
+ * em toda rota. Tipo `TravelAgency` (subtipo de LocalBusiness): é o que a Spinhardi
+ * é. Só campos com dado REAL no repo. Sem `email`/`streetAddress`/`CEP` (não
+ * existem). Serialização segura com escaping de `<` (mesmo padrão do B3, sem lib).
+ */
+function buildOrganizationJsonLd(): string {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "TravelAgency",
+    name: "Spinhardi Turismo",
+    url: SITE_URL,
+    logo: new URL("/logos/logo-escura.svg", SITE_URL).toString(),
+    description: SITE_DESCRIPTION,
+    telephone: `+${WHATSAPP_NUMBER}`,
+    foundingDate: "1987",
+    sameAs: ["https://instagram.com/spinharditurismo"],
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Serra Negra",
+      addressRegion: "SP",
+      addressCountry: "BR",
+    },
+  };
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
 
 /** Os 4 valores do Bloco 2 — dados inline, sem componente próprio. */
 const VALORES = [
@@ -37,6 +74,12 @@ const VALORES = [
 export default function Home() {
   return (
     <>
+      {/* JSON-LD TravelAgency: conteúdo escapado em buildOrganizationJsonLd. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: buildOrganizationJsonLd() }}
+      />
+
       {/* Bloco 1 · Hero */}
       <Section
         spacing="lg"

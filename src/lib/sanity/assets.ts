@@ -25,7 +25,7 @@ export async function uploadImageAsset(file: File): Promise<string> {
     throw new FieldError("Formato inválido. Envie JPG, PNG ou WebP.", "image");
   }
   if (file.size > IMAGE_MAX_BYTES) {
-    throw new FieldError("A imagem passa de 4 MB. Escolha um arquivo menor.", "image");
+    throw new FieldError("A imagem passa de 3 MB. Escolha um arquivo menor.", "image");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

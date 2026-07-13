@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Viagem Sob Medida",
   description:
     "Cada detalhe de acordo com o que você quer viver. Curadoria completa desenhada do zero.",
+  alternates: { canonical: "/viagens/sob-medida" },
 };
 
 export default function SobMedida() {

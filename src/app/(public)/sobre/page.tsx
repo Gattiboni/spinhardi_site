@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Sobre", // vira "Sobre | Spinhardi Turismo"
   description:
     "Uma agência construída à mão. Por quase quatro décadas. Começamos com uma viagem à Itália em 1987. Crescemos por indicação, nome a nome, viagem a viagem.",
+  alternates: { canonical: "/sobre" },
 };
 
 export default function Sobre() {

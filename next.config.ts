@@ -13,9 +13,10 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       // O upload de capa (mainImage) trafega o arquivo no corpo da Server Action.
-      // O default é 1MB e cortaria imagens reais; o limite de negócio é 4MB
+      // O default é 1MB e cortaria imagens reais; o limite de negócio é 3MB
       // (revalidado no servidor em `assets.uploadImageAsset` e na própria action).
-      bodySizeLimit: "4mb",
+      // 3MB dá margem folgada contra o corte de ~4.5MB da Vercel no serverless.
+      bodySizeLimit: "3mb",
     },
   },
 };

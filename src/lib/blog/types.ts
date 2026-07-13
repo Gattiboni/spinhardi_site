@@ -80,9 +80,10 @@ export const CATEGORIES: PostCategory[] = [
   "História da Agência",
 ];
 
-/** Limite de tamanho da capa (4 MB). Validado no client (antes de mandar) e no
- *  servidor (de novo, sem confiar no client). */
-export const IMAGE_MAX_BYTES = 4 * 1024 * 1024;
+/** Limite de tamanho da capa (3 MB). Validado no client (antes de mandar) e no
+ *  servidor (de novo, sem confiar no client). Margem confortável contra o corte
+ *  de ~4.5MB da Vercel no runtime serverless. */
+export const IMAGE_MAX_BYTES = 3 * 1024 * 1024;
 
 /** Formatos aceitos para a capa. Mesma lista nos dois lados da validação. */
 export const IMAGE_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
