@@ -97,7 +97,13 @@ export type ContactRow = {
 };
 
 // Payload de insert: o banco gera id / created_at (default) e updated_at (trigger).
-export type ContactInsertRow = Omit<ContactRow, "id" | "created_at" | "updated_at">;
+// `iddas_pessoa_id` / `clickmassa_contact_id` também saem: são colunas-PROJEÇÃO
+// mantidas por trigger a partir de `contact_external_links`. Nenhum código de
+// aplicação escreve nelas (nem null) — a escrita do vínculo vive na tabela de link.
+export type ContactInsertRow = Omit<
+  ContactRow,
+  "id" | "created_at" | "updated_at" | "iddas_pessoa_id" | "clickmassa_contact_id"
+>;
 
 export type ContactInteractionRow = {
   id: string;
@@ -222,7 +228,7 @@ export function contactToInsertRow(
 
     tags: contact.tags,
 
-    iddas_pessoa_id: contact.iddasPessoaId,
+    // iddas_pessoa_id: coluna-projeção (trigger a partir de contact_external_links) — não escrita aqui.
     iddas_cotacao_code: contact.iddasCotacaoCode,
     iddas_orcamento_id: contact.iddasOrcamentoId,
     iddas_venda_id: contact.iddasVendaId,
@@ -230,7 +236,7 @@ export function contactToInsertRow(
     iddas_sync_status: contact.iddasSyncStatus,
     iddas_sync_error: contact.iddasSyncError,
 
-    clickmassa_contact_id: contact.clickmassaContactId,
+    // clickmassa_contact_id: coluna-projeção (trigger a partir de contact_external_links) — não escrita aqui.
     clickmassa_ticket_ids: contact.clickmassaTicketIds,
     clickmassa_tags_id: contact.clickmassaTagsId,
     clickmassa_oportunidade_id: contact.clickmassaOportunidadeId,
@@ -293,7 +299,7 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
 
   if ("tags" in patch) row.tags = patch.tags;
 
-  if ("iddasPessoaId" in patch) row.iddas_pessoa_id = patch.iddasPessoaId;
+  // iddasPessoaId: coluna-projeção (mantida por trigger) — não escrita aqui.
   if ("iddasCotacaoCode" in patch) row.iddas_cotacao_code = patch.iddasCotacaoCode;
   if ("iddasOrcamentoId" in patch) row.iddas_orcamento_id = patch.iddasOrcamentoId;
   if ("iddasVendaId" in patch) row.iddas_venda_id = patch.iddasVendaId;
@@ -301,7 +307,7 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
   if ("iddasSyncStatus" in patch) row.iddas_sync_status = patch.iddasSyncStatus;
   if ("iddasSyncError" in patch) row.iddas_sync_error = patch.iddasSyncError;
 
-  if ("clickmassaContactId" in patch) row.clickmassa_contact_id = patch.clickmassaContactId;
+  // clickmassaContactId: coluna-projeção (mantida por trigger) — não escrita aqui.
   if ("clickmassaTicketIds" in patch) row.clickmassa_ticket_ids = patch.clickmassaTicketIds;
   if ("clickmassaTagsId" in patch) row.clickmassa_tags_id = patch.clickmassaTagsId;
   if ("clickmassaOportunidadeId" in patch)

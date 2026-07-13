@@ -26,12 +26,15 @@ import { supabaseAdmin } from "@/lib/supabase/server";
  *  2. Ingere a fonte via a lib (`mode: "sync"`, `apply: true`), injetando o mesmo
  *     `runId` e `writeIngestionLog: false` (a lib não escreve o log — nós já
  *     escrevemos e vamos fechar; evita linha duplicada).
- *  3. Fecha a linha `ingestion_log` (PATCH para completed/partial/failed) com os
- *     contadores. REQUISITO FIRME: toda run gera registro — sucesso com contadores
- *     OU falha com erro. NÃO best-effort: falha de gravação do log vira erro
- *     visível (lança), ao contrário do backfill.
- *  4. Se `!ingestOnly`, chama o RPC `promote_contacts_from_bronze()` via
- *     service-role e captura os contadores.
+ *  3. Se `!ingestOnly`, chama o RPC `promote_contacts_from_bronze()` via
+ *     service-role e captura os contadores. A promoção é parte do ciclo: se ela
+ *     estoura, a run é `failed` (bronze salvo, mas ciclo não fechou).
+ *  4. Fecha a linha `ingestion_log` (PATCH) SÓ DEPOIS da promoção — RPC estourou
+ *     → `failed` com a mensagem no `error_message`; RPC ok → status da ingestão
+ *     (completed/partial/failed). REQUISITO FIRME: toda run gera registro. NÃO
+ *     best-effort: falha de gravação do log vira erro visível (lança), ao
+ *     contrário do backfill. (Antes o log fechava ANTES da promoção, escondendo
+ *     promoção morta atrás de runs verdes.)
  */
 
 export type SyncSource = "clickmassa" | "iddas";
@@ -205,9 +208,43 @@ export async function runSync(source: SyncSource, opts: RunSyncOptions = {}): Pr
     throw err;
   }
 
-  // 3. Fecha a auditoria com o resultado da ingestão (completed/partial/failed).
-  //    Antes da promoção, pra refletir a ingestão de verdade independente do que
-  //    vier depois.
+  // 3. Promoção bronze → silver ANTES de fechar a auditoria. Pulada quando
+  //    ingestOnly. A promoção é parte do ciclo: se ela estoura, a run NÃO
+  //    completou — mesmo com o bronze já gravado. Fechar o log antes escondia
+  //    promoção morta atrás de runs verdes.
+  let promocao: PromoteResultRow[] | null = null;
+  if (opts.ingestOnly !== true) {
+    const { data, error } = await supabaseAdmin().rpc(PROMOTE_RPC);
+    if (error) {
+      // Promoção estourou → run `failed`, com a mensagem da RPC no
+      // `error_message`. O bronze está salvo, mas o ciclo não fechou: é
+      // exatamente o que queremos enxergar. Fecha o log e propaga.
+      const rpcError = `RPC ${PROMOTE_RPC} falhou: ${error.message}`;
+      try {
+        await closeIngestionLog({
+          runId,
+          status: "failed",
+          counts: countsFromResult(ingestao),
+          durationMs: Date.now() - startMs,
+          errorMessage: rpcError,
+        });
+      } catch (logErr) {
+        // Não mascarar o erro original; tornar a falha de auditoria visível.
+        console.error(
+          `[runSync:${source}] FALHA AO FECHAR ingestion_log de erro de promoção (run ${runId}):`,
+          logErr instanceof Error ? (logErr.stack ?? logErr.message) : logErr,
+        );
+      }
+      throw new Error(rpcError);
+    }
+    // supabaseAdmin() é criado sem o generic de Database, então rpc() devolve
+    // `any`. Tipamos pelo contrato conhecido do RPC em vez de propagar `any`.
+    promocao = (data as PromoteResultRow[] | null) ?? null;
+  }
+
+  // 4. Fecha a auditoria DEPOIS da promoção. Status reflete a ingestão
+  //    (completed/partial/failed); a promoção, quando rodou, foi bem-sucedida
+  //    aqui (falha dela já fechou como `failed` e propagou acima).
   await closeIngestionLog({
     runId,
     status: ingestao.status,
@@ -215,18 +252,6 @@ export async function runSync(source: SyncSource, opts: RunSyncOptions = {}): Pr
     durationMs: Date.now() - startMs,
     errorMessage: errorsToMessage(ingestao),
   });
-
-  // 4. Promoção bronze → silver. Pulada quando ingestOnly.
-  let promocao: PromoteResultRow[] | null = null;
-  if (opts.ingestOnly !== true) {
-    const { data, error } = await supabaseAdmin().rpc(PROMOTE_RPC);
-    if (error) {
-      throw new Error(`RPC ${PROMOTE_RPC} falhou: ${error.message}`);
-    }
-    // supabaseAdmin() é criado sem o generic de Database, então rpc() devolve
-    // `any`. Tipamos pelo contrato conhecido do RPC em vez de propagar `any`.
-    promocao = (data as PromoteResultRow[] | null) ?? null;
-  }
 
   return { source, ingestao, promocao };
 }

@@ -20,6 +20,7 @@ import { createJornadaManual, getJornadasDoContato } from "@/lib/jornadas";
 import { sendContactNotification } from "@/lib/email/resend";
 import { syncContactFlow } from "@/lib/integrations/clickmassa";
 import { syncResultToContactPatch } from "@/lib/contacts/clickmassa-mapper";
+import { upsertContactExternalLink } from "@/lib/contacts/external-links";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import type { Contact } from "@/lib/contacts/types";
 import type { SyncContactResult } from "@/lib/integrations/clickmassa";
@@ -207,8 +208,28 @@ export async function submitContact(data: SubmitContactPayload): Promise<Contact
           phone: contact.whatsapp,
           email: contact.email,
         });
-        // Write-back honesto: sucesso grava 'synced' + IDs + ultimo_sync; falha
-        // grava 'failed' + sync_error. Nunca fica 'pending' aqui.
+
+        // Vínculo externo → contact_external_links (fonte ÚNICA do vínculo; a
+        // coluna contacts.clickmassa_contact_id é projeção mantida por trigger).
+        // Upsert idempotente sobre (provider, external_kind, external_id). Só há
+        // vínculo quando a mensagem foi enviada (contactId presente no response).
+        if (result.clickmassaContactId !== null) {
+          try {
+            await upsertContactExternalLink({
+              contactId,
+              provider: "clickmassa",
+              externalKind: "contact",
+              externalId: String(result.clickmassaContactId),
+              syncStatus: "synced",
+            });
+          } catch (linkErr) {
+            console.error("[submitContact] falha ao gravar vínculo externo ClickMassa:", linkErr);
+          }
+        }
+
+        // Write-back honesto do STATUS (não o vínculo): sucesso grava 'synced' +
+        // ticket_ids + ultimo_sync; falha grava 'failed' + sync_error. Nunca fica
+        // 'pending' aqui.
         const patch = syncResultToContactPatch(result);
         const { error: updateError } = await supabaseAdmin()
           .from("contacts")

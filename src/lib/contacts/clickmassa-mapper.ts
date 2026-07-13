@@ -1,12 +1,13 @@
 import "server-only";
 import type { SyncContactResult, SyncContactStatus } from "@/lib/integrations/clickmassa";
 
-// Colunas ClickMassa da tabela contacts (snake_case, subset do ContactRow).
+// Colunas de STATUS ClickMassa da tabela contacts (snake_case, subset do ContactRow).
 // clickmassa_sync_status restrito ao CHECK constraint do DB: 'synced' | 'pending' | 'failed'.
 // A perna de oportunidade saiu do fluxo (Lote 2), então este patch NÃO toca mais
 // em clickmassa_oportunidade_id / clickmassa_pipeline_step (ficam intocados no DB).
+// O VÍNCULO (clickmassa_contact_id) NÃO está aqui: é gravado em
+// `contact_external_links` (fonte única) e projetado na coluna por trigger.
 export type ContactUpdateRow = {
-  clickmassa_contact_id: string | null;
   clickmassa_ticket_ids: string[];
   clickmassa_ultimo_sync: string;
   clickmassa_sync_status: "synced" | "pending" | "failed";
@@ -42,8 +43,6 @@ export function syncResultToContactPatch(result: SyncContactResult): ContactUpda
     result.status === "failed" ? `[failed]: ${result.error ?? "sem detalhes"}` : null;
 
   return {
-    clickmassa_contact_id:
-      result.clickmassaContactId !== null ? String(result.clickmassaContactId) : null,
     clickmassa_ticket_ids:
       result.clickmassaTicketId !== null ? [String(result.clickmassaTicketId)] : [],
     clickmassa_ultimo_sync: new Date().toISOString(),

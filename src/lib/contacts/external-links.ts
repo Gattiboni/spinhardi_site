@@ -6,15 +6,13 @@ import type { ContactExternalLink } from "./external-links-shared";
  * Vínculos externos do contato — silver `contact_external_links` (Passo A).
  *
  * Cada fonte externa vira uma LINHA (não coluna): `provider` + `external_kind`
- * + `external_id`. É a fonte de LEITURA pra montar deep-links e detectar canais
- * disponíveis. As colunas `clickmassa_*`/`iddas_*` no `contacts` continuam vivas
- * (o sync do form público ainda escreve nelas) — aqui só lemos do vínculo.
+ * + `external_id`. É a fonte ÚNICA de ESCRITA do vínculo e a fonte de LEITURA
+ * pra montar deep-links e detectar canais disponíveis. As colunas
+ * `contacts.clickmassa_contact_id`/`iddas_pessoa_id` são PROJEÇÃO desta tabela,
+ * mantidas por trigger — nenhum código de aplicação escreve nelas.
  *
  * Server-only (importa `supabaseAdmin`). O tipo e os helpers puros ficam em
  * `external-links-shared.ts`, importáveis por Client Components.
- *
- * Hoje só a leitura por contato (detalhe / deep-link). A agregação da lista NÃO
- * lê os vínculos inteiros — os segmentos de gap saem de funções no Postgres.
  */
 
 type ContactExternalLinkRow = {
@@ -45,6 +43,43 @@ function rowToLink(row: ContactExternalLinkRow): ContactExternalLink {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Grava (upsert idempotente) o vínculo externo de um contato. Fonte ÚNICA de
+ * escrita do vínculo: a coluna projetada em `contacts` é mantida por trigger.
+ *
+ * Idempotente sobre `(provider, external_kind, external_id)` — a mesma unicidade
+ * do índice da tabela. Re-sincronizar o mesmo contato externo atualiza a linha
+ * (sync_status/last_sync_at) em vez de duplicar.
+ */
+export async function upsertContactExternalLink(input: {
+  contactId: string;
+  provider: string;
+  externalKind: string;
+  externalId: string;
+  syncStatus?: string;
+  lastSyncAt?: string;
+}): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("contact_external_links")
+    .upsert(
+      {
+        contact_id: input.contactId,
+        provider: input.provider,
+        external_kind: input.externalKind,
+        external_id: input.externalId,
+        sync_status: input.syncStatus ?? "synced",
+        last_sync_at: input.lastSyncAt ?? new Date().toISOString(),
+      },
+      { onConflict: "provider,external_kind,external_id" },
+    );
+
+  if (error) {
+    throw new Error(
+      `Erro ao gravar vínculo externo (${input.provider}/${input.externalKind}/${input.externalId}): ${error.message}`,
+    );
+  }
 }
 
 /** Vínculos externos de um contato (pra detalhe / deep-link). */
