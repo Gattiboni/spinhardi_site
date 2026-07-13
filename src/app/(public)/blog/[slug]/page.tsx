@@ -20,10 +20,72 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post) return { title: "Post não encontrado" };
+
+  // Mesma precedência do <title> herdado do B2: SEO explícito → conteúdo do post.
+  const title = post.seoTitle ?? post.title;
+  const description = post.seoDescription ?? post.excerpt;
+  const canonical = `/blog/${post.slug}`;
+
+  // Post legado sem capa → array vazio, nunca uma og:image quebrada. Alt vem do alt
+  // da capa (B2); sem fallback pro título (repetir o título no alt é ruído no leitor).
+  const ogImages = post.shareImage
+    ? [{ url: post.shareImage, width: 1200, height: 630, alt: post.thumbnailAlt ?? "" }]
+    : [];
+
   return {
-    title: post.seoTitle ?? post.title,
-    description: post.seoDescription ?? post.excerpt,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: canonical,
+      siteName: "Spinhardi Turismo",
+      locale: "pt_BR",
+      publishedTime: post.publishedAt,
+      authors: [post.author],
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: post.shareImage ? [post.shareImage] : [],
+    },
   };
+}
+
+/**
+ * JSON-LD schema.org `BlogPosting` (subtipo de `Article` — é literalmente um post
+ * de blog, mais específico, mesmos campos). Só campos que temos dado real pra
+ * preencher: nada de `wordCount` chutado nem `publisher.logo` sem URL de logo
+ * confirmada. `image` sai quando não há capa.
+ *
+ * Serializado com escape do `<`: conteúdo do CMS (título/excerpt) não pode fechar
+ * o `<script>` via `</script>` nem injetar markup. `JSON.stringify` já escapa aspas
+ * e barras internas do JSON; o `<` é o único vetor que sobra pro contexto de script.
+ */
+function buildJsonLd(post: NonNullable<Awaited<ReturnType<typeof getPostBySlug>>>): string {
+  const canonical = `/blog/${post.slug}`;
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.seoDescription ?? post.excerpt,
+    // A URL da capa já é absoluta (CDN da Sanity); omitida quando não há capa.
+    ...(post.shareImage ? { image: [post.shareImage] } : {}),
+    ...(post.publishedAt ? { datePublished: post.publishedAt } : {}),
+    author: {
+      // O fallback do mapper ("Spinhardi Turismo") é a agência, não uma pessoa —
+      // declarar Organization nesse caso evita afirmar que a agência é um humano.
+      "@type": post.author === "Spinhardi Turismo" ? "Organization" : "Person",
+      name: post.author,
+    },
+    publisher: { "@type": "Organization", name: "Spinhardi Turismo" },
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+  };
+  return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
 export async function generateStaticParams() {
@@ -98,6 +160,12 @@ export default async function Post({ params }: Props) {
 
   return (
     <>
+      {/* JSON-LD BlogPosting: conteúdo escapado em buildJsonLd (anti-XSS via CMS). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: buildJsonLd(post) }}
+      />
+
       {/* Bloco 1 - Cabeçalho do post */}
       <Section spacing="lg" className="bg-white text-dark pt-32 lg:pt-40">
         <Container>

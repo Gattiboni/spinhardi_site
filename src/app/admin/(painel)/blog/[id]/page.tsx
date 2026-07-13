@@ -25,10 +25,6 @@ export default async function EditarPost({ params }: Props) {
   const post = await getAdminPostBySlug(id);
   if (!post) notFound();
 
-  return (
-    <div>
-      <h1 className="font-display text-3xl text-navy mb-8">Editar post</h1>
-      <PostForm initialPost={post} />
-    </div>
-  );
+  // O título é renderizado pelo PostForm (dirigido por estado).
+  return <PostForm initialPost={post} />;
 }

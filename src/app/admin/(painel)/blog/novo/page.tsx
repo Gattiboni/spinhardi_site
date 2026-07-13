@@ -6,10 +6,7 @@ export const metadata: Metadata = {
 };
 
 export default function NovoPost() {
-  return (
-    <div>
-      <h1 className="font-display text-3xl text-navy mb-8">Novo post</h1>
-      <PostForm />
-    </div>
-  );
+  // O título ("Novo post" / "Editar post") é renderizado pelo PostForm, dirigido
+  // por estado — depois de salvar, o form fica montado e o título se ajusta sozinho.
+  return <PostForm />;
 }

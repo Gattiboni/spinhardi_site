@@ -93,7 +93,7 @@ export async function savePostAction(
     const res = args.id
       ? await updatePost(args.id, args.input, { publish: args.publish }, image)
       : await createPost(args.input, { publish: args.publish }, image);
-    return { ok: true, slug: res.slug };
+    return { ok: true, id: res.id, slug: res.slug };
   } catch (err) {
     // Validação de imagem/alt no publish nasce em `@/lib/blog` (depende de ler o
     // doc atual) e sobe como FieldError — mapeia pro campo inline.
@@ -114,7 +114,7 @@ export async function deletePostAction(id: string): Promise<SaveResult> {
   }
   try {
     await deletePost(id);
-    return { ok: true, slug: "" };
+    return { ok: true, id, slug: "" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Erro ao excluir o post." };
   }

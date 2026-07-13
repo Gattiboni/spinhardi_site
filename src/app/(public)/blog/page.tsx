@@ -3,15 +3,38 @@ import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import { getPosts } from "@/lib/blog";
 import BlogClient from "./BlogClient";
+import { OG_IMAGE } from "@/app/layout";
 import type { Metadata } from "next";
 
 // ISR: revalida a listagem a cada 60s para refletir o Studio.
 export const revalidate = 60;
 
+const BLOG_TITLE = "Blog";
+const BLOG_DESCRIPTION =
+  "Histórias, destinos e bastidores de quem viaja. Dicas reais, experiências de clientes e bastidores do nosso trabalho.";
+
 export const metadata: Metadata = {
-  title: "Blog",
-  description:
-    "Histórias, destinos e bastidores de quem viaja. Dicas reais, experiências de clientes e bastidores do nosso trabalho.",
+  title: BLOG_TITLE,
+  description: BLOG_DESCRIPTION,
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    type: "website",
+    title: BLOG_TITLE,
+    description: BLOG_DESCRIPTION,
+    url: "/blog",
+    siteName: "Spinhardi Turismo",
+    locale: "pt_BR",
+    // Next SUBSTITUI o openGraph do root (não mescla): sem declarar images aqui, a
+    // og do site some e /blog fica sem imagem. Reusa a MESMA constante do root
+    // (importada, não copiada) — hero provisória até a arte 1200x630 dedicada.
+    images: [{ url: OG_IMAGE, alt: "Spinhardi Turismo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: BLOG_TITLE,
+    description: BLOG_DESCRIPTION,
+    images: [OG_IMAGE],
+  },
 };
 
 export default async function Blog() {

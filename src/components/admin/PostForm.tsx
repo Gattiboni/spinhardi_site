@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Button, { buttonStyles } from "@/components/ui/Button";
+import PostStatusBadge from "@/components/admin/PostStatusBadge";
 import {
   Post,
   PostCategory,
@@ -27,9 +28,17 @@ export default function PostForm({ initialPost }: PostFormProps) {
   // erros colados no campo (ex.: excerpt vazio). Mesmo padrão do ContactForm.
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // `success` = confirmação da ação ("Post publicado." / "Rascunho salvo."), perto
+  // dos botões. Some ao mexer em qualquer campo. Publish e rascunho NÃO navegam
+  // mais (o form fica montado), então basta estado local — sem flash, sem storage.
+  const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction>(null);
   const busy = pending !== null;
-  const postId = initialPost?.id;
+
+  // `postId` é ESTADO: começa do post carregado (edição) e passa a existir depois
+  // do 1º save de um post novo — é o que faz o 2º save ser UPDATE, não CREATE (sem
+  // ele, salvar 2x um post novo criaria dois posts).
+  const [postId, setPostId] = useState<string | undefined>(initialPost?.id);
 
   const [values, setValues] = useState({
     title: initialPost?.title ?? "",
@@ -80,6 +89,8 @@ export default function PostForm({ initialPost }: PostFormProps) {
   ) => {
     const { name, value } = e.target;
     setValues((prev) => ({ ...prev, [name]: value }));
+    // Mexeu em algo → a confirmação anterior já não descreve o estado atual.
+    if (success) setSuccess(null);
     // Digitou no campo que estava com erro? Limpa o erro dele (feedback vivo).
     setFieldErrors((prev) => {
       if (!prev[name]) return prev;
@@ -103,6 +114,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (success) setSuccess(null);
 
     // Validação client-side (formato + tamanho), erro inline no campo de imagem.
     // O servidor revalida — isto é só pra Nina não esperar um upload que vai falhar.
@@ -127,6 +139,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
   const handleChangeImage = () => fileInputRef.current?.click();
 
   const handleRemoveImage = () => {
+    if (success) setSuccess(null);
     setImageFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -140,6 +153,7 @@ export default function PostForm({ initialPost }: PostFormProps) {
   const submit = async (publish: boolean) => {
     setError(null);
     setFieldErrors({});
+    setSuccess(null);
     setPending(publish ? "publish" : "draft");
     try {
       // Só o arquivo vai por fora, em FormData; o resto (incl. imageAlt/removeImage)
@@ -151,22 +165,29 @@ export default function PostForm({ initialPost }: PostFormProps) {
       }
       const result = await savePostAction({ id: postId, input: values, publish }, imageForm);
       if (result.ok) {
+        // Nem publish nem rascunho navegam: o form fica montado e vira o editor do
+        // post agora salvo. Guarda o `id` base (pro próximo save ser UPDATE) e fixa
+        // o slug canônico no campo (idempotência + o campo passa a refletir a URL).
+        setPostId(result.id);
+        setValues((prev) => ({ ...prev, slug: result.slug }));
         if (publish) {
-          // Publicou: fica no editor do post (agora publicado) e o botão "Ver no
-          // site" passa a funcionar na hora — slug vem do RETORNO da action, não
-          // de refetch. Navega pra própria página de edição (`result.slug` pode
-          // ser um slug recém-criado); se for a mesma URL, o estado local abaixo
-          // já deixa o botão certo. Sem `router.refresh` (travava a transition).
+          // Publicado agora: badge → PUBLICADO e "Ver no site" já funciona, tudo do
+          // RETORNO da action (sem refetch). Sem rascunho pendente (acabou de ir ao ar).
           setViewSlug(result.slug);
           setIsPublished(true);
           setHasPendingDraft(false);
-          setPending(null);
-          router.push(`/admin/blog/${result.slug}`);
+          setSuccess("Post publicado.");
         } else {
-          // Rascunho: sem página pública pra ver; volta pra lista (já revalidada
-          // pela action). Mantém o loading até desmontar.
-          router.push("/admin/blog");
+          // Rascunho não muda se existe versão publicada; se existe, agora há um
+          // rascunho por cima dela (pendente).
+          setHasPendingDraft(isPublished);
+          setSuccess("Rascunho salvo.");
         }
+        // Corrige a URL na barra (post novo estava em /novo) SEM desmontar o form
+        // nem disparar navegação do Next — o Next sincroniza o `usePathname` (doc
+        // oficial). F5 passa a abrir /admin/blog/{slug}; "voltar" leva à lista.
+        window.history.replaceState(null, "", `/admin/blog/${result.slug}`);
+        setPending(null);
         return;
       }
       if (result.field) {
@@ -209,11 +230,25 @@ export default function PostForm({ initialPost }: PostFormProps) {
   const labelClass = "block font-body text-sm font-medium text-dark mb-2";
 
   return (
-    <div className="bg-white rounded-md border border-dark/10 p-8">
-      {/* Barra do topo: "Ver no site" (só a versão publicada tem página pública).
+    <>
+      {/* Título dirigido por estado (não pela rota): depois de salvar um post novo
+          o form fica montado, então "Novo post" viraria mentira. `postId` (estado)
+          existe assim que o post é salvo → "Editar post". */}
+      <h1 className="font-display text-3xl text-navy mb-8">
+        {postId ? "Editar post" : "Novo post"}
+      </h1>
+
+      <div className="bg-white rounded-md border border-dark/10 p-8">
+        {/* Barra do topo: "Ver no site" (só a versão publicada tem página pública).
           Rascunho nunca publicado → desabilitado, com o porquê no title. */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-dark/10 pb-6">
-        <div className="max-w-md">
+        <div className="max-w-md space-y-2">
+          {/* Status atual do post, mesmo selo da lista. `isPublished` é estado local:
+              muda pra PUBLICADO na hora ao publicar, sem F5. Post novo ainda não salvo
+              (sem `postId` e não publicado) não tem status → sem badge. */}
+          {(isPublished || postId) && (
+            <PostStatusBadge status={isPublished ? "publicado" : "rascunho"} />
+          )}
           {isPublished && hasPendingDraft && (
             <p className="font-body text-sm text-dark/60">
               Você está vendo a versão publicada. Suas alterações só aparecem depois de publicar.
@@ -488,6 +523,15 @@ export default function PostForm({ initialPost }: PostFormProps) {
         </p>
       )}
 
+      {success && !error && (
+        <p
+          role="status"
+          className="mt-6 px-4 py-3 rounded-md bg-green-50 border border-green-200 font-body text-sm text-green-700"
+        >
+          {success}
+        </p>
+      )}
+
       <div className="flex flex-wrap justify-end items-center gap-3 mt-8 pt-8 border-t border-dark/10">
         {postId && (
           <Button
@@ -511,10 +555,22 @@ export default function PostForm({ initialPost }: PostFormProps) {
         <Button variant="secondary" size="md" onClick={() => submit(false)} disabled={busy}>
           {pending === "draft" ? "Salvando…" : "Salvar como rascunho"}
         </Button>
-        <Button variant="primary" size="md" onClick={() => submit(true)} disabled={busy}>
-          {pending === "publish" ? "Publicando…" : "Publicar"}
-        </Button>
+        {/* Publicado e sem rascunho pendente → não há o que publicar; republicar
+            seria no-op confuso. Desabilita com o porquê no title, mesmo padrão do
+            "Ver no site" desabilitado. */}
+        {isPublished && !hasPendingDraft ? (
+          <span title="Não há alterações para publicar." className="inline-block">
+            <Button variant="primary" size="md" disabled>
+              Publicar
+            </Button>
+          </span>
+        ) : (
+          <Button variant="primary" size="md" onClick={() => submit(true)} disabled={busy}>
+            {pending === "publish" ? "Publicando…" : "Publicar"}
+          </Button>
+        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

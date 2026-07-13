@@ -28,6 +28,81 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D084] Blog: Open Graph completo, JSON-LD, data em fuso BR e feedback local sem navegação forçada
+
+**Data:** 2026-07-12
+
+**Contexto:** o B2 entregou capa de post, e com ela a base pro Open Graph. Até
+aqui, o `generateMetadata` do post devolvia só `title` e `description`: link de
+post compartilhado no WhatsApp ou em rede social saía cru, sem imagem, sem
+título, sem descrição. Para uma agência que vive de mandar link no WhatsApp,
+isso não é detalhe de SEO, é o post nascendo feio no canal principal. Dois bugs
+apareceram durante o lote e foram consertados aqui.
+
+**Decisões:**
+
+1. **`ogImage` não é campo do form.** A imagem de compartilhamento é sempre
+   derivada da capa (`mainImage`), que é obrigatória no publish desde o D083. O
+   campo `ogImage` continua no schema e o código o lê com prioridade se estiver
+   preenchido (setável via Studio em emergência), mas a Nina não vê nem decide
+   nada sobre isso. Menos um campo pra ela errar, e o fallback é sempre válido.
+2. **Imagem de compartilhamento em 1200x630 via `urlForOgImage`**, função nova e
+   dedicada (`.width(1200).height(630).fit("crop")`), respeitando o hotspot do
+   Sanity. `urlForImage` fica intocada: ela serve a capa e os cards, com outro
+   contrato.
+3. **`openGraph` é substituído, não mesclado, no Next.** Comprovado por curl: ao
+   declarar `openGraph` em `/blog`, as tags de imagem herdadas do root sumiram.
+   Portanto a listagem declara `images` explicitamente, importando a constante
+   `OG_IMAGE` do root (não copiando o caminho). Post sem capa não emite
+   `og:image` nenhuma: ausente, não vazia, não placeholder.
+4. **JSON-LD de `BlogPosting`** (subtipo de `Article`, mais específico e mesmos
+   campos) na página do post, sem lib, com escaping. JSON-LD de organização,
+   sitemap e canonical das institucionais ficam FORA (outra frente).
+5. **Domínio canônico: com `www`.** Verificado por curl: sem-www responde 308
+   para www. O `metadataBase` estava hardcoded sem www; passa a ler
+   `NEXT_PUBLIC_SITE_URL` com fallback para o domínio com www.
+6. **Bug de data (corrigido):** o mapper fazia `publishedAt.slice(0, 10)` na
+   string UTC. Isso corta caracteres, não converte fuso: todo post publicado
+   depois das 21h (BRT) exibia a data do dia seguinte, no admin e no site. A
+   formatação de display passa a converter para `America/Sao_Paulo` via `Intl`,
+   com `timeZone` fixo nos dois lados (senão o client usa o fuso da máquina e
+   diverge do servidor na hidratação). O `article:published_time` e o
+   `datePublished` do JSON-LD continuam em UTC ISO completo, que é o correto.
+7. **Nenhuma navegação forçada no PostForm.** Publicar e salvar rascunho passam
+   a manter a pessoa no editor, com feedback local (`useState`) e badge de
+   status que muda na hora. A URL é corrigida com `window.history.replaceState`
+   (API suportada e documentada pelo Next, que sincroniza com o router). Para
+   isso, as actions passam a devolver o `id` base do post, que o form guarda em
+   estado: sem ele, um segundo "Salvar rascunho" num post novo criaria um post
+   duplicado.
+
+**Alternativas rejeitadas:** flash message via `sessionStorage` para transportar
+o "Post publicado." entre telas (foi implementado e descartado: exigia três
+peças novas, um `queueMicrotask` para driblar o lint, e tinha comportamento
+divergente entre dev e prod; o problema real não era o feedback, era a navegação
+que o tornava difícil, e ela não era necessária); `router.push` para trocar
+`/novo` por `/{slug}` (desmonta o componente por reconciliação do React, já que
+são páginas de tipos diferentes na mesma posição); `Article` em vez de
+`BlogPosting` no JSON-LD (menos específico, mesmo custo); campo `ogImage` no
+form; `date-only` no `published_time` (declararia meia-noite UTC, ou seja, uma
+hora que nunca existiu, e no Brasil isso vira o dia anterior).
+
+**Racional:** cada afirmação estrutural deste lote foi provada com output cru,
+não com opinião: o redirect 308 do domínio, a substituição (não merge) do
+`openGraph`, o `JSON.parse` do JSON-LD renderizado, a ausência de `og:image` no
+post sem capa (estado fabricado via API, já que o admin não consegue mais
+produzi-lo). O bug de data só apareceu porque o `published_time` do curl (00:34
+UTC) não batia com a data que a tela mostrava.
+
+**Pendências:** arte 1200x630 dedicada de og default (hoje a listagem usa a hero
+provisória de Portofino, marcada como tal no código) é trabalho de design;
+sitemap.xml, JSON-LD de organização e canonical das institucionais; preview de
+rascunho (draft mode) em lote próprio; asset órfão legado `2.png`.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [D083] Blog: capa como image asset do Sanity, alt obrigatório e coleta de assets órfãos
 
 **Data:** 2026-07-12

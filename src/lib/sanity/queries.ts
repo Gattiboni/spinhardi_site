@@ -16,6 +16,7 @@ const POST_PROJECTION = `{
   publishedAt,
   excerpt,
   mainImage,
+  ogImage,
   body,
   author->{name, image},
   categories[]->{title},

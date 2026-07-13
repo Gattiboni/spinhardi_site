@@ -214,7 +214,7 @@ export async function createPost(
   input: PostInput,
   { publish }: { publish: boolean },
   image?: ImageMutation,
-): Promise<{ slug: string }> {
+): Promise<{ id: string; slug: string }> {
   const slug = ensureSlug(input);
   await assertSlugFree(slug);
   const categoryId = await resolveCategoryId(input.category);
@@ -251,7 +251,9 @@ export async function createPost(
     });
   }
 
-  return { slug };
+  // `id` é o ID BASE (sem `drafts.`) — o form guarda ele pra que o PRÓXIMO save
+  // seja UPDATE, não CREATE (senão, salvar 2x um post novo criaria dois posts).
+  return { id, slug };
 }
 
 /**
@@ -267,7 +269,7 @@ export async function updatePost(
   input: PostInput,
   { publish }: { publish: boolean },
   image?: ImageMutation,
-): Promise<{ slug: string }> {
+): Promise<{ id: string; slug: string }> {
   const slug = ensureSlug(input);
   await assertSlugFree(slug, id);
   const categoryId = await resolveCategoryId(input.category);
@@ -338,7 +340,7 @@ export async function updatePost(
   // delete toma 409 de propósito; é no publish que ela de fato fica órfã.
   await collectGarbage(oldAssetIds);
 
-  return { slug };
+  return { id, slug };
 }
 
 /** Remove o post por completo — draft e publicado. Apagar ID inexistente é

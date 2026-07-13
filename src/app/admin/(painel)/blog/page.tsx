@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Button, { buttonStyles } from "@/components/ui/Button";
+import PostStatusBadge from "@/components/admin/PostStatusBadge";
 import { getAdminPosts } from "@/lib/blog";
 import { formatDate } from "@/lib/utils/date";
 import type { Metadata } from "next";
@@ -63,15 +64,7 @@ export default async function AdminBlogList() {
                   {formatDate(post.date)}
                 </td>
                 <td className="px-6 py-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs uppercase tracking-widest ${
-                      post.status === "publicado"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {post.status}
-                  </span>
+                  <PostStatusBadge status={post.status} />
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-4">

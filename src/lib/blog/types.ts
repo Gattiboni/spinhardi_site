@@ -11,7 +11,12 @@ export type Post = {
   excerpt: string;
   category: PostCategory;
   author: string;
-  date: string; // ISO date YYYY-MM-DD
+  date: string; // ISO date YYYY-MM-DD — usado só para display
+  /** Timestamp ISO completo da publicação, cru do Sanity (`publishedAt`). Alimenta
+   *  `og:published_time` e o `datePublished` do JSON-LD, que precisam da hora real:
+   *  derivar de `date` (YYYY-MM-DD) emitiria meia-noite UTC = 21h do dia anterior no
+   *  Brasil, declarando uma hora que nunca existiu. `undefined` em post sem data. */
+  publishedAt?: string;
   body: string; // texto-leve (admin/mock); fallback quando não há richBody
   /** PortableText vindo da Sanity. Quando presente, o site público renderiza
    *  o corpo rico via `<PortableText>`; senão usa `body` (markdown-leve). */
@@ -32,7 +37,12 @@ export type Post = {
   hasPendingDraft?: boolean;
   seoTitle?: string;
   seoDescription?: string;
-  ogImage?: string;
+  /** URL absoluta da imagem de compartilhamento (og:image), já resolvida em 1200x630
+   *  cropada. Precedência na origem: `ogImage` do Sanity se preenchido, senão a capa
+   *  (`mainImage`). `null`/ausente em post sem capa — o metadata omite o `og:image`
+   *  em vez de emitir uma URL quebrada. NÃO é o objeto de imagem cru do Sanity (esse
+   *  se chama `ogImage` no `SanityPost`); aqui é só a URL pronta pro metadata. */
+  shareImage?: string;
 };
 
 /**
@@ -60,7 +70,7 @@ export type PostInput = {
  *  colar o erro inline nele — mesmo padrão do ContactForm. `"image"` é o campo de
  *  arquivo (fora do `PostInput`); erros de alt usam a chave `imageAlt`. */
 export type SaveResult =
-  | { ok: true; slug: string }
+  | { ok: true; id: string; slug: string }
   | { ok: false; error: string; field?: keyof PostInput | "image" };
 
 export const CATEGORIES: PostCategory[] = [

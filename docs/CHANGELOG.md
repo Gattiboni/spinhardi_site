@@ -15,6 +15,39 @@ Ordem: mais recente no topo.
 
 ---
 
+**Blog: SEO ponta a ponta (D084):** post compartilhado passa a ter preview de
+verdade. `generateMetadata` emite Open Graph completo (type article, title,
+description, url canônica, siteName, locale, published_time em UTC, author) e
+Twitter card (summary_large_image), com imagem 1200x630 cropada do Sanity
+respeitando o hotspot, derivada da capa. JSON-LD de BlogPosting na página do
+post. Canonical em todas as páginas do blog. A listagem `/blog` também ganhou
+Open Graph (descoberto por curl que o Next SUBSTITUI o objeto `openGraph`, não
+mescla: sem declarar `images`, a página ficaria sem imagem nenhuma). Post sem
+capa não emite og:image vazia. `ogImage` não vira campo do form: a imagem de
+compartilhamento é sempre derivada da capa, que já é obrigatória.
+
+**Domínio canônico corrigido (D084):** `metadataBase` estava hardcoded sem
+`www`, mas o domínio sem www responde 308 para o com www. Passa a ler
+`NEXT_PUBLIC_SITE_URL` com fallback para o domínio correto.
+
+**BUG: data com um dia de diferença (D084):** o mapper truncava a string UTC do
+`publishedAt` em vez de converter fuso. Todo post publicado depois das 21h (BRT)
+exibia a data do dia seguinte, no admin e no site. Display passa a formatar em
+`America/Sao_Paulo` com `timeZone` fixo. Metadados de SEO seguem em UTC ISO, que
+é o correto.
+
+**UX do editor (D084):** publicar e salvar rascunho não jogam mais a pessoa pra
+outra tela. Feedback local ("Post publicado." / "Rascunho salvo."), badge de
+status que vira PUBLICADO na hora, "Ver no site" ativo sem F5, URL corrigida por
+`history.replaceState`. As actions passam a devolver o `id` do post, o que
+impede que um segundo "Salvar rascunho" num post novo crie um duplicado. Botão
+"Publicar" desabilitado quando não há alteração pendente.
+
+**Pendências:** arte og default dedicada (a listagem usa a hero provisória);
+sitemap.xml e JSON-LD de organização; preview de rascunho; asset órfão `2.png`.
+
+---
+
 ## 2026-07-12
 
 **Blog: capa, alt e coleta de órfãos (D083):** o `/admin/blog` ganha upload de

@@ -3,9 +3,9 @@
 Site oficial da Spinhardi Turismo, desenvolvido como parte do projeto de
 Presença Digital.
 
-**Stack:** Next.js 14+ · TypeScript · Tailwind CSS · Vercel · Supabase · Sanity
+**Stack:** Next.js 16 · TypeScript · Tailwind CSS · Vercel · Supabase · Sanity
 **Repositório:** https://github.com/Gattiboni/spinhardi_site **Deploy:**
-https://spinharditurismo.com.br _(produção a partir da Fase 3)_
+https://www.spinharditurismo.com.br _(em produção)_
 
 ---
 
@@ -38,7 +38,7 @@ spinhardi_site/
 │   └── lib/                # Utilitários, integrações e abstrações
 │       ├── ai/             # Camada de IA (abstração sobre provider)
 │       ├── blog/           # Acesso a posts (leitura + escrita/publicação via Sanity)
-│       ├── email/          # E-mail transacional (mock na Fase 1, Resend na Fase 3)
+│       ├── email/          # E-mail transacional (Resend)
 │       ├── integrations/   # IDAS, ClickMassa, Make (abstrações preparadas)
 │       ├── sanity/         # Clientes Sanity (leitura pública + escrita server-only)
 │       └── supabase/       # Cliente Supabase
@@ -116,7 +116,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_*
 SUPABASE_SERVICE_ROLE_KEY=*  # nunca expor no frontend
 ```
 
-### Fase 3 (Produção) — variáveis adicionais
+### Produção — variáveis adicionais
 
 ```
 # Sanity (CMS do blog)
@@ -162,9 +162,8 @@ staging    → homologação
 feature/*  → preview automático no PR
 ```
 
-**Tier da Vercel:** Hobby (free) durante Fases 1 e 2 (uso não-comercial:
-desenvolvimento e preview). Pro a partir da Fase 3 (uso comercial em produção).
-Detalhes em `docs/DECISION_LOG.md` (D008).
+**Tier da Vercel:** Pro (uso comercial em produção). Detalhes em
+`docs/DECISION_LOG.md` (D008).
 
 ---
 
