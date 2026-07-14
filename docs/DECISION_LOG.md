@@ -28,6 +28,95 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D087] Conserto do sync: vínculo externo com escritor único, projeção por trigger e log honesto
+
+**Data:** 2026-07-13
+
+**Contexto:** a promoção bronze→silver estava 100% quebrada desde 10/07 10:55
+(~400 erros em 3 dias): o formulário de contato do site gravava o vínculo
+externo na COLUNA `contacts.clickmassa_contact_id`, a RPC decidia pela TABELA
+`contact_external_links`, não achava o link, tentava INSERT, batia no UNIQUE da
+coluna e a transação inteira (Iddas junto) fazia rollback. Linha-veneno: "Amanda
+Teste" (contato de teste do próprio formulário). Ninguém viu porque o
+`ingestion_log` era fechado como `completed` ANTES da promoção rodar: 3033 runs
+verdes escondendo promoção morta. O D064 tinha mandado o vínculo virar linha,
+mas as colunas foram mantidas como segunda representação do mesmo fato.
+
+**Alternativas consideradas:**
+
+- Apagar só a linha-veneno: destrava hoje e requebra no próximo lead do site
+- Remover as colunas de `contacts`: quebra toda a UI e as queries que leem delas
+- Escritor único na tabela + colunas viram projeção mantida por trigger: o
+  estado inválido fica impossível por construção, sem quebrar leitura
+
+**Decisão:** (banco, via MCP) trigger `trg_project_external_link` projeta o link
+nas colunas (insert/update/delete, com reprojeção no delete); UNIQUE
+`contacts_clickmassa_contact_id_key` removido — a unicidade vive em
+`contact_external_links`; índice único parcial substituído pela constraint total
+`uq_cel_provider_kind_external_id` (o upsert do PostgREST não infere índice
+parcial — 42P10 provado por EXPLAIN); RPC blindada com `ON CONFLICT DO
+NOTHING`;
+linha-veneno removida. (código) formulário grava o vínculo via upsert em
+`contact_external_links`; serializador de contatos não emite mais as
+colunas-projeção nem com null; `ingestion_log` só fecha DEPOIS da promoção — RPC
+estourou = run `failed` com a mensagem em `error_message`.
+
+**Racional:** duas representações do mesmo fato divergem; a correta é ter um
+escritor e uma projeção. Observabilidade que fecha o log antes do último passo
+não observa nada. Validado em produção: backlog de 3 dias promovido (Iddas 3+1,
+CM 1 — o CM que entrou é o 114015, o próprio WhatsApp de teste da Amanda, agora
+pela porta certa), cron em regime com contagens cheias e zero erro.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
+### [D086] Contrato de Dados do Back-office v1: identidade, re-importação, jornadas, financeiro, conversas e tags
+
+**Data:** 2026-07-13
+
+**Contexto:** auditoria completa do `/admin` revelou que o CRM estava
+estruturalmente quebrado: 192 pessoas do Iddas e 1114 contatos do ClickMassa
+descartados em silêncio pela regex de telefone (entre eles 15 compradores
+somando R$ 232.894), funil congelado desde 23/06 (`promote_jornadas_from_bronze`
+nunca existiu), faturamento somando venda cancelada, conversas prometidas em
+19/06 nunca ingeridas (`contact_interactions` = 3 linhas) e tags chegando das
+duas fontes sem nunca sair do bronze. As decisões estavam espalhadas ou não
+existiam, e o Claudinho vinha propondo soluções que contradiziam decisões já
+tomadas.
+
+**Alternativas consideradas:**
+
+- Consertar cada bug isoladamente, em lotes reativos: foi o padrão da própria
+  sessão até o Alan cortar ("a gente tá picotando demais"); cada bug novo
+  remontava o lote
+- Fechar um contrato de dados por camada, uma unidade por vez, em perguntas
+  binárias com evidência de produção na mesa, e só então implementar
+
+**Decisão:** contrato fechado e congelado em
+`docs/contrato_dados_backoffice_v1.md`, em 6 unidades: (1) identidade — contato
+existe com UUID + qualquer identificador de origem; telefone é atributo, não
+porteira; LID entra (98% têm nome real), grupo não; (2) re-importação — confirma
+o fill-null já implementado: fonte só preenche campo vazio, trabalho de usuário
+nunca é sobrescrito; (3) jornadas — fila de aprovação permanece como porteira de
+ENTRADA (D076 íntegro), Iddas sobrescreve estágio sem fila (movimento),
+transições registradas por trigger; (4) financeiro — só venda fechada conta;
+valor cheio até as sócias responderem a RAV; (5) conversas — 1 interação por
+conversa encerrada, spike investigativo obrigatório antes de qualquer DDL; (6)
+tags — trabalho de usuário, sync apenas aditivo, remoção do usuário lembrada por
+soft-remove. Divergência achada na implementação não altera o contrato: vira
+DECISION_LOG e, se preciso, contrato v2.
+
+**Racional:** decisões sem registro se perdem e são re-litigadas; a grande
+solução complexa vira um empilhado incremental de respostas simples e
+rastreáveis. Cada unidade foi fechada com dado de produção, não com opinião
+(ex.: a regra "LID não entra" caiu quando a amostra mostrou Nora Dutra, Priscila
+Vasconcelos e mais 1094 nomes reais).
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [D085] SEO global do site: sitemap, robots, JSON-LD de organização, canonical e fonte única de URL
 
 **Data:** 2026-07-13

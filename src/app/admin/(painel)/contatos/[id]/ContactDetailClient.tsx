@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import StageBadge from "@/components/admin/StageBadge";
+import WhatsAppBadge from "@/components/admin/WhatsAppBadge";
 import AnexosBlock from "@/components/admin/AnexosBlock";
 import { formatDate, formatDateTime } from "@/lib/utils/date";
 import {
@@ -280,14 +281,31 @@ function DadosCard({ contact: c }: { contact: Contact }) {
       <h2 className={cardTitleClass}>Dados</h2>
 
       <Field label="WhatsApp">
-        <a
-          href={whatsappLink(c.whatsapp)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-navy hover:text-gold transition-colors duration-short"
-        >
-          {c.whatsapp} <span className="text-gold">[Abrir]</span>
-        </a>
+        <span className="inline-flex items-center gap-2">
+          {c.whatsapp ? (
+            <a
+              href={whatsappLink(c.whatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-navy hover:text-gold transition-colors duration-short"
+            >
+              {c.whatsapp} <span className="text-gold">[Abrir]</span>
+            </a>
+          ) : (
+            // Ação visível porém INATIVA (U1): contato sem WhatsApp não tem link.
+            <span className="inline-flex items-center gap-2">
+              <Vazio />
+              <span
+                className="text-dark/30 cursor-not-allowed"
+                title="Contato sem WhatsApp"
+                aria-disabled="true"
+              >
+                [Abrir]
+              </span>
+            </span>
+          )}
+          <WhatsAppBadge temWhatsapp={c.temWhatsapp} />
+        </span>
       </Field>
 
       <Field label="E-mail">{c.email ?? <Vazio />}</Field>

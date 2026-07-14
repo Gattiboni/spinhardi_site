@@ -23,6 +23,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: null,
     dataNascimento: null,
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "01310-100",
     cidade: "São Paulo",
@@ -89,6 +90,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: "123.456.789-00",
     dataNascimento: "1982-03-15",
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "04543-011",
     cidade: "São Paulo",
@@ -155,6 +157,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: null,
     dataNascimento: "1990-07-22",
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "22041-001",
     cidade: "Rio de Janeiro",
@@ -221,6 +224,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: null,
     dataNascimento: null,
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: null,
     cidade: null,
@@ -286,6 +290,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: "987.654.321-00",
     dataNascimento: "1985-11-30",
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "01419-001",
     cidade: "São Paulo",
@@ -352,6 +357,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: "456.789.123-00",
     dataNascimento: "1978-09-08",
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "05426-200",
     cidade: "São Paulo",
@@ -420,6 +426,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: null,
     dataNascimento: "1970-02-14",
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: "01451-000",
     cidade: "São Paulo",
@@ -487,6 +494,7 @@ export const MOCK_CONTACTS: Contact[] = [
     cpf: null,
     dataNascimento: null,
     nacionalidade: "Brasileira",
+    temWhatsapp: true,
 
     cep: null,
     cidade: "Campinas",

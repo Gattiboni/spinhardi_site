@@ -116,13 +116,12 @@ export default function AdminContactForm() {
 
         <div>
           <label htmlFor="whatsapp" className={labelClass}>
-            WhatsApp *
+            WhatsApp
           </label>
           <input
             type="tel"
             id="whatsapp"
             name="whatsapp"
-            required
             placeholder="+55 11 99876-5432"
             value={values.whatsapp}
             onChange={handleChange}

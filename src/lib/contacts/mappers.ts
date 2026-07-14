@@ -35,7 +35,7 @@ export type ContactRow = {
   updated_at: string;
 
   name: string;
-  whatsapp: string;
+  whatsapp: string | null;
   email: string | null;
   cpf: string | null;
   data_nascimento: string | null;
@@ -94,15 +94,26 @@ export type ContactRow = {
   status: ContactStatus;
   arquivado_em: string | null;
   motivo_arquivamento: string | null;
+
+  // Indicador de qualidade (U1.2): coluna GENERATED `whatsapp is not null`.
+  // Opcional no shape porque o SELECT `*` pode rodar antes da migração existir —
+  // aí `row.tem_whatsapp` chega undefined e o mapper usa o fallback local.
+  tem_whatsapp?: boolean;
 };
 
 // Payload de insert: o banco gera id / created_at (default) e updated_at (trigger).
 // `iddas_pessoa_id` / `clickmassa_contact_id` também saem: são colunas-PROJEÇÃO
 // mantidas por trigger a partir de `contact_external_links`. Nenhum código de
 // aplicação escreve nelas (nem null) — a escrita do vínculo vive na tabela de link.
+// `tem_whatsapp` sai também: é coluna GENERATED (derivada de whatsapp), read-only.
 export type ContactInsertRow = Omit<
   ContactRow,
-  "id" | "created_at" | "updated_at" | "iddas_pessoa_id" | "clickmassa_contact_id"
+  | "id"
+  | "created_at"
+  | "updated_at"
+  | "iddas_pessoa_id"
+  | "clickmassa_contact_id"
+  | "tem_whatsapp"
 >;
 
 export type ContactInteractionRow = {
@@ -185,6 +196,10 @@ export function rowToContact(row: ContactRow): Contact {
     status: row.status,
     arquivadoEm: row.arquivado_em,
     motivoArquivamento: row.motivo_arquivamento,
+
+    // Lê a coluna GENERATED quando presente; fallback local enquanto a migração
+    // não existir (o build não pode depender dela — U1.2 / consequência técnica).
+    temWhatsapp: row.tem_whatsapp ?? row.whatsapp !== null,
   };
 }
 

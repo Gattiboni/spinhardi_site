@@ -57,11 +57,17 @@ export function draftContactFromForm(
   // passa a comparar canônico vs canônico. Se por acaso não normalizar (caminho
   // do cadastro manual, que não passa por validação), degrada pro trim cru —
   // nunca perde o dado.
-  const phone = normalizeBrPhone(input.whatsapp);
+  //
+  // Campo vazio → null (U1): o cadastro manual do admin aceita contato sem
+  // telefone. Gravar "" marcaria `tem_whatsapp` como falso-positivo (só dígitos
+  // é que contam), então vazio vira null explícito. O form público exige o campo
+  // (validação separada), nunca chega aqui vazio.
+  const rawWhatsapp = input.whatsapp?.trim() ?? "";
+  const phone = rawWhatsapp ? normalizeBrPhone(rawWhatsapp) : null;
 
   return {
     name: input.name.trim(),
-    whatsapp: phone.ok ? phone.canonical : input.whatsapp.trim(),
+    whatsapp: rawWhatsapp === "" ? null : phone?.ok ? phone.canonical : rawWhatsapp,
     email: blankToNull(input.email),
     cpf: null,
     dataNascimento: null,
@@ -120,6 +126,11 @@ export function draftContactFromForm(
     status: "ativo",
     arquivadoEm: null,
     motivoArquivamento: null,
+
+    // Espelha o whatsapp que acabou de ser resolvido (null quando o campo veio
+    // vazio no cadastro manual). Valor in-memory; ao persistir, o read-back lê a
+    // coluna GENERATED do banco como fonte real.
+    temWhatsapp: rawWhatsapp !== "",
   };
 }
 
@@ -216,7 +227,7 @@ function stripLead55(digits: string): string {
  * Qualquer nome que contenha ao menos uma letra é nome real e NUNCA é placeholder
  * (jamais sobrescrito).
  */
-export function isPlaceholderName(currentName: string, whatsapp: string): boolean {
+export function isPlaceholderName(currentName: string, whatsapp: string | null): boolean {
   const n = (currentName ?? "").trim();
   if (n === "") return true;
   if (/\p{L}/u.test(n)) return false; // tem letra → nome real

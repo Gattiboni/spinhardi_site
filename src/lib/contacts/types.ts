@@ -66,7 +66,10 @@ export type Contact = {
 
   // 2. Dados pessoais
   name: string;
-  whatsapp: string;
+  // Telefone é ATRIBUTO, não requisito de existência (U1 do contrato de dados):
+  // importados sem telefone (LID do ClickMassa, pessoas do Iddas) entram com null.
+  // O formulário PÚBLICO do site segue exigindo — lá é o campo de captação.
+  whatsapp: string | null;
   email: string | null;
   cpf: string | null;
   dataNascimento: string | null; // YYYY-MM-DD
@@ -133,6 +136,12 @@ export type Contact = {
   status: ContactStatus;
   arquivadoEm: string | null;
   motivoArquivamento: string | null;
+
+  // 11. Qualidade (indicador, não filtro de existência — U1.2 do contrato)
+  // Espelha a coluna GENERATED `tem_whatsapp` do banco (whatsapp is not null).
+  // Enquanto a coluna não existir, o mapper cai no fallback local `whatsapp != null`
+  // — o build nunca depende da migração.
+  temWhatsapp: boolean;
 };
 
 export type ContactInteractionType =

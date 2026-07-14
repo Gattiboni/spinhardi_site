@@ -202,6 +202,12 @@ export async function sendWhatsAppWelcome(id: string): Promise<ActionResult> {
       return { success: false, error: "Contato não encontrado." };
     }
 
+    // Sem telefone não há como enviar WhatsApp (U1: contato pode existir sem
+    // whatsapp). Barra antes de chamar a API — a ação depende do canal.
+    if (!contact.whatsapp) {
+      return { success: false, error: "Contato sem WhatsApp." };
+    }
+
     await sendWelcomeMessage({
       name: contact.name,
       phone: contact.whatsapp,

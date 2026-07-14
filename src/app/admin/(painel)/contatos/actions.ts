@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContactById, updateContact } from "@/lib/contacts";
+import { whatsappValidationError } from "@/lib/contacts/phone";
 import { requireSession } from "@/lib/auth/session";
 import type { Contact, ContactStatus } from "@/lib/contacts/types";
 
@@ -43,7 +44,12 @@ export async function quickUpdateContact(
     const name = input.name.trim();
     const whatsapp = input.whatsapp.trim();
     if (!name) return { success: false, error: "O nome não pode ficar vazio." };
-    if (!whatsapp) return { success: false, error: "O WhatsApp não pode ficar vazio." };
+    // WhatsApp é OPCIONAL na edição (U1): vazio grava null. Se preenchido, valida
+    // o formato — mesma regra do cadastro manual.
+    if (whatsapp) {
+      const waErr = whatsappValidationError(whatsapp);
+      if (waErr) return { success: false, error: waErr };
+    }
 
     const current = await getContactById(id);
     if (!current) {
@@ -54,7 +60,7 @@ export async function quickUpdateContact(
 
     const patch: Partial<Contact> = {
       name,
-      whatsapp,
+      whatsapp: whatsapp || null,
       email,
       status: input.status,
     };

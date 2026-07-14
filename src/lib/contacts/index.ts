@@ -76,7 +76,7 @@ export async function getContacts(opts?: {
     contacts = contacts.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.whatsapp.includes(q) ||
+        (c.whatsapp?.includes(q) ?? false) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
         c.tags.some((t) => t.toLowerCase().includes(q)),
     );
@@ -150,7 +150,7 @@ export async function findExistingContact(input: {
     throw new Error(`Erro ao buscar contato existente: ${error.message}`);
   }
 
-  const rows = (data as { id: string; whatsapp: string; email: string | null }[]) ?? [];
+  const rows = (data as { id: string; whatsapp: string | null; email: string | null }[]) ?? [];
 
   if (email) {
     const byEmail = rows.find(

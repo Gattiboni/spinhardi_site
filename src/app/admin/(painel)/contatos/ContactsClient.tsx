@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import SyncBadge from "@/components/admin/SyncBadge";
+import WhatsAppBadge from "@/components/admin/WhatsAppBadge";
 import {
   type Contact,
   type CaptureOrigin,
@@ -32,6 +33,16 @@ const SYNC_FILTER_LABELS: Record<SyncFilter, string> = {
   pending: "Pendentes",
   failed: "Falharam",
   partial: "Sync parcial",
+};
+
+// Filtro por indicador de qualidade `tem_whatsapp` (U1.2). Encaixa na infra de
+// filtro já existente (origem/tag/sync) — mesma mecânica de select + memo.
+type WhatsAppFilter = "todos" | "com" | "sem";
+
+const WHATSAPP_FILTER_LABELS: Record<WhatsAppFilter, string> = {
+  todos: "Todos",
+  com: "Com WhatsApp",
+  sem: "Sem WhatsApp",
 };
 
 // Rótulos de status. A edição rápida só oferece os operacionais (ativo /
@@ -100,7 +111,7 @@ function QuickEditRow({
   onSaved: () => void;
 }) {
   const [name, setName] = useState(contact.name);
-  const [whatsapp, setWhatsapp] = useState(contact.whatsapp);
+  const [whatsapp, setWhatsapp] = useState(contact.whatsapp ?? "");
   const [email, setEmail] = useState(contact.email ?? "");
   const [status, setStatus] = useState<ContactStatus>(contact.status);
   const [saving, setSaving] = useState(false);
@@ -210,6 +221,7 @@ export default function ContactsClient({
   const [origem, setOrigem] = useState<CaptureOrigin | "todas">("todas");
   const [tag, setTag] = useState<string>("todas");
   const [sync, setSync] = useState<SyncFilter>("todos");
+  const [wa, setWa] = useState<WhatsAppFilter>("todos");
   const [gap, setGap] = useState<GapSegment | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -256,14 +268,16 @@ export default function ContactsClient({
       if (origem !== "todas" && c.origem !== origem) return false;
       if (tag !== "todas" && !c.tags.includes(tag)) return false;
       if (!matchesSync(c, sync)) return false;
+      if (wa === "com" && !c.temWhatsapp) return false;
+      if (wa === "sem" && c.temWhatsapp) return false;
       if (gap && !gapFlags[c.id]?.[gap]) return false;
       if (q) {
-        const haystack = [c.name, c.whatsapp, c.email ?? "", ...c.tags].join(" ").toLowerCase();
+        const haystack = [c.name, c.whatsapp ?? "", c.email ?? "", ...c.tags].join(" ").toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [contacts, search, origem, tag, sync, gap, gapFlags]);
+  }, [contacts, search, origem, tag, sync, wa, gap, gapFlags]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   // Clamp defensivo: se a página atual passou do total (ex: lista encolheu),
@@ -394,6 +408,19 @@ export default function ContactsClient({
         </select>
 
         <select
+          aria-label="Filtrar por WhatsApp"
+          value={wa}
+          onChange={(e) => withPageReset(setWa)(e.target.value as WhatsAppFilter)}
+          className={selectClass}
+        >
+          {(Object.keys(WHATSAPP_FILTER_LABELS) as WhatsAppFilter[]).map((w) => (
+            <option key={w} value={w}>
+              WhatsApp: {WHATSAPP_FILTER_LABELS[w]}
+            </option>
+          ))}
+        </select>
+
+        <select
           aria-label="Itens por página"
           value={pageSize}
           onChange={(e) => withPageReset(setPageSize)(Number(e.target.value))}
@@ -466,12 +493,15 @@ export default function ContactsClient({
                     />
                   </td>
                   <td className="px-6 py-4 font-body text-dark">
-                    <Link
-                      href={`/admin/contatos/${c.id}`}
-                      className="hover:text-gold transition-colors duration-short"
-                    >
-                      {c.name}
-                    </Link>
+                    <span className="inline-flex items-center gap-2">
+                      <Link
+                        href={`/admin/contatos/${c.id}`}
+                        className="hover:text-gold transition-colors duration-short"
+                      >
+                        {c.name}
+                      </Link>
+                      <WhatsAppBadge temWhatsapp={c.temWhatsapp} />
+                    </span>
                   </td>
                   <td className="px-6 py-4 font-body text-sm text-dark/60">
                     {ORIGEM_LABELS[c.origem]}

@@ -15,6 +15,33 @@ Ordem: mais recente no topo.
 
 ---
 
+**CONTRATO — Contrato de Dados do Back-office v1 (D086):** fechado e congelado
+em `docs/contrato_dados_backoffice_v1.md` após auditoria completa do `/admin`.
+Seis unidades decididas uma a uma, em perguntas binárias com evidência de
+produção: identidade (telefone vira atributo; LID entra, grupo não),
+re-importação (fill-null confirmado: trabalho de usuário nunca é sobrescrito),
+jornadas (fila de aprovação fica na entrada; Iddas move estágio sem fila),
+financeiro (só venda fechada conta; valor cheio até a resposta da RAV),
+conversas (1 interação por conversa encerrada; spike antes de DDL) e tags (sync
+aditivo; remoção do usuário lembrada). Anexo A lista as pendências das sócias
+(RAV, follow-up, ponto de equilíbrio); Anexo B, a ordem de execução.
+
+**INFRA — Sync destravado após 3 dias morto (D087):** a promoção bronze→silver
+quebrou em 10/07 (colisão de UNIQUE causada por vínculo externo com duas
+representações) e ninguém viu porque o log fechava antes da promoção rodar.
+Consertado nas duas pontas: banco (trigger de projeção, escritor único em
+`contact_external_links`, UNIQUE da coluna removido, constraint total no lugar
+do índice parcial — o upsert do PostgREST dava 42P10 no parcial, provado por
+EXPLAIN — e RPC com ON CONFLICT DO NOTHING) e código (formulário grava o vínculo
+na tabela; serializador não emite colunas-projeção; `ingestion_log` só fecha
+DEPOIS da promoção, com erro real em `error_message`). Backlog digerido (Iddas
+3+1, CM 1) e cron validado em regime. Fim dos 3033 runs verdes cegos.
+
+**Pendências do lote:** 3 zumbis históricos `running` no `ingestion_log` (18/06
+×2, 22/06) — faxina; primeiro run pós-deploy confirma a Tarefa 2 em produção.
+
+---
+
 ## 2026-07-13
 
 **SEO global do site (D085):** o site ganha `sitemap.xml` (6 rotas

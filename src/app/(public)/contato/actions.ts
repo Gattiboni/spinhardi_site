@@ -204,8 +204,10 @@ export async function submitContact(data: SubmitContactPayload): Promise<Contact
       try {
         const result = await syncContactFlow({
           id: contactId,
+          // Contato novo do site sempre tem whatsapp (validado + canônico na
+          // captura); o `?? ""` só satisfaz o tipo string|null pós-U1.
+          phone: contact.whatsapp ?? "",
           name: contact.name,
-          phone: contact.whatsapp,
           email: contact.email,
         });
 
