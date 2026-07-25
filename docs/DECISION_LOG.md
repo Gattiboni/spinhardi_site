@@ -28,6 +28,51 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D088] Revisão manual da lista de contatos pela Nina: cron pausada, edição existente como está, sorting e última edição na tela
+
+**Data:** 2026-07-15
+
+**Contexto:** a investigação da régua de promoção (bronze→silver) revelou que a
+resolução de duplicatas e a qualificação da base seriam melhor servidas por uma
+revisão humana completa antes de qualquer fusão automática. Nina vai revisar e
+qualificar todos os ~880 contatos pela tela `/admin/contatos` usando a edição
+inline existente (nome, whatsapp, email, status). Investigação prévia (Codinho:
+`investigacao_edicao_contatos_nina.md`; Claudinho: banco via SQL) confirmou que
+a edição persiste corretamente, mas com armadilhas: o fill-null da cron repõe em
+≤15min email apagado pelo usuário; arquivar é mão única na UI (sem tela de
+desarquivamento); `whatsapp` e `name` são NOT NULL (esvaziar = erro genérico);
+whatsapp grava como digitado, sem normalização.
+
+**Alternativas consideradas:**
+
+- Construir proteção de edição manual (`field_provenance` existe órfã no banco)
+  antes da revisão: adia o fim de semana da Nina por trabalho de infra
+- Editar a RPC para não sobrescrever campos editados: impossível distinguir
+  edição humana sem coluna de proveniência
+- Pausar a cron durante a revisão (toggle Vercel, zero código): elimina o risco
+  de overwrite sem tocar em nada
+
+**Decisão:** cron pausada pelo toggle da Vercel (Settings → Cron Jobs) durante o
+fim de semana da revisão; religa na segunda. Edição existente usada como está,
+com instruções operacionais para a Nina: whatsapp só números com 55 e nunca
+vazio, nome nunca vazio, email pode corrigir ou apagar, status
+Arquivado/Duplicado disponíveis (reversão de arquivamento errado via SQL pelo
+Alan). Duas melhorias de UI para a revisão: ordenação alfabética por nome
+(default A→Z, pt-BR com sensitivity base) e coluna "Última edição"
+(`updated_at`, mantido por trigger `trg_contacts_updated_at` já existente no
+banco — exibição pura, zero escrita nova), ambas ordenáveis pelo cabeçalho.
+
+**Racional:** revisão humana limpa a base ANTES da fusão automática — a ordem
+inversa faria a máquina decidir sobre duplicatas que um humano resolveria
+melhor, e parte delas deixa de existir. Pausar a cron é a proteção mais simples
+que elimina o risco real sem criar infra nova às pressas. Edição detalhada
+(cidade, estado, CPF, nascimento, tags) fica para depois da revisão, com o
+aprendizado do que a Nina de fato precisou.
+
+**Responsável:** Alan Gattiboni **Status:** Ativa
+
+---
+
 ### [D087] Conserto do sync: vínculo externo com escritor único, projeção por trigger e log honesto
 
 **Data:** 2026-07-13

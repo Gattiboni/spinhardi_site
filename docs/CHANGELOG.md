@@ -15,6 +15,22 @@ Ordem: mais recente no topo.
 
 ---
 
+**SITE — Tela de contatos preparada pra revisão manual da Nina (D088):**
+ordenação alfabética por nome como default (A→Z, locale pt-BR, acentos não jogam
+pro fim) e nova coluna "Última edição" (`updated_at` via trigger já existente no
+banco, exibição dd/mm hh:mm, fuso America/Sao_Paulo fixo pra não divergir
+SSR/browser), ambas ordenáveis pelo cabeçalho com indicador de direção. Ordenar
+reseta pra página 1 e respeita filtros e busca. Client-side, 2 arquivos, zero
+mudança de banco ou RPC. Cron de sync pausada pelo toggle da Vercel durante o
+fim de semana da revisão (fill-null reporia email apagado em ≤15min); religa
+segunda.
+
+**Pendências do lote:** religar o toggle da cron na segunda; conferir se email
+apagado pela Nina volta no primeiro sync (se voltar, tratamento entra na revisão
+do contrato); edição de cidade/estado/CPF/nascimento/tags fica pro pós-revisão.
+
+---
+
 **CONTRATO — Contrato de Dados do Back-office v1 (D086):** fechado e congelado
 em `docs/contrato_dados_backoffice_v1.md` após auditoria completa do `/admin`.
 Seis unidades decididas uma a uma, em perguntas binárias com evidência de
