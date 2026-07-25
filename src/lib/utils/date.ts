@@ -38,3 +38,29 @@ export function formatDateTime(iso: string): string {
     .replace(":", "h");
   return `${data} ${hora}`;
 }
+
+/**
+ * Formata um datetime ISO no formato curto "dd/mm hh:mm", ex: "07/06 09:23".
+ *
+ * Sem ano de propósito: é pra coluna de tabela (última edição), onde o espaço é
+ * curto e o que importa é "quando foi mexido" recente, não a data completa.
+ *
+ * Fuso FIXO em America/Sao_Paulo, diferente de `formatDateTime` acima: isto roda
+ * num componente cliente que também renderiza no servidor (SSR). Sem fuso fixo o
+ * servidor formataria em UTC e o browser em -03, e o texto divergiria na
+ * hidratação. Fixando o fuso, os dois lados produzem a mesma string — e é o fuso
+ * da operação de qualquer jeito.
+ */
+export function formatDateTimeShort(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+    .format(date)
+    .replace(",", "");
+}

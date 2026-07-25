@@ -15,6 +15,7 @@ import {
   DESTINO_LABELS,
 } from "@/lib/contacts/types";
 import { quickUpdateContact } from "./actions";
+import { formatDateTimeShort } from "@/lib/utils/date";
 import type {
   GapSegment,
   ContactGapFlags,
@@ -56,6 +57,31 @@ const STATUS_LABELS: Record<ContactStatus, string> = {
 };
 
 const STATUS_QUICK_OPTIONS: ContactStatus[] = ["ativo", "arquivado"];
+
+// Ordenação da tabela. Colunas ordenáveis e direção; a lista sai ordenada por
+// NOME A→Z por padrão (antes vinha na ordem do banco, `created_at` desc) porque
+// a revisão manual é feita em varredura alfabética.
+//
+// Ordena em memória, sobre o array já filtrado, seguindo o padrão dos filtros
+// desta tela: a página carrega todos os ativos de uma vez e filtra/pagina no
+// cliente. Nada de ordenar na query — a query não é a fonte da paginação.
+type SortKey = "name" | "updatedAt";
+type SortDir = "asc" | "desc";
+
+// Direção "natural" de cada coluna no primeiro clique: nome começa A→Z, última
+// edição começa pela mais recente (é o que a Nina quer ver — onde ela parou).
+const SORT_DEFAULT_DIR: Record<SortKey, SortDir> = {
+  name: "asc",
+  updatedAt: "desc",
+};
+
+// Comparador base por coluna, sempre em ordem ascendente; a direção é aplicada
+// depois. `localeCompare` pt-BR com sensitivity "base" pra acento não jogar
+// "Álvaro" pro fim da lista — ele senta junto de "Alvaro"/"Amanda".
+const SORT_COMPARATORS: Record<SortKey, (a: Contact, b: Contact) => number> = {
+  name: (a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
+  updatedAt: (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
+};
 
 // "Enviar WhatsApp" foi removido de propósito: disparo em massa derruba o número
 // por ban da Meta — o canal inteiro da agência morre. WhatsApp só individual, no
@@ -207,6 +233,46 @@ function QuickEditRow({
   );
 }
 
+// Cabeçalho de coluna ordenável. Botão de verdade (teclado/leitor de tela),
+// `aria-sort` no `th` pro estado ser anunciado, e a seta como indicador visual —
+// só na coluna ativa, pra não poluir o cabeçalho.
+function SortHeader({
+  label,
+  sortKey,
+  active,
+  dir,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  sortKey: SortKey;
+  active: boolean;
+  dir: SortDir;
+  onSort: (key: SortKey) => void;
+  className?: string;
+}) {
+  return (
+    <th
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      className={`text-left px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60 ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        title={`Ordenar por ${label.toLowerCase()}`}
+        className={`inline-flex items-center gap-1.5 uppercase tracking-widest hover:text-gold transition-colors duration-short ${
+          active ? "text-dark" : ""
+        }`}
+      >
+        {label}
+        <span aria-hidden="true" className={active ? "text-gold" : "text-dark/25"}>
+          {active ? (dir === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export default function ContactsClient({
   contacts,
   gapFlags,
@@ -223,6 +289,8 @@ export default function ContactsClient({
   const [sync, setSync] = useState<SyncFilter>("todos");
   const [wa, setWa] = useState<WhatsAppFilter>("todos");
   const [gap, setGap] = useState<GapSegment | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -233,6 +301,20 @@ export default function ContactsClient({
   // pra primeira página (event handler, não efeito).
   const toggleGap = (key: GapSegment) => {
     setGap((prev) => (prev === key ? null : key));
+    setPage(1);
+  };
+
+  // Clique no cabeçalho: na coluna já ativa inverte a direção; em outra coluna
+  // troca de coluna e assume a direção natural dela (nome A→Z, edição mais
+  // recente primeiro). Volta pra primeira página — senão a Nina clica em ordenar
+  // na página 5 e cai num pedaço aleatório da lista nova.
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(SORT_DEFAULT_DIR[key]);
+    }
     setPage(1);
   };
 
@@ -279,11 +361,21 @@ export default function ContactsClient({
     });
   }, [contacts, search, origem, tag, sync, wa, gap, gapFlags]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // Ordena DEPOIS de filtrar e ANTES de paginar — é o que faz a ordenação valer
+  // sobre a lista inteira (todos os filtrados) e não só sobre a página visível.
+  // Cópia antes do `sort` porque `filtered` pode ser o próprio array de props
+  // quando nenhum filtro está ativo, e `sort` muta no lugar.
+  const sorted = useMemo(() => {
+    const compare = SORT_COMPARATORS[sortKey];
+    const factor = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => compare(a, b) * factor);
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   // Clamp defensivo: se a página atual passou do total (ex: lista encolheu),
   // pagina pela última válida sem precisar de efeito.
   const safePage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageItems = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const allPageSelected = pageItems.length > 0 && pageItems.every((c) => selected.has(c.id));
 
@@ -466,7 +558,14 @@ export default function ContactsClient({
                   className="accent-gold"
                 />
               </th>
-              {["Nome", "Origem", "Destino", "Sync"].map((h) => (
+              <SortHeader
+                label="Nome"
+                sortKey="name"
+                active={sortKey === "name"}
+                dir={sortDir}
+                onSort={handleSort}
+              />
+              {["Origem", "Destino", "Sync"].map((h) => (
                 <th
                   key={h}
                   className="text-left px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60"
@@ -474,6 +573,14 @@ export default function ContactsClient({
                   {h}
                 </th>
               ))}
+              <SortHeader
+                label="Última edição"
+                sortKey="updatedAt"
+                active={sortKey === "updatedAt"}
+                dir={sortDir}
+                onSort={handleSort}
+                className="hidden lg:table-cell whitespace-nowrap"
+              />
               <th className="text-right px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60">
                 Ações
               </th>
@@ -512,6 +619,13 @@ export default function ContactsClient({
                   <td className="px-6 py-4">
                     <SyncBadge iddas={c.iddasSyncStatus} clickmassa={c.clickmassaSyncStatus} />
                   </td>
+                  {/* Última edição: só leitura. Quem mantém `updated_at` é o
+                      trigger `trg_contacts_updated_at` no banco — nenhum código
+                      daqui escreve nessa coluna. Escondida no mobile (a revisão
+                      é no desktop) pra não espremer nome e ações. */}
+                  <td className="hidden lg:table-cell px-6 py-4 font-body text-sm text-dark/60 whitespace-nowrap">
+                    {formatDateTimeShort(c.updatedAt)}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <button
                       type="button"
@@ -525,7 +639,7 @@ export default function ContactsClient({
                 </tr>
                 {editingId === c.id && (
                   <tr className="border-b border-dark/5 bg-dark/5">
-                    <td colSpan={6} className="px-6 py-5">
+                    <td colSpan={7} className="px-6 py-5">
                       <QuickEditRow
                         contact={c}
                         onClose={() => setEditingId(null)}
@@ -541,7 +655,7 @@ export default function ContactsClient({
             ))}
             {pageItems.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center font-body text-dark/50">
+                <td colSpan={7} className="px-6 py-12 text-center font-body text-dark/50">
                   Nenhum contato encontrado com os filtros atuais.
                 </td>
               </tr>
