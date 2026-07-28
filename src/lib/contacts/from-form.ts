@@ -66,6 +66,10 @@ export function draftContactFromForm(
   const phone = rawWhatsapp ? normalizeBrPhone(rawWhatsapp) : null;
 
   return {
+    // Contato nascendo da captura/cadastro: nenhuma edição humana de card ainda.
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
+
     name: input.name.trim(),
     whatsapp: rawWhatsapp === "" ? null : phone?.ok ? phone.canonical : rawWhatsapp,
     email: blankToNull(input.email),

@@ -12,6 +12,12 @@ import { requireSession } from "@/lib/auth/session";
 import { sendWelcomeMessage, ClickMassaError } from "@/lib/integrations/clickmassa";
 import { createNegocio, createLancamento } from "@/lib/financeiro";
 import { createJornadaManual } from "@/lib/jornadas";
+import {
+  normalizeDadosPessoais,
+  normalizeQualificacao,
+  type DadosPessoaisForm,
+  type QualificacaoForm,
+} from "@/lib/contacts/edit-validation";
 import type { NovoNegocioInput, NovoLancamentoInput } from "@/lib/financeiro/types";
 import type { Contact } from "@/lib/contacts/types";
 
@@ -55,6 +61,101 @@ export async function saveGestaoInterna(
     return { success: true };
   } catch (err) {
     console.error("[saveGestaoInterna] erro ao salvar gestão interna:", err);
+    return { success: false, error: "Não foi possível salvar. Tente novamente." };
+  }
+}
+
+// Revalida o que a edição de contato pode ter mudado na tela: a ficha, a lista
+// (nome/origem/destino são colunas dela, além dos cards de gap) e o dashboard.
+// Mesmo conjunto que a edição rápida da lista já revalidava.
+function revalidateContato(id: string) {
+  revalidatePath(`/admin/contatos/${id}`);
+  revalidatePath("/admin/contatos");
+  revalidatePath("/admin");
+}
+
+// Carimbo de edição HUMANA por card (`dados_editado_em` / `qualificacao_editado_em`,
+// timestamptz nullable). Separado do `updated_at`, que o trigger sobe a cada
+// escrita — inclusive a do sync. Só estas duas actions escrevem nessas colunas.
+function agoraIso(): string {
+  return new Date().toISOString();
+}
+
+/**
+ * Card "Dados" da ficha — edição dos campos cadastrais (M1): nome, whatsapp,
+ * e-mail, cpf, data de nascimento, cidade, estado, cep.
+ *
+ * Escreve pelo MESMO `updateContact` da lista e da visão 360 (update direto no
+ * Supabase com service role); `updated_at` fica com o trigger do banco, nunca
+ * entra no patch. As regras de validação vivem em `edit-validation.ts` e rodam
+ * de novo AQUI — server action é alcançável por POST direto, o que o client
+ * validou não vale como garantia.
+ *
+ * Nada de sync: os campos cadastrais que as origens também escrevem (email, cpf,
+ * cidade, estado, cep, data_nascimento) são reconciliados pelo three-way (M2),
+ * que é entrega de outro canal. Aqui só grava o que o humano digitou.
+ */
+export async function updateContactDados(
+  id: string,
+  input: DadosPessoaisForm,
+): Promise<ActionResult> {
+  try {
+    await requireSession();
+
+    const current = await getContactById(id);
+    if (!current) {
+      return { success: false, error: "Contato não encontrado." };
+    }
+
+    const parsed = normalizeDadosPessoais(input, current);
+    if (!parsed.ok) {
+      return { success: false, error: parsed.error };
+    }
+
+    const patch: Partial<Contact> = { ...parsed.value, dadosEditadoEm: agoraIso() };
+    await updateContact(id, patch);
+
+    revalidateContato(id);
+    return { success: true };
+  } catch (err) {
+    console.error("[updateContactDados] erro ao salvar dados do contato:", err);
+    return { success: false, error: "Não foi possível salvar. Tente novamente." };
+  }
+}
+
+/**
+ * Card "Qualificação" da ficha — origem, destino, prazo, orçamento, perfil e
+ * passageiros. São campos INTERNOS do back-office (M1): editáveis livremente, o
+ * sync nunca os toca.
+ *
+ * Os valores dos selects vêm das listas de `types.ts` (as mesmas do form de
+ * criação), que batem 1:1 com os CHECK constraints da tabela — a validação
+ * confere a lista antes de o banco reclamar.
+ */
+export async function updateContactQualificacao(
+  id: string,
+  input: QualificacaoForm,
+): Promise<ActionResult> {
+  try {
+    await requireSession();
+
+    const current = await getContactById(id);
+    if (!current) {
+      return { success: false, error: "Contato não encontrado." };
+    }
+
+    const parsed = normalizeQualificacao(input);
+    if (!parsed.ok) {
+      return { success: false, error: parsed.error };
+    }
+
+    const patch: Partial<Contact> = { ...parsed.value, qualificacaoEditadoEm: agoraIso() };
+    await updateContact(id, patch);
+
+    revalidateContato(id);
+    return { success: true };
+  } catch (err) {
+    console.error("[updateContactQualificacao] erro ao salvar qualificação:", err);
     return { success: false, error: "Não foi possível salvar. Tente novamente." };
   }
 }

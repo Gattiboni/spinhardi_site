@@ -40,10 +40,13 @@ export function formatDateTime(iso: string): string {
 }
 
 /**
- * Formata um datetime ISO no formato curto "dd/mm hh:mm", ex: "07/06 09:23".
+ * Formata um datetime ISO no formato curto "dd/mm hh:mm", ex: "07/06 09:23", ou
+ * "dd/mm/aa hh:mm" com `{ comAno: true }`.
  *
- * Sem ano de propósito: é pra coluna de tabela (última edição), onde o espaço é
- * curto e o que importa é "quando foi mexido" recente, não a data completa.
+ * Sem ano por padrão: nasceu pra coluna de tabela (última edição), onde o espaço
+ * é curto e o que importa é "quando foi mexido" recente. Na ficha o espaço sobra
+ * e o ano evita ler uma edição de um ano atrás como se fosse de ontem — daí o
+ * flag, em vez de um segundo formatador quase igual.
  *
  * Fuso FIXO em America/Sao_Paulo, diferente de `formatDateTime` acima: isto roda
  * num componente cliente que também renderiza no servidor (SSR). Sem fuso fixo o
@@ -51,13 +54,14 @@ export function formatDateTime(iso: string): string {
  * hidratação. Fixando o fuso, os dois lados produzem a mesma string — e é o fuso
  * da operação de qualquer jeito.
  */
-export function formatDateTimeShort(iso: string): string {
+export function formatDateTimeShort(iso: string, opts?: { comAno?: boolean }): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
+    ...(opts?.comAno ? { year: "2-digit" as const } : {}),
     hour: "2-digit",
     minute: "2-digit",
   })

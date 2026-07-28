@@ -1,35 +1,16 @@
 /**
- * URLs do PAINEL HUMANO de cada sistema externo (deep-link "Abrir na origem").
+ * URLs do PAINEL HUMANO de cada sistema externo (deep-link "abrir na origem").
  *
  * ATENÇÃO: estes são os painéis web onde a equipe abre o contato/pessoa — NÃO
  * são as APIs (a doc da API do Iddas é `apiagencia.iddas.com.br`, máquina; o
- * painel humano é outro endereço, ainda não confirmado no repo nem na doc).
+ * painel humano é outro endereço).
  *
- * Enquanto o template estiver VAZIO, `buildPanelUrl` devolve `null` e o botão
- * "Abrir na origem" fica desabilitado (tooltip "configurar URL do painel").
- * NÃO invente URL nem chute rota — preencha aqui quando o endereço for confirmado.
- *
- * Formato do template: use o marcador `{external_id}`, ex:
- *   clickmassa: "https://app.clickmassa.com.br/contacts/{external_id}"
- *   iddas:      "https://painel.iddas.com.br/pessoa/{external_id}"
+ * Uma função por sistema, e cada uma é o PONTO ÚNICO DE ATIVAÇÃO do seu link
+ * (D3 do contrato de ficha/docs/comunicação): quem consome só pergunta "tem
+ * URL?" e, quando vem `null`, renderiza o botão desabilitado. Ligar um sistema é
+ * uma edição AQUI, zero mudança de componente. NÃO invente domínio nem chute
+ * rota — preencha quando o endereço for confirmado.
  */
-export const PANEL_URLS: Record<string, string> = {
-  clickmassa: "",
-  iddas: "",
-};
-
-/**
- * Monta o deep-link do painel a partir do `provider` + `external_id` do vínculo.
- * Devolve `null` se o template não estiver configurado ou faltar o `external_id`.
- */
-export function buildPanelUrl(
-  provider: string,
-  externalId: string | null,
-): string | null {
-  const template = PANEL_URLS[provider];
-  if (!template || !externalId) return null;
-  return template.replace("{external_id}", encodeURIComponent(externalId));
-}
 
 /**
  * URL do perfil do contato no painel humano do ClickMassa (botão WhatsApp da
@@ -45,11 +26,14 @@ export function clickmassaContactUrl(clickmassaContactId: string | null): string
 }
 
 /**
- * URL do registro da pessoa no painel humano do Iddas. INATIVA por ora: o host
- * (`NEXT_PUBLIC_IDDAS_PANEL_URL`) e o path do registro ainda não foram
- * confirmados (trava de permissão no perfil). NÃO chutamos domínio nem rota —
- * enquanto a env não existir, devolve `null` e o botão "Abrir no Iddas" fica
- * desabilitado. Quando confirmado, ligar setando a env + o path real aqui.
+ * URL do registro da pessoa no painel humano do Iddas. DORMENTE por ora (D3): o
+ * host (`NEXT_PUBLIC_IDDAS_PANEL_URL`) e o path do registro ainda não foram
+ * confirmados — depende de elevação do acesso dev no Iddas. Enquanto devolver
+ * `null`, o botão "Ver no Iddas" da ficha renderiza desabilitado com o tooltip
+ * "aguardando mudança de acesso dev".
+ *
+ * Pra ligar: descomentar as três linhas abaixo, pôr o path confirmado e setar a
+ * env. Nenhum componente muda.
  */
 export function iddasPessoaUrl(_iddasPessoaId: string | null): string | null {
   // const base = process.env.NEXT_PUBLIC_IDDAS_PANEL_URL;

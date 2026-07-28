@@ -64,6 +64,13 @@ export type Contact = {
   createdAt: string; // ISO datetime
   updatedAt: string;
 
+  // Carimbo de edição HUMANA por card da ficha (M1). Diferente de `updatedAt`,
+  // que o trigger sobe a cada escrita — inclusive a do sync. Estes dois só são
+  // escritos pelas server actions dos cards Dados e Qualificação; o sync nunca
+  // os toca. `null` = nunca editado à mão.
+  dadosEditadoEm: string | null;
+  qualificacaoEditadoEm: string | null;
+
   // 2. Dados pessoais
   name: string;
   // Telefone é ATRIBUTO, não requisito de existência (U1 do contrato de dados):

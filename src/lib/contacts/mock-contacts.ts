@@ -16,6 +16,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0001-4a1b-8c2d-000000000001",
     createdAt: "2026-06-08T09:23:00-03:00",
     updatedAt: "2026-06-08T11:05:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Maria Silva",
     whatsapp: "+5511998765432",
@@ -83,6 +85,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0002-4a1b-8c2d-000000000002",
     createdAt: "2026-06-05T14:10:00-03:00",
     updatedAt: "2026-06-07T16:42:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "João Pereira",
     whatsapp: "+5511991234567",
@@ -150,6 +154,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0003-4a1b-8c2d-000000000003",
     createdAt: "2026-06-02T10:05:00-03:00",
     updatedAt: "2026-06-06T09:30:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Ana Carolina Mendes",
     whatsapp: "+5521997654321",
@@ -217,6 +223,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0004-4a1b-8c2d-000000000004",
     createdAt: "2026-06-08T16:40:00-03:00",
     updatedAt: "2026-06-08T16:40:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Carlos Lima",
     whatsapp: "+5519998887766",
@@ -283,6 +291,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0005-4a1b-8c2d-000000000005",
     createdAt: "2026-05-20T11:15:00-03:00",
     updatedAt: "2026-06-07T18:00:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Patrícia Souza",
     whatsapp: "+5511987651234",
@@ -350,6 +360,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0006-4a1b-8c2d-000000000006",
     createdAt: "2026-05-10T08:50:00-03:00",
     updatedAt: "2026-06-03T17:10:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Fernando Castro",
     whatsapp: "+5511976543210",
@@ -419,6 +431,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0007-4a1b-8c2d-000000000007",
     createdAt: "2026-04-28T13:25:00-03:00",
     updatedAt: "2026-05-30T10:00:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Luciana Almeida",
     whatsapp: "+5511965432109",
@@ -487,6 +501,8 @@ export const MOCK_CONTACTS: Contact[] = [
     id: "c1a2b3c4-0008-4a1b-8c2d-000000000008",
     createdAt: "2026-04-15T17:00:00-03:00",
     updatedAt: "2026-05-12T14:30:00-03:00",
+    dadosEditadoEm: null,
+    qualificacaoEditadoEm: null,
 
     name: "Roberto Nunes",
     whatsapp: "+5511954321098",

@@ -15,6 +15,41 @@ Ordem: mais recente no topo.
 
 ---
 
+**CONTRATO — Contrato de Dados Ficha, Documentos e Comunicação v1 (D089):**
+congelado em `docs/contrato_dados_ficha_docs_comunicacao_v1.md`. Quatro blocos:
+newsletter Resend (fonte única `contacts`, opt-out honrado, LGPD pendente),
+WhatsApp→ClickMassa na ficha, documentos nativos do back-office (Iddas sem
+import: 651/651 orçamentos sem anexo, zero endpoint na spec), e merge three-way
+por campo substituindo o fill-null do contrato v1 (origem só sobrescreve quando
+ELA mudou; edição humana permanece; seed mudo blinda a revisão da Nina).
+Implementação do three-way na RPC é entrega separada.
+
+---
+
+**SITE — Ficha do contato: edição inline, links de sistema e carimbos de edição
+humana (D089):** cards Dados e Qualificação editáveis
+(nome/whatsapp/email/cpf/nascimento/cidade/UF/CEP + os 6 de qualificação com
+enums validados 1:1 contra os CHECKs de produção), validação em fonte única
+(`edit-validation.ts`, client e server). WhatsApp normalizado por comprimento:
+10-11 dígitos ganham prefixo 55 incondicional (faixas nacional 10-11 / DDI 12-13
+não se intersectam; TRAP documentada: reintroduzir `startsWith("55")` engole o
+DDD 55 de Santa Maria/RS). Nascimento: calendário real, não-futura, ano ≥ 1900,
+16+ anos, exibição dd/mm/aaaa; erro de `badInput` do `<input type=date>` deixou
+de morrer silencioso (browser devolve value vazio pra data impossível, flag lida
+via `validity`). wa.me morto na ficha: número abre perfil no painel CM
+(`clickmassaContactUrl()`, env `NEXT_PUBLIC_CLICKMASSA_PANEL_URL` setada em
+local e Vercel) ou vira texto puro; botão "Ver no Iddas" dormente com tooltip
+aguardando acesso dev; card Sistemas externos alinhado aos mesmos helpers, sem
+nome de env na UI. Colunas novas `contacts.dados_editado_em` e
+`qualificacao_editado_em` (migration `contacts_edicao_humana_por_card` via MCP)
+carimbadas só pelas server actions, nunca pelo sync, exibidas como "ult. edição"
+em cada card. Fix F1 herdado da revisão da Nina: esvaziar WhatsApp na edição
+rápida da lista agora dá erro claro em vez de estourar o NOT NULL com mensagem
+genérica. β em local: roteiro de 14 casos + tabela de normalização de 6 entradas
+conferida função em mãos.
+
+---
+
 **SITE — Tela de contatos preparada pra revisão manual da Nina (D088):**
 ordenação alfabética por nome como default (A→Z, locale pt-BR, acentos não jogam
 pro fim) e nova coluna "Última edição" (`updated_at` via trigger já existente no

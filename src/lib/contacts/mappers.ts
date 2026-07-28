@@ -34,6 +34,11 @@ export type ContactRow = {
   created_at: string;
   updated_at: string;
 
+  // Carimbo de edição humana por card da ficha (M1). Só as server actions dos
+  // cards escrevem aqui; o sync nunca toca. `null` = nunca editado à mão.
+  dados_editado_em: string | null;
+  qualificacao_editado_em: string | null;
+
   name: string;
   whatsapp: string | null;
   email: string | null;
@@ -138,6 +143,8 @@ export function rowToContact(row: ContactRow): Contact {
     id: row.id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    dadosEditadoEm: row.dados_editado_em ?? null,
+    qualificacaoEditadoEm: row.qualificacao_editado_em ?? null,
 
     name: row.name,
     whatsapp: row.whatsapp,
@@ -211,6 +218,10 @@ export function contactToInsertRow(
   contact: Omit<Contact, "id" | "createdAt" | "updatedAt">,
 ): ContactInsertRow {
   return {
+    // Contato novo nasce sem edição humana de card (a captura não é edição).
+    dados_editado_em: contact.dadosEditadoEm,
+    qualificacao_editado_em: contact.qualificacaoEditadoEm,
+
     name: contact.name,
     whatsapp: contact.whatsapp,
     email: contact.email,
@@ -281,6 +292,11 @@ export function contactToInsertRow(
 
 export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInsertRow> {
   const row: Partial<ContactInsertRow> = {};
+
+  // Carimbo de edição humana: só entra quando a action da ficha o inclui de
+  // propósito. Nenhum outro caminho de escrita (sync incluso) passa esses campos.
+  if ("dadosEditadoEm" in patch) row.dados_editado_em = patch.dadosEditadoEm;
+  if ("qualificacaoEditadoEm" in patch) row.qualificacao_editado_em = patch.qualificacaoEditadoEm;
 
   if ("name" in patch) row.name = patch.name;
   if ("whatsapp" in patch) row.whatsapp = patch.whatsapp;

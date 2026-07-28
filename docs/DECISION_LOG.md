@@ -28,6 +28,40 @@ Ordem: mais recente no topo.
 
 ---
 
+### [D089] Contrato de Dados — Ficha, Documentos e Comunicação v1: Iddas por link, documento nativo, merge three-way por campo
+
+**Data:** 2026-07-27 **Contexto:** anotações da Amanda pediam newsletter via
+Resend no dashboard, link de WhatsApp levando pro ClickMassa e documentos de
+clientes "que estão no Iddas" acessíveis pela ficha. Investigação em três
+frentes (varredura via API: 651/651 orçamentos sem anexo e sem imagem de capa;
+spec OpenAPI: zero endpoint de anexo/arquivo/upload nos 56 paths; telas de
+Documentos do painel sem endpoint público) mostrou que não existe documento no
+Iddas pra importar e que a promessa de fusão/preenchimento do contrato v1
+conflitava com a edição humana que a ficha passaria a permitir. **Decisões:**
+(1) contrato congelado em `docs/contrato_dados_ficha_docs_comunicacao_v1.md`,
+complementar ao v1 e prevalente onde conflita (fill-null morre); (2) Iddas
+continua sendo o que é: nenhum import de documento, link "Ver no Iddas"
+implementado dormente até o padrão de URL de pessoa ser confirmado (depende de
+acesso dev pro usuário da Amanda), `iddasPessoaUrl()` como ponto único de
+ativação; (3) documento de cliente nasce e mora no back-office (AnexosBlock +
+bucket privado `anexos`); (4) todo WhatsApp da ficha abre o perfil no painel do
+ClickMassa, wa.me morre na ficha, lista continua sem link (ban Meta, mantido);
+(5) edição humana na ficha liberada (Dados + Qualificação) com merge three-way
+por campo contra as origens: `contact_external_links.last_synced_values` (jsonb)
+guarda o último valor aplicado pelo sync; origem mudou → origem vence; origem
+não mudou → edição humana permanece; seed sem aplicar nada no contato (revisão
+da Nina blindada); (6) nascimento implica 16+ anos (contato é comprador; menor
+entra como passageiro na Qualificação, não como contato); (7) newsletter: fonte
+única `contacts` ativo com email, sync unidirecional pro Resend no fluxo de
+envio, opt-out honrado; LGPD da base legada é pendência de negócio ANTES do
+primeiro disparo. **Alternativas descartadas:** import via `PUT /orcamento` não
+documentado (escrita em produção de terceiro sem contrato); endpoints internos
+do painel Iddas via engenharia reversa (mesma dívida, adiado até haver uso real
+de anexo no Iddas); fill-null mantido (reporia edição humana a cada ciclo de
+15min).
+
+---
+
 ### [D088] Revisão manual da lista de contatos pela Nina: cron pausada, edição existente como está, sorting e última edição na tela
 
 **Data:** 2026-07-15
