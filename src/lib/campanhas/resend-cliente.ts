@@ -143,6 +143,11 @@ export async function segmentoTodosElegiveis(): Promise<string> {
   // Antes de criar, procura um com o mesmo nome — evita duplicar a cada deploy
   // enquanto a env não estiver setada.
   const lista = await resend().segments.list();
+  if (lista.error) {
+    // Listagem falhou = não sabemos se já existe. Criar aqui duplicaria o
+    // segmento com base num "não achei" que na verdade é "não consegui olhar".
+    throw new Error(`Erro ao listar segmentos no Resend: ${lista.error.message}`);
+  }
   const existente = lista.data?.data?.find((s) => s.name === NOME_SEGMENTO_TODOS);
   if (existente) {
     console.warn(
@@ -171,6 +176,9 @@ const NOME_SEGMENTO_MODO_SEGURO = "Spinhardi · MODO SEGURO (teste)";
  */
 export async function segmentoModoSeguro(): Promise<string> {
   const lista = await resend().segments.list();
+  if (lista.error) {
+    throw new Error(`Erro ao listar segmentos no Resend: ${lista.error.message}`);
+  }
   const existente = lista.data?.data?.find((s) => s.name === NOME_SEGMENTO_MODO_SEGURO);
   if (existente) return existente.id;
   return criarSegmento(NOME_SEGMENTO_MODO_SEGURO);
@@ -216,6 +224,13 @@ export async function reconciliarSegmento(
 
   const atuais = new Set<string>();
   const lista = await r.contacts.list({ segmentId });
+  if (lista.error) {
+    // Sem a membresia atual não dá pra reconciliar: o `data` vazio de uma
+    // listagem que FALHOU faria a remoção (R4) virar no-op silencioso e deixar
+    // gente de fora da nossa lista dentro do segmento — exatamente o risco que
+    // a reconciliação existe pra fechar.
+    throw new Error(`Erro ao listar a membresia do segmento: ${lista.error.message}`);
+  }
   for (const c of lista.data?.data ?? []) atuais.add(c.id);
 
   let adicionados = 0;
@@ -255,6 +270,12 @@ export async function lerOptOut(segmentId: string): Promise<Set<string>> {
   const fora = new Set<string>();
   try {
     const lista = await resend().contacts.list({ segmentId });
+    if (lista.error) {
+      // Aqui NÃO lança, de propósito: a decisão documentada acima é não
+      // bloquear o envio por causa do opt-out. Mas o erro para de sumir.
+      console.error("[campanhas.resend] listagem de opt-out recusada:", lista.error);
+      return fora;
+    }
     for (const c of lista.data?.data ?? []) {
       if (c.unsubscribed && c.email) fora.add(c.email.trim().toLowerCase());
     }

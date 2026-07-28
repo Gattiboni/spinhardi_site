@@ -1,12 +1,16 @@
 import "server-only";
-import { Resend } from "resend";
 import { signApprovalToken } from "@/lib/auth/approval-token";
+import { resendClient } from "./resend";
 
 /**
  * E-mail de "nova solicitação de acesso" pro administrador.
  *
  * Gera 3 tokens assinados (admin/editor/reject) e monta 3 botões que apontam
  * pra `/admin/aprovar/[token]`. O Alan decide com um clique direto do e-mail.
+ *
+ * O client vem de `./resend` (singleton preguiçoso, mesmo padrão do motor de
+ * campanhas) em vez de um `new Resend()` por chamada: não havia motivo pro
+ * módulo divergir, e um client por solicitação só desperdiça.
  */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.spinharditurismo.com.br";
 
@@ -67,8 +71,6 @@ export async function sendApprovalRequest({
   name: string;
   email: string;
 }) {
-  const resend = new Resend(process.env.RESEND_API_KEY!);
-
   const [adminToken, editorToken, rejectToken] = await Promise.all([
     signApprovalToken(userId, "admin"),
     signApprovalToken(userId, "editor"),
@@ -86,10 +88,21 @@ export async function sendApprovalRequest({
     rejectToken,
   });
 
-  return resend.emails.send({
+  // `emails.send` devolve `{ data, error }` e não lança em falha de API — sem
+  // ler `error`, "não avisei o Alan" era indistinguível de "avisei". Segue
+  // best-effort (o chamador não quebra a solicitação), só que agora com log.
+  const resultado = await resendClient().emails.send({
     from: `Spinhardi Turismo <${process.env.RESEND_FROM_EMAIL}>`,
     to: process.env.APPROVAL_NOTIFICATION_EMAIL!,
     subject: `[Spinhardi] Solicitação de acesso: ${name}`,
     html,
   });
+
+  if (resultado.error) {
+    console.error(
+      `[email.approval-request] e-mail de aprovação RECUSADO pelo Resend: ${resultado.error.name} — ${resultado.error.message}`,
+    );
+  }
+
+  return resultado;
 }

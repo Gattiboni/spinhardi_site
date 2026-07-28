@@ -50,7 +50,15 @@ try {
 }
 
 // Segredo só deste teste, injetado no processo. Não toca `.env.local`.
-const SEGREDO = process.env.RESEND_WEBHOOK_SECRET ?? "whsec_c21va2UtZGUtdGVzdGUtbG9jYWw=";
+//
+// O fallback NÃO usa o prefixo `whsec_`: com ele, o secret scanning do GitHub
+// abria alerta em cima de um valor fabricado (já fechado como "used in tests").
+// Sem prefixo o comportamento é idêntico — o `replace(/^whsec_/, "")` abaixo
+// vira no-op e os dois lados (este script e o `standardwebhooks`, que só
+// remove o prefixo QUANDO ele existe) decodificam a mesma base64. O valor é
+// base64 de "TESTE-LOCAL-NAO-E-SEGREDO-smoke"; base64 válida é requisito, o
+// decoder do SDK é estrito.
+const SEGREDO = process.env.RESEND_WEBHOOK_SECRET ?? "VEVTVEUtTE9DQUwtTkFPLUUtU0VHUkVETy1zbW9rZQ==";
 process.env.RESEND_WEBHOOK_SECRET = SEGREDO;
 
 /** Assinatura Svix: HMAC-SHA256 de `${id}.${timestamp}.${body}` com o segredo. */

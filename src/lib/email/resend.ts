@@ -8,7 +8,26 @@ import {
   PERFIL_LABELS,
 } from "@/lib/contacts/types";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+let cliente: Resend | null = null;
+
+/**
+ * Client do Resend, instanciado na PRIMEIRA chamada (mesmo padrão de
+ * `src/lib/campanhas/resend-cliente.ts`, que é o motor).
+ *
+ * Racional da padronização: `new Resend(undefined)` LANÇA ("Missing API key",
+ * SDK 6.12.4). Em escopo de módulo isso explode na avaliação do import — fora
+ * do try/catch de quem chama, derrubando o módulo inteiro da action. Preguiçoso,
+ * a mesma falta de chave vira exceção DENTRO do try/catch do chamador, que loga
+ * e segue best-effort. Singleton porque o client é reusável e não guarda estado
+ * por chamada.
+ */
+export function resendClient(): Resend {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY não configurada.");
+  }
+  cliente ??= new Resend(process.env.RESEND_API_KEY);
+  return cliente;
+}
 
 /** Escapa HTML em valores vindos do usuário (evita quebrar o template/markup). */
 function esc(value: string | null | undefined): string {
@@ -33,15 +52,28 @@ function destinoLabel(contact: Contact): string {
  *
  * Best-effort: o chamador (action) envolve em try-catch e não bloqueia o
  * sucesso do formulário se isto falhar — o contato no banco é a fonte de verdade.
+ *
+ * `emails.send` NÃO lança em falha de API: devolve `{ data, error }`. Sem
+ * inspecionar `error`, falha vira sucesso silencioso — foi assim que a produção
+ * passou meses sem notificação e sem uma linha de log. O best-effort continua
+ * (nada é relançado pro usuário do site), mas agora o log conta a verdade.
  */
 export async function sendContactNotification(contact: Contact) {
-  return resend.emails.send({
+  const resultado = await resendClient().emails.send({
     from: `Spinhardi Turismo <${process.env.RESEND_FROM_EMAIL}>`,
     to: process.env.RESEND_TO_EMAIL!,
     replyTo: process.env.RESEND_TO_EMAIL!,
     subject: `Novo contato: ${contact.name} — ${destinoLabel(contact)}`,
     html: renderContactHTML(contact),
   });
+
+  if (resultado.error) {
+    console.error(
+      `[email.resend] notificação de contato RECUSADA pelo Resend: ${resultado.error.name} — ${resultado.error.message}`,
+    );
+  }
+
+  return resultado;
 }
 
 function renderContactHTML(contact: Contact): string {
