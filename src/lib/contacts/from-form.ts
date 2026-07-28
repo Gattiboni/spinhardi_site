@@ -105,6 +105,13 @@ export function draftContactFromForm(
 
     tags: [],
 
+    // Permissao de e-mail marketing: nao vai no draft. Contato novo nasce com
+    // o default do banco ('legitimo_interesse') e quem muda depois e o webhook
+    // ou o back-office (P3) — captacao nao decide permissao.
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
+
     iddasPessoaId: null,
     iddasCotacaoCode: null,
     iddasOrcamentoId: null,
@@ -124,8 +131,6 @@ export function draftContactFromForm(
 
     postsLidos: [],
     ultimaInteracao: opts.hadInteraction ? now : null,
-    emailsAbertos: 0,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,

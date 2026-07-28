@@ -52,6 +52,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Cliente bem qualificada. Quer Roma + Toscana, 14 dias. Próxima conversa: terça pra falar de hospedagem boutique.",
 
     tags: ["italia_2026", "lua_de_mel"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "1234",
     iddasCotacaoCode: "v5bnh",
@@ -72,8 +75,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: ["europa-primeira-vez"],
     ultimaInteracao: "2026-06-08T11:05:00-03:00",
-    emailsAbertos: 2,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,
@@ -121,6 +122,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Família de 4. Sensível a preço de alta temporada — apresentar opção em janeiro. Aguardando aprovação da esposa sobre roteiro.",
 
     tags: ["familia", "alta_temporada"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "1310",
     iddasCotacaoCode: "k9wzt",
@@ -141,8 +145,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: ["europa-primeira-vez", "10-coisas-antes-de-montar-roteiro"],
     ultimaInteracao: "2026-06-07T16:42:00-03:00",
-    emailsAbertos: 4,
-    campanhasAtivas: ["europa_verao_2026"],
 
     status: "ativo",
     arquivadoEm: null,
@@ -190,6 +192,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Indicada pela Patrícia Souza. Proposta MSC Mediterrâneo enviada dia 06. Aguardando retorno sobre cabine com varanda.",
 
     tags: ["cruzeiro", "indicacao_patricia"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "1356",
     iddasCotacaoCode: "p2mxr",
@@ -210,8 +215,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: [],
     ultimaInteracao: "2026-06-06T09:30:00-03:00",
-    emailsAbertos: 3,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,
@@ -258,6 +261,9 @@ export const MOCK_CONTACTS: Contact[] = [
     notasInternas: "Pediu pra ligar. Ainda não sabemos destino nem orçamento. Qualificar.",
 
     tags: [],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: null,
     iddasCotacaoCode: null,
@@ -278,8 +284,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: [],
     ultimaInteracao: "2026-06-08T16:40:00-03:00",
-    emailsAbertos: 0,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,
@@ -327,6 +331,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Venda fechada, aguardando 1ª parcela. ATENÇÃO: sync com ClickMassa falhou (token expirado) — confirmar atendimento manualmente até religar a integração.",
 
     tags: ["patagonia", "casal"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "1180",
     iddasCotacaoCode: "t8qpl",
@@ -347,8 +354,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: ["10-coisas-antes-de-montar-roteiro"],
     ultimaInteracao: "2026-06-07T18:00:00-03:00",
-    emailsAbertos: 6,
-    campanhasAtivas: ["patagonia_inverno"],
 
     status: "ativo",
     arquivadoEm: null,
@@ -398,6 +403,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Cliente premium, fechou rápido. Roteiro Japão+Coreia confirmado e pago. Enviar guia de pré-viagem 30 dias antes. Potencial cliente recorrente.",
 
     tags: ["japao", "asia", "viajante_frequente", "vip"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "1042",
     iddasCotacaoCode: "j3hnd",
@@ -418,8 +426,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: ["10-coisas-antes-de-montar-roteiro", "europa-primeira-vez"],
     ultimaInteracao: "2026-06-03T17:10:00-03:00",
-    emailsAbertos: 9,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,
@@ -468,6 +474,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Grupo de 4 amigas, alto ticket. Em espera: decidiram adiar pra 2027 por agenda. Retomar contato em agosto. Lead muito quente, não perder.",
 
     tags: ["toscana", "amigas", "50_plus"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "0998",
     iddasCotacaoCode: "w7krs",
@@ -488,8 +497,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: ["europa-primeira-vez"],
     ultimaInteracao: "2026-05-30T10:00:00-03:00",
-    emailsAbertos: 5,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,
@@ -537,6 +544,9 @@ export const MOCK_CONTACTS: Contact[] = [
       "Cadastrado manualmente após ligar na agência. Orçamento muito abaixo do necessário pra Europa no período desejado. Desistiu.",
 
     tags: ["desistencia", "sem_orcamento"],
+    emailMarketingStatus: "legitimo_interesse",
+    emailMarketingStatusEm: null,
+    emailMarketingStatusOrigem: null,
 
     iddasPessoaId: "0950",
     iddasCotacaoCode: "r1tvb",
@@ -557,8 +567,6 @@ export const MOCK_CONTACTS: Contact[] = [
 
     postsLidos: [],
     ultimaInteracao: "2026-05-12T14:30:00-03:00",
-    emailsAbertos: 1,
-    campanhasAtivas: [],
 
     status: "ativo",
     arquivadoEm: null,

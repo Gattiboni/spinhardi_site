@@ -23,15 +23,8 @@ import {
   type QualificacaoForm,
 } from "@/lib/contacts/edit-validation";
 import type { Anexo } from "@/lib/anexos/types";
-import {
-  diasParado,
-  DIAS_PARADO_ALERTA,
-  type Jornada,
-} from "@/lib/jornadas/types";
-import {
-  type ContactExternalLink,
-  findLink,
-} from "@/lib/contacts/external-links-shared";
+import { diasParado, DIAS_PARADO_ALERTA, type Jornada } from "@/lib/jornadas/types";
+import { type ContactExternalLink, findLink } from "@/lib/contacts/external-links-shared";
 import { clickmassaContactUrl, iddasPessoaUrl } from "@/lib/integrations/panel-urls";
 import {
   type Contact,
@@ -54,6 +47,10 @@ import {
   PRAZOS_OPTIONS,
 } from "@/lib/contacts/types";
 import type { FormSubmissionPayload } from "@/lib/contacts/from-form";
+import TagsCard from "./TagsCard";
+import EmailMarketingCard, { type HistoricoEmail } from "./EmailMarketingCard";
+import type { TagClickMassa, TagInterna } from "@/lib/tags/shared";
+import type { Grupo } from "@/lib/grupos/types";
 
 const SYNC_STATUS_LABEL: Record<Contact["iddasSyncStatus"], string> = {
   synced: "✓ Sincronizado",
@@ -513,10 +510,8 @@ function DadosCard({ contact: c }: { contact: Contact }) {
     setNascimentoIlegivel(false);
   };
 
-  const campo =
-    (nome: keyof DadosPessoaisForm) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((f) => ({ ...f, [nome]: e.target.value }));
+  const campo = (nome: keyof DadosPessoaisForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [nome]: e.target.value }));
 
   const campoNascimento = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNascimentoIlegivel(e.target.validity.badInput);
@@ -524,8 +519,7 @@ function DadosCard({ contact: c }: { contact: Contact }) {
   };
 
   const salvar = async () => {
-    const dataIlegivel =
-      nascimentoIlegivel || (nascimentoRef.current?.validity.badInput ?? false);
+    const dataIlegivel = nascimentoIlegivel || (nascimentoRef.current?.validity.badInput ?? false);
     if (dataIlegivel) {
       setNascimentoIlegivel(true);
       setErro("Data de nascimento inválida.");
@@ -911,13 +905,7 @@ function QualificacaoCard({ contact: c }: { contact: Contact }) {
 // linka pro detalhe da jornada.
 const FECHADAS_VISIVEIS = 5;
 
-function JornadasZone({
-  abertas,
-  fechadas,
-}: {
-  abertas: Jornada[];
-  fechadas: Jornada[];
-}) {
+function JornadasZone({ abertas, fechadas }: { abertas: Jornada[]; fechadas: Jornada[] }) {
   const [verTodas, setVerTodas] = useState(false);
   const fechadasVisiveis = verTodas ? fechadas : fechadas.slice(0, FECHADAS_VISIVEIS);
 
@@ -989,36 +977,11 @@ function JornadasZone({
               onClick={() => setVerTodas((v) => !v)}
               className="mt-3 font-body text-sm text-dark/60 hover:text-gold transition-colors duration-short"
             >
-              {verTodas
-                ? "Mostrar menos"
-                : `Ver todas as fechadas (${fechadas.length})`}
+              {verTodas ? "Mostrar menos" : `Ver todas as fechadas (${fechadas.length})`}
             </button>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Preferências (tags) ─────────────────────────────────────────
-function PreferenciasCard({ contact: c }: { contact: Contact }) {
-  return (
-    <div className="bg-white border border-dark/10 rounded-md p-6 mt-6">
-      <h2 className={cardTitleClass}>Preferências</h2>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {c.tags.length > 0 ? (
-          c.tags.map((t) => (
-            <span
-              key={t}
-              className="inline-block px-3 py-1 rounded-full text-xs font-body bg-gold/10 text-gold"
-            >
-              {t}
-            </span>
-          ))
-        ) : (
-          <span className="font-body text-sm text-dark/40">Sem preferências marcadas.</span>
-        )}
-      </div>
     </div>
   );
 }
@@ -1217,7 +1180,12 @@ function InteracoesTimeline({
           className={`${inputClass} w-full resize-none`}
         />
         <div className="mt-2 flex items-center gap-4">
-          <Button variant="primary" size="sm" onClick={handleAdd} disabled={adding || !novaNota.trim()}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleAdd}
+            disabled={adding || !novaNota.trim()}
+          >
             {adding ? "Salvando..." : "Adicionar nota"}
           </Button>
           {feedback && (
@@ -1496,12 +1464,20 @@ export default function ContactDetailClient({
   externalLinks,
   jornadas,
   anexos,
+  catalogoTagsInternas,
+  catalogoTagsClickmassa,
+  grupos,
+  historicoEmail,
 }: {
   contact: Contact;
   interactions: ContactInteraction[];
   externalLinks: ContactExternalLink[];
   jornadas: { abertas: Jornada[]; fechadas: Jornada[] };
   anexos: Anexo[];
+  catalogoTagsInternas: TagInterna[];
+  catalogoTagsClickmassa: TagClickMassa[];
+  grupos: Grupo[];
+  historicoEmail: HistoricoEmail[];
 }) {
   const iddasLink = findLink(externalLinks, "iddas");
 
@@ -1523,7 +1499,23 @@ export default function ContactDetailClient({
 
       <JornadasZone abertas={jornadas.abertas} fechadas={jornadas.fechadas} />
 
-      <PreferenciasCard contact={contact} />
+      {/* Substitui o antigo card "Preferências", que renderizava `tags` cru e
+          não mostrava as do ClickMassa. Agora são dois blocos rotulados (T8). */}
+      <TagsCard
+        contactId={contact.id}
+        tagsInternas={contact.tags}
+        clickmassaTagsId={contact.clickmassaTagsId}
+        catalogoInterno={catalogoTagsInternas}
+        catalogoClickmassa={catalogoTagsClickmassa}
+      />
+
+      <EmailMarketingCard
+        status={contact.emailMarketingStatus}
+        statusEm={contact.emailMarketingStatusEm}
+        statusOrigem={contact.emailMarketingStatusOrigem}
+        grupos={grupos}
+        historico={historicoEmail}
+      />
 
       <SistemasExternosDetails contact={contact} iddasLink={iddasLink} />
 

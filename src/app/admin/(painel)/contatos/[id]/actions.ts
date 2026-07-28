@@ -19,6 +19,7 @@ import {
   type QualificacaoForm,
 } from "@/lib/contacts/edit-validation";
 import type { NovoNegocioInput, NovoLancamentoInput } from "@/lib/financeiro/types";
+import { definirTagsDoContato } from "@/lib/tags";
 import type { Contact } from "@/lib/contacts/types";
 
 export type SaveGestaoInternaResult = {
@@ -170,10 +171,7 @@ const TITULO_ATENDIMENTO_MAX = 80;
  * O título passa a ser OBRIGATÓRIO na borda (o banco segue nullable de propósito,
  * por causa das jornadas históricas). Sem título → erro amigável, nada é criado.
  */
-export async function criarAtendimento(
-  contactId: string,
-  titulo: string,
-): Promise<ActionResult> {
+export async function criarAtendimento(contactId: string, titulo: string): Promise<ActionResult> {
   try {
     await requireSession();
 
@@ -268,10 +266,7 @@ export async function editContactNote(
  * Timeline — exclui uma nota interna. Mesma trava `tipo='nota_interna'` na lib:
  * evento de sistema é read-only.
  */
-export async function deleteContactNote(
-  contactId: string,
-  noteId: string,
-): Promise<ActionResult> {
+export async function deleteContactNote(contactId: string, noteId: string): Promise<ActionResult> {
   try {
     await requireSession();
     const matched = await deleteNotaInterna(noteId);
@@ -323,7 +318,10 @@ export async function sendWhatsAppWelcome(id: string): Promise<ActionResult> {
         criadoPor: "back-office",
       });
     } catch (interErr) {
-      console.error("[sendWhatsAppWelcome] mensagem enviada, mas falhou ao registrar interação:", interErr);
+      console.error(
+        "[sendWhatsAppWelcome] mensagem enviada, mas falhou ao registrar interação:",
+        interErr,
+      );
     }
 
     revalidatePath(`/admin/contatos/${id}`);
@@ -342,10 +340,7 @@ export async function sendWhatsAppWelcome(id: string): Promise<ActionResult> {
  * Entrada manual de financeiro (E4): grava na silver `negocios`.
  * Rótulos do form são livres; gravam exatamente nas colunas que o gold soma.
  */
-export async function registrarNegocio(
-  id: string,
-  input: NovoNegocioInput,
-): Promise<ActionResult> {
+export async function registrarNegocio(id: string, input: NovoNegocioInput): Promise<ActionResult> {
   try {
     await requireSession();
     const contact = await getContactById(id);
@@ -389,5 +384,39 @@ export async function registrarLancamento(
   } catch (err) {
     console.error("[registrarLancamento] erro ao registrar lançamento:", err);
     return { success: false, error: "Não foi possível registrar o lançamento. Tente novamente." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tags internas da ficha (bloco "Tags internas")
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Substitui integralmente `contacts.tags` do contato (T1/T5).
+ *
+ * Escreve SÓ essa coluna: `clickmassa_tags_id` é do sync e não é tocada por
+ * nenhum caminho de back-office. A validação (slug existe + está ativo, sem
+ * duplicata, gravação ordenada) vive no módulo puro `lib/tags/shared` e roda
+ * de novo aqui — a tela é conveniência, o servidor é a autoridade.
+ *
+ * Sem carimbo de edição novo: a folha de contrato não pede coluna de carimbo
+ * pra tag, e `updated_at` (trigger) já cobre "mexeram nesse contato".
+ */
+export async function salvarTagsInternas(
+  contactId: string,
+  slugs: string[],
+): Promise<ActionResult> {
+  try {
+    await requireSession();
+
+    const resultado = await definirTagsDoContato(contactId, slugs);
+    if (!resultado.ok) return { success: false, error: resultado.erro };
+
+    revalidatePath(`/admin/contatos/${contactId}`);
+    revalidatePath("/admin/contatos");
+    return { success: true };
+  } catch (err) {
+    console.error("[salvarTagsInternas] erro ao salvar tags:", err);
+    return { success: false, error: "Não foi possível salvar as tags. Tente de novo." };
   }
 }

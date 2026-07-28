@@ -17,6 +17,11 @@ const NAV_GROUPS = [
   {
     title: "Admin",
     items: [
+      // Campanhas é ADMIN-ONLY em v1 (não está na lista do editor em
+      // `lib/auth/roles.ts`). Disparo de e-mail pra base inteira é irreversível
+      // e a base legal ainda depende de aprovação das sócias — liberar pro
+      // editor é uma linha lá, quando for decidido.
+      { href: "/admin/campanhas", label: "Campanhas", icon: "✉" },
       { href: "/admin/usuarios", label: "Usuários", icon: "👥" },
       { href: "/admin/configuracoes", label: "Configurações", icon: "⚙" },
     ],

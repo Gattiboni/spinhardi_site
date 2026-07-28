@@ -12,19 +12,21 @@ import {
   type ContactStatus,
   ORIGENS_OPTIONS,
   ORIGEM_LABELS,
-  DESTINO_LABELS,
 } from "@/lib/contacts/types";
 import { quickUpdateContact } from "./actions";
 import { formatDateTimeShort } from "@/lib/utils/date";
-import type {
-  GapSegment,
-  ContactGapFlags,
-  GapCounts,
-} from "@/lib/contacts/gold-operacional";
+import type { GapSegment, ContactGapFlags, GapCounts } from "@/lib/contacts/gold-operacional";
+import AcoesEmMassa from "./AcoesEmMassa";
+import { TagClickMassaBadge, TagInternaBadge, TagsOrfasCm } from "@/components/admin/TagBadge";
+import {
+  resolverTagsClickMassa,
+  resolverTagsInternas,
+  type TagClickMassa,
+  type TagInterna,
+} from "@/lib/tags/shared";
+import type { Grupo } from "@/lib/grupos/types";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
-
-const LOTE_C_ALERT = "Implementação completa virá no Lote C";
 
 type SyncFilter = "todos" | "synced" | "pending" | "failed" | "partial";
 
@@ -83,10 +85,12 @@ const SORT_COMPARATORS: Record<SortKey, (a: Contact, b: Contact) => number> = {
   updatedAt: (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
 };
 
-// "Enviar WhatsApp" foi removido de propósito: disparo em massa derruba o número
+// "Enviar WhatsApp" nunca entrou de propósito: disparo em massa derruba o número
 // por ban da Meta — o canal inteiro da agência morre. WhatsApp só individual, no
-// detalhe do contato (um por vez, com confirm). As ações abaixo são seguras.
-const BULK_ACTIONS = ["Adicionar tag", "Exportar"];
+// detalhe do contato (um por vez, com confirm).
+//
+// As ações em massa REAIS (tag e grupo) vivem em `AcoesEmMassa`, com modal de
+// confirmação e toast. O stub que abria `alert()` morreu junto com esta lista.
 
 // Cards de gap (gold operacional): contagem + clique que filtra a lista.
 const GAP_CARDS: { key: GapSegment; title: string; hint: string }[] = [
@@ -277,15 +281,25 @@ export default function ContactsClient({
   contacts,
   gapFlags,
   gapCounts,
+  catalogoTagsInternas,
+  catalogoTagsClickmassa,
+  grupos,
 }: {
   contacts: Contact[];
   gapFlags: Record<string, ContactGapFlags>;
   gapCounts: GapCounts;
+  catalogoTagsInternas: TagInterna[];
+  catalogoTagsClickmassa: TagClickMassa[];
+  grupos: Grupo[];
 }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [origem, setOrigem] = useState<CaptureOrigin | "todas">("todas");
-  const [tag, setTag] = useState<string>("todas");
+  // DOIS filtros separados, um por origem (T8). O vocabulário de cada um vem do
+  // CATÁLOGO, não dos contatos carregados — senão a operadora só filtra por tag
+  // que já está em uso e nunca descobre que a outra existe.
+  const [tagInterna, setTagInterna] = useState<string>("todas");
+  const [tagCm, setTagCm] = useState<string>("todas");
   const [sync, setSync] = useState<SyncFilter>("todos");
   const [wa, setWa] = useState<WhatsAppFilter>("todos");
   const [gap, setGap] = useState<GapSegment | null>(null);
@@ -337,29 +351,56 @@ export default function ContactsClient({
     };
   }
 
-  // Vocabulário de tags presente nos contatos
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    contacts.forEach((c) => c.tags.forEach((t) => set.add(t)));
-    return [...set].sort();
-  }, [contacts]);
+  // Índice slug→nome e id→nome, pra busca e pra linha. O vocabulário dos
+  // SELECTS vem dos catálogos (props), não daqui.
+  const nomePorSlug = useMemo(
+    () => new Map(catalogoTagsInternas.map((t) => [t.slug, t.name])),
+    [catalogoTagsInternas],
+  );
+  const nomePorIdCm = useMemo(
+    () => new Map(catalogoTagsClickmassa.map((t) => [t.id, t.nome])),
+    [catalogoTagsClickmassa],
+  );
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return contacts.filter((c) => {
       if (origem !== "todas" && c.origem !== origem) return false;
-      if (tag !== "todas" && !c.tags.includes(tag)) return false;
+      if (tagInterna !== "todas" && !c.tags.includes(tagInterna)) return false;
+      if (tagCm !== "todas" && !c.clickmassaTagsId.includes(Number(tagCm))) return false;
       if (!matchesSync(c, sync)) return false;
       if (wa === "com" && !c.temWhatsapp) return false;
       if (wa === "sem" && c.temWhatsapp) return false;
       if (gap && !gapFlags[c.id]?.[gap]) return false;
       if (q) {
-        const haystack = [c.name, c.whatsapp ?? "", c.email ?? "", ...c.tags].join(" ").toLowerCase();
+        // A busca cobre as DUAS origens: slug e nome da interna, nome da do CM.
+        const haystack = [
+          c.name,
+          c.whatsapp ?? "",
+          c.email ?? "",
+          ...c.tags,
+          ...c.tags.map((t) => nomePorSlug.get(t) ?? ""),
+          ...c.clickmassaTagsId.map((id) => nomePorIdCm.get(id) ?? ""),
+        ]
+          .join(" ")
+          .toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [contacts, search, origem, tag, sync, wa, gap, gapFlags]);
+  }, [
+    contacts,
+    search,
+    origem,
+    tagInterna,
+    tagCm,
+    sync,
+    wa,
+    gap,
+    gapFlags,
+    nomePorSlug,
+    nomePorIdCm,
+  ]);
 
   // Ordena DEPOIS de filtrar e ANTES de paginar — é o que faz a ordenação valer
   // sobre a lista inteira (todos os filtrados) e não só sobre a página visível.
@@ -398,11 +439,6 @@ export default function ContactsClient({
       }
       return next;
     });
-  };
-
-  const handleBulkAction = (action: string) => {
-    if (!action) return;
-    alert(`"${action}" para ${selected.size} contato(s) selecionado(s).\n\n${LOTE_C_ALERT}.`);
   };
 
   const selectClass =
@@ -473,15 +509,32 @@ export default function ContactsClient({
         </select>
 
         <select
-          aria-label="Filtrar por tag"
-          value={tag}
-          onChange={(e) => withPageReset(setTag)(e.target.value)}
+          aria-label="Filtrar por tag interna"
+          value={tagInterna}
+          onChange={(e) => withPageReset(setTagInterna)(e.target.value)}
           className={selectClass}
+          data-testid="filtro-tag-interna"
         >
-          <option value="todas">Tags: todas</option>
-          {allTags.map((t) => (
-            <option key={t} value={t}>
-              {t}
+          <option value="todas">Tag interna: todas</option>
+          {catalogoTagsInternas.map((t) => (
+            <option key={t.slug} value={t.slug}>
+              {t.name}
+              {t.isActive ? "" : " (desativada)"}
+            </option>
+          ))}
+        </select>
+
+        <select
+          aria-label="Filtrar por tag do ClickMassa"
+          value={tagCm}
+          onChange={(e) => withPageReset(setTagCm)(e.target.value)}
+          className={selectClass}
+          data-testid="filtro-tag-clickmassa"
+        >
+          <option value="todas">Tag do ClickMassa: todas</option>
+          {catalogoTagsClickmassa.map((t) => (
+            <option key={t.id} value={String(t.id)}>
+              {t.nome}
             </option>
           ))}
         </select>
@@ -524,25 +577,16 @@ export default function ContactsClient({
             </option>
           ))}
         </select>
-
-        <select
-          aria-label="Ações em massa"
-          value=""
-          disabled={selected.size === 0}
-          onChange={(e) => {
-            handleBulkAction(e.target.value);
-            e.target.value = "";
-          }}
-          className={`${selectClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          <option value="">Ações em massa{selected.size > 0 ? ` (${selected.size})` : ""}</option>
-          {BULK_ACTIONS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
       </div>
+
+      {/* Ações em massa reais (tag e grupo), com modal de confirmação e toast.
+          Só aparece com seleção; o teto é a página. */}
+      <AcoesEmMassa
+        selecionados={[...selected]}
+        catalogoInterno={catalogoTagsInternas}
+        grupos={grupos}
+        aoTerminar={() => setSelected(new Set())}
+      />
 
       {/* Tabela */}
       <div className="bg-white rounded-md border border-dark/10 overflow-hidden">
@@ -565,7 +609,7 @@ export default function ContactsClient({
                 dir={sortDir}
                 onSort={handleSort}
               />
-              {["Origem", "Destino", "Sync"].map((h) => (
+              {["Origem", "Tags", "Sync"].map((h) => (
                 <th
                   key={h}
                   className="text-left px-6 py-4 font-body text-sm uppercase tracking-widest text-dark/60"
@@ -613,8 +657,17 @@ export default function ContactsClient({
                   <td className="px-6 py-4 font-body text-sm text-dark/60">
                     {ORIGEM_LABELS[c.origem]}
                   </td>
-                  <td className="px-6 py-4 font-body text-sm text-dark/60">
-                    {DESTINO_LABELS[c.destinoTipo]}
+                  {/* Tags das DUAS origens na mesma célula, distinguíveis pela
+                      aparência do badge (preenchido = ClickMassa, vazado =
+                      interna). Substituiu a coluna Destino, que já aparece na
+                      ficha e disputava espaço com informação mais operacional. */}
+                  <td className="px-6 py-4">
+                    <TagsDaLinha
+                      tags={c.tags}
+                      clickmassaTagsId={c.clickmassaTagsId}
+                      catalogoInterno={catalogoTagsInternas}
+                      catalogoClickmassa={catalogoTagsClickmassa}
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <SyncBadge iddas={c.iddasSyncStatus} clickmassa={c.clickmassaSyncStatus} />
@@ -691,6 +744,54 @@ export default function ContactsClient({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Célula de tags da lista: as duas origens juntas, distinguíveis sem legenda.
+ *
+ * Teto de 3 badges por origem — a linha tem largura finita e a densidade da
+ * tabela importa mais que ver a lista inteira aqui (a ficha mostra tudo). O
+ * excedente vira "+N", e os ids órfãos do CM viram contagem (nunca número cru).
+ */
+const TETO_BADGES = 3;
+
+function TagsDaLinha({
+  tags,
+  clickmassaTagsId,
+  catalogoInterno,
+  catalogoClickmassa,
+}: {
+  tags: string[];
+  clickmassaTagsId: number[];
+  catalogoInterno: TagInterna[];
+  catalogoClickmassa: TagClickMassa[];
+}) {
+  const cm = resolverTagsClickMassa(clickmassaTagsId, catalogoClickmassa);
+  const internas = resolverTagsInternas(tags, catalogoInterno);
+
+  if (internas.length === 0 && cm.tags.length === 0 && cm.orfaos === 0) {
+    return <span className="font-body text-sm text-dark/30">—</span>;
+  }
+
+  const sobrandoInternas = internas.length - TETO_BADGES;
+  const sobrandoCm = cm.tags.length - TETO_BADGES;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
+      {internas.slice(0, TETO_BADGES).map((t) => (
+        <TagInternaBadge key={t.slug} nome={t.name} cor={t.cor} orfao={t.orfao} />
+      ))}
+      {sobrandoInternas > 0 && (
+        <span className="font-body text-xs text-dark/50">+{sobrandoInternas}</span>
+      )}
+
+      {cm.tags.slice(0, TETO_BADGES).map((t) => (
+        <TagClickMassaBadge key={t.id} nome={t.nome} cor={t.cor} />
+      ))}
+      {sobrandoCm > 0 && <span className="font-body text-xs text-dark/50">+{sobrandoCm}</span>}
+      <TagsOrfasCm quantas={cm.orfaos} />
     </div>
   );
 }

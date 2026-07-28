@@ -10,6 +10,7 @@ import type {
   SyncStatus,
   ContactStatus,
 } from "./types";
+import type { EmailMarketingOrigem, EmailMarketingStatus } from "@/lib/campanhas/types";
 
 /**
  * Mapeamento EXPLÍCITO por campo entre o banco (snake_case) e o TS (camelCase).
@@ -74,6 +75,13 @@ export type ContactRow = {
 
   tags: string[];
 
+  // Permissão de e-mail marketing (bloco P). Opcionais no shape porque o
+  // SELECT `*` pode rodar contra um banco anterior à migração — aí o mapper cai
+  // no default do contrato ('legitimo_interesse') em vez de quebrar.
+  email_marketing_status?: EmailMarketingStatus;
+  email_marketing_status_em?: string | null;
+  email_marketing_status_origem?: EmailMarketingOrigem | null;
+
   iddas_pessoa_id: string | null;
   iddas_cotacao_code: string | null;
   iddas_orcamento_id: string | null;
@@ -93,8 +101,6 @@ export type ContactRow = {
 
   posts_lidos: string[];
   ultima_interacao: string | null;
-  emails_abertos: number;
-  campanhas_ativas: string[];
 
   status: ContactStatus;
   arquivado_em: string | null;
@@ -113,12 +119,7 @@ export type ContactRow = {
 // `tem_whatsapp` sai também: é coluna GENERATED (derivada de whatsapp), read-only.
 export type ContactInsertRow = Omit<
   ContactRow,
-  | "id"
-  | "created_at"
-  | "updated_at"
-  | "iddas_pessoa_id"
-  | "clickmassa_contact_id"
-  | "tem_whatsapp"
+  "id" | "created_at" | "updated_at" | "iddas_pessoa_id" | "clickmassa_contact_id" | "tem_whatsapp"
 >;
 
 export type ContactInteractionRow = {
@@ -178,6 +179,11 @@ export function rowToContact(row: ContactRow): Contact {
 
     tags: row.tags,
 
+    // Default do contrato quando a coluna ainda nao veio no SELECT.
+    emailMarketingStatus: row.email_marketing_status ?? "legitimo_interesse",
+    emailMarketingStatusEm: row.email_marketing_status_em ?? null,
+    emailMarketingStatusOrigem: row.email_marketing_status_origem ?? null,
+
     iddasPessoaId: row.iddas_pessoa_id,
     iddasCotacaoCode: row.iddas_cotacao_code,
     iddasOrcamentoId: row.iddas_orcamento_id,
@@ -197,8 +203,6 @@ export function rowToContact(row: ContactRow): Contact {
 
     postsLidos: row.posts_lidos,
     ultimaInteracao: row.ultima_interacao,
-    emailsAbertos: row.emails_abertos,
-    campanhasAtivas: row.campanhas_ativas,
 
     status: row.status,
     arquivadoEm: row.arquivado_em,
@@ -254,6 +258,11 @@ export function contactToInsertRow(
 
     tags: contact.tags,
 
+    // As tres colunas de permissao de e-mail marketing NAO entram no insert:
+    // contato novo nasce com o default do banco ('legitimo_interesse'), e quem
+    // muda depois e o webhook ou o back-office (P3). Nenhum caminho de criacao
+    // decide permissao.
+
     // iddas_pessoa_id: coluna-projeção (trigger a partir de contact_external_links) — não escrita aqui.
     iddas_cotacao_code: contact.iddasCotacaoCode,
     iddas_orcamento_id: contact.iddasOrcamentoId,
@@ -273,8 +282,8 @@ export function contactToInsertRow(
 
     posts_lidos: contact.postsLidos,
     ultima_interacao: contact.ultimaInteracao,
-    emails_abertos: contact.emailsAbertos,
-    campanhas_ativas: contact.campanhasAtivas,
+    // emails_abertos / campanhas_ativas: colunas MORTAS (D1). Nao entram no
+    // insert; o default do banco (0 e '{}') cobre ate o DROP acontecer.
 
     status: contact.status,
     arquivado_em: contact.arquivadoEm,
@@ -330,6 +339,14 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
 
   if ("tags" in patch) row.tags = patch.tags;
 
+  // Permissao de e-mail marketing: so o webhook e o pipeline passam por aqui,
+  // e sempre com as tres juntas (sem status_em/origem nao existe prova, P4).
+  if ("emailMarketingStatus" in patch) row.email_marketing_status = patch.emailMarketingStatus;
+  if ("emailMarketingStatusEm" in patch)
+    row.email_marketing_status_em = patch.emailMarketingStatusEm;
+  if ("emailMarketingStatusOrigem" in patch)
+    row.email_marketing_status_origem = patch.emailMarketingStatusOrigem;
+
   // iddasPessoaId: coluna-projeção (mantida por trigger) — não escrita aqui.
   if ("iddasCotacaoCode" in patch) row.iddas_cotacao_code = patch.iddasCotacaoCode;
   if ("iddasOrcamentoId" in patch) row.iddas_orcamento_id = patch.iddasOrcamentoId;
@@ -351,8 +368,7 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
 
   if ("postsLidos" in patch) row.posts_lidos = patch.postsLidos;
   if ("ultimaInteracao" in patch) row.ultima_interacao = patch.ultimaInteracao;
-  if ("emailsAbertos" in patch) row.emails_abertos = patch.emailsAbertos;
-  if ("campanhasAtivas" in patch) row.campanhas_ativas = patch.campanhasAtivas;
+  // emails_abertos / campanhas_ativas: sem caller e sem patch (D1).
 
   if ("status" in patch) row.status = patch.status;
   if ("arquivadoEm" in patch) row.arquivado_em = patch.arquivadoEm;

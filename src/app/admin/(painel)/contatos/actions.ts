@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getContactById, updateContact } from "@/lib/contacts";
 import { whatsappValidationError } from "@/lib/contacts/phone";
 import { requireSession } from "@/lib/auth/session";
+import { tagEmMassa } from "@/lib/tags";
+import { criarGrupo, adicionarMembros } from "@/lib/grupos";
 import type { Contact, ContactStatus } from "@/lib/contacts/types";
 
 export type ActionResult = {
@@ -34,10 +36,7 @@ export type QuickEditInput = {
  * O estágio saiu daqui (migrou pra `jornadas`): a edição rápida cuida só dos
  * dados da pessoa (nome, contato, status). `updated_at` fica com o trigger.
  */
-export async function quickUpdateContact(
-  id: string,
-  input: QuickEditInput,
-): Promise<ActionResult> {
+export async function quickUpdateContact(id: string, input: QuickEditInput): Promise<ActionResult> {
   try {
     await requireSession();
 
@@ -75,5 +74,86 @@ export async function quickUpdateContact(
   } catch (err) {
     console.error("[quickUpdateContact] erro ao salvar edição rápida:", err);
     return { success: false, error: "Não foi possível salvar. Tente novamente." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Ações em massa da lista
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Aplica (união) ou remove UMA tag interna nos contatos selecionados.
+ *
+ * A seleção máxima é a PÁGINA (10/25/50). "Selecionar todos os N do filtro"
+ * ficou de fora de propósito: exigiria uma RPC de ids-por-filtro (restrição
+ * dura do lote, e o incidente `UND_ERR_HEADERS_OVERFLOW` já conhecido).
+ *
+ * Uma validação só, no começo (o slug é o mesmo pra todo mundo), e escrita em
+ * lote no lib. Slug inexistente ou desativado é recusado AQUI, no servidor —
+ * um payload adulterado pela rede não passa.
+ */
+export async function aplicarTagEmMassa(
+  contactIds: string[],
+  slug: string,
+  operacao: "adicionar" | "remover",
+): Promise<ActionResult & { afetados?: number }> {
+  try {
+    await requireSession();
+
+    if (!Array.isArray(contactIds) || contactIds.length === 0) {
+      return { success: false, error: "Selecione ao menos um contato." };
+    }
+    if (typeof slug !== "string" || !slug.trim()) {
+      return { success: false, error: "Escolha a tag." };
+    }
+
+    const resultado = await tagEmMassa(contactIds, slug.trim(), operacao);
+    if (!resultado.ok) return { success: false, error: resultado.erro };
+
+    revalidatePath("/admin/contatos");
+    contactIds.forEach((id) => revalidatePath(`/admin/contatos/${id}`));
+    return { success: true, afetados: resultado.afetados };
+  } catch (err) {
+    console.error("[aplicarTagEmMassa] erro:", err);
+    return { success: false, error: "Não foi possível aplicar a tag. Tente de novo." };
+  }
+}
+
+/**
+ * Adiciona os selecionados a um grupo (existente ou criado na hora).
+ *
+ * Grupo NÃO filtra elegibilidade: pode conter contato sem e-mail. Quem filtra
+ * é a view, no envio (E2). Aqui é só curadoria.
+ */
+export async function adicionarAoGrupoEmMassa(
+  contactIds: string[],
+  destino: { grupoId: string } | { nomeNovo: string },
+): Promise<ActionResult & { grupoId?: string; adicionados?: number }> {
+  try {
+    await requireSession();
+
+    if (!Array.isArray(contactIds) || contactIds.length === 0) {
+      return { success: false, error: "Selecione ao menos um contato." };
+    }
+
+    let grupoId: string;
+    if ("nomeNovo" in destino) {
+      const criado = await criarGrupo({ nome: destino.nomeNovo, descricao: null });
+      if (!criado.ok) return { success: false, error: criado.erro };
+      grupoId = criado.grupo.id;
+    } else {
+      grupoId = destino.grupoId;
+    }
+
+    const resultado = await adicionarMembros(grupoId, contactIds);
+    if (!resultado.ok) return { success: false, error: resultado.erro };
+
+    revalidatePath("/admin/contatos");
+    revalidatePath("/admin/campanhas/grupos");
+    revalidatePath(`/admin/campanhas/grupos/${grupoId}`);
+    return { success: true, grupoId, adicionados: resultado.adicionados };
+  } catch (err) {
+    console.error("[adicionarAoGrupoEmMassa] erro:", err);
+    return { success: false, error: "Não foi possível adicionar ao grupo. Tente de novo." };
   }
 }

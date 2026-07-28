@@ -1,3 +1,5 @@
+import type { EmailMarketingOrigem, EmailMarketingStatus } from "@/lib/campanhas/types";
+
 export type CaptureOrigin =
   | "site_contato"
   | "google_ads"
@@ -112,7 +114,20 @@ export type Contact = {
   notasInternas: string;
 
   // 6. Tags (segmentação)
+  //
+  // DUAS COLUNAS, UM ESCRITOR CADA (T1). `tags` guarda SLUG do catálogo interno
+  // (T5) e a dona é a operadora — o sync NUNCA escreve aqui. As tags do
+  // ClickMassa ficam em `clickmassaTagsId` (bloco 8), read-only na UI.
   tags: string[];
+
+  // 6.1 Permissão de e-mail marketing (bloco P do contrato de campanhas)
+  //
+  // Quem escreve: o webhook do Resend (descadastro, bounce hard, reclamação) e
+  // o back-office (opt-in / conserto de e-mail). O sync de ClickMassa e Iddas
+  // nunca toca estas três (P3).
+  emailMarketingStatus: EmailMarketingStatus;
+  emailMarketingStatusEm: string | null;
+  emailMarketingStatusOrigem: EmailMarketingOrigem | null;
 
   // 7. Espelho do Iddas
   iddasPessoaId: string | null;
@@ -134,10 +149,14 @@ export type Contact = {
   clickmassaSyncError: string | null;
 
   // 9. Comportamento
+  //
+  // `emailsAbertos` e `campanhasAtivas` sairam daqui (D1 do contrato de
+  // campanhas): foram substituidos por `campanha_destinatarios` mais a
+  // agregacao de eventos (V6). O codigo parou de escrever primeiro; o DROP das
+  // colunas vem depois, nunca o inverso. `postsLidos` fica — e de outro
+  // contrato (D2).
   postsLidos: string[];
   ultimaInteracao: string | null;
-  emailsAbertos: number;
-  campanhasAtivas: string[];
 
   // 10. Metadados
   status: ContactStatus;

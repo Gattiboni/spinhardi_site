@@ -1,5 +1,6 @@
 import AdminShell from "@/components/admin/AdminShell";
 import AdminHeader from "@/components/admin/AdminHeader";
+import ToastProvider from "@/components/ui/primitives/Toast";
 import { requireSession } from "@/lib/auth/session";
 
 /**
@@ -14,10 +15,15 @@ import { requireSession } from "@/lib/auth/session";
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
   const user = await requireSession();
 
+  // O ToastProvider envolve o painel inteiro (primitivo 01): as telas novas
+  // chamam `useToast()` sem montar provider próprio. Fora dele o hook degrada
+  // pra console.warn, então nenhuma tela existente muda de comportamento.
   return (
-    <div className="min-h-screen bg-dark/5">
-      <AdminHeader user={{ name: user.name, role: user.role }} />
-      <AdminShell role={user.role}>{children}</AdminShell>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen bg-dark/5">
+        <AdminHeader user={{ name: user.name, role: user.role }} />
+        <AdminShell role={user.role}>{children}</AdminShell>
+      </div>
+    </ToastProvider>
   );
 }

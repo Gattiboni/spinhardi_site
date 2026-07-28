@@ -23,10 +23,78 @@
   --ease-smooth: cubic-bezier(0.42, 0, 0, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
+  /* ─── Easings dos primitivos (folha de componentes v1) ─── */
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1); /* entradas: toast-in, sheet-in, toggle */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* saídas: toast-out */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* pulso do overlay recusado */
+
   /* ─── Durações (das referências) ─── */
   --duration-short: 200ms;
   --duration-medium: 400ms;
   --duration-long: 750ms;
+
+  /* =======================================================================
+     TOKENS DOS PRIMITIVOS — folha_componentes_primitivos_v1, bloco 00
+
+     Toda derivação é a cor de marca composta SOBRE BRANCO PURO na opacidade
+     indicada, achatada em hex sólido: nada de transparência em runtime,
+     exceto `overlay` e o anel de foco, que precisam ser translúcidos por
+     natureza. Os hexes abaixo foram conferidos um a um contra a fórmula.
+
+     Este bloco é a ÚNICA fonte de cor dos quatro primitivos. Nenhum
+     componente escreve hex literal.
+     ======================================================================= */
+
+  /* Superfícies (navy sobre branco) */
+  --color-surface: #ffffff; /* painel, modal, toast, tabela */
+  --color-surface-app: #f6f7f8; /* navy 4% — área de trabalho, corpo do modal grande, linha em hover */
+  --color-surface-muted: #f1f2f4; /* navy 6% — cabeçalho da tabela, barra de filtros */
+  --color-surface-selected: #edeef1; /* navy 8% — linha selecionada, botão desabilitado */
+  --color-skeleton: #e4e6e9; /* navy 12% — barras do esqueleto */
+  --color-border-soft: #dadde2; /* navy 16% — borda de painel, divisória de linha */
+  --color-border-strong: #c8ccd4; /* navy 24% — borda de campo, limite do cabeçalho fixo */
+  --color-icon-muted: #a3aab7; /* navy 40% — seta de ordenação inativa, checkbox vazio */
+  --color-text-disabled: #7f889a; /* navy 56% — rótulo desabilitado (3,57:1, só inativo) */
+  --color-text-muted: #5a667d; /* navy 72% — texto secundário e legendas (5,78:1, passa AA) */
+
+  /* Sucesso (verde-pinheiro sobre branco) */
+  --color-success-bg: #f0f2ee; /* verde 8% */
+  --color-success-border: #b2bdac; /* verde 40% */
+
+  /* Ouro sobre branco */
+  --color-attention-bg: #f8f5ee; /* ouro 8% */
+  --color-accent-soft: #decdac; /* ouro 40% — texto de apoio e hover sobre navy */
+
+  /* Primário */
+  --color-primary-hover: #16243e; /* navy escurecido 8% (preto 8% sobre navy) */
+
+  /* -----------------------------------------------------------------------
+     D1 — ERRO E AÇÃO DESTRUTIVA SEM COR VERMELHA
+
+     A identidade v1.1 não tem vermelho e a folha não inventou um. Enquanto o
+     token funcional de erro não for aprovado, erro = INVERSÃO DE PESO (bloco
+     navy sólido, texto branco) e destrutivo = navy + filete ouro.
+
+     TROCA APROVADA = editar as três linhas abaixo. Nenhum componente conhece
+     "navy" no contexto de erro: todos leem `feedback-error-*`. Zero refactor.
+     ----------------------------------------------------------------------- */
+  --color-feedback-error-bg: #1a2b4a; /* hoje navy sólido; vira o vermelho funcional quando aprovado */
+  --color-feedback-error-fg: #ffffff; /* branco sobre navy = 14,1:1 */
+  --color-feedback-error-accent: #ad8330; /* filete/ícone dentro do bloco de erro (ouro sobre navy) */
+
+  /* ─── Raio ───
+     `rounded-md` (6px) do Tailwind já casa com o radius-md da folha e é o que o
+     repo usa em botão/campo/painel. Falta só o radius-lg de 10px: entra como
+     token PRÓPRIO (`rounded-modal`) em vez de sobrescrever `--radius-lg`, que
+     mudaria arredondamento no site público inteiro. */
+  --radius-modal: 10px;
+
+  /* ─── Sombras dos primitivos ─── */
+  --shadow-toast: 0 6px 20px rgba(26, 43, 74, 0.16), 0 1px 2px rgba(26, 43, 74, 0.1);
+  --shadow-modal: 0 24px 60px rgba(26, 43, 74, 0.28), 0 2px 6px rgba(26, 43, 74, 0.12);
+  --shadow-sticky: 0 1px 0 #c8ccd4;
+  --shadow-sticky-col: 4px 0 8px rgba(26, 43, 74, 0.06);
+  --shadow-knob: 0 1px 2px rgba(26, 43, 74, 0.28);
 }
 
 /* =========================================================================
@@ -48,6 +116,175 @@
 }
 @utility duration-long {
   transition-duration: var(--duration-long);
+}
+
+/* =========================================================================
+   Movimento dos primitivos — folha_componentes_primitivos_v1
+
+   Durações e curvas EXATAS da folha. As classes ficam aqui (e não em
+   arbitrary values espalhados pelos componentes) pelo mesmo motivo das cores:
+   um lugar só pra ajustar, e o bloco `prefers-reduced-motion` no fim derruba
+   TODA translação e escala de uma vez, sobrando o fade de 100ms.
+   ========================================================================= */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile: o toast entra pelo topo, então a translação é invertida. */
+@keyframes toast-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Clique no fundo de modal destrutivo: registrado e recusado. */
+@keyframes modal-reject-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@utility anim-toast-in {
+  animation: toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-toast-in-top {
+  animation: toast-in-top 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-toast-out {
+  animation: toast-out 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@utility anim-overlay-in {
+  animation: overlay-in 160ms ease-out;
+}
+@utility anim-modal-in {
+  animation: modal-in 160ms ease-out;
+}
+@utility anim-sheet-in {
+  animation: sheet-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility anim-modal-reject {
+  animation: modal-reject-pulse 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@utility anim-skeleton {
+  animation: skeleton-pulse 1200ms ease-in-out infinite;
+}
+
+/* Anel de foco único do sistema (folha, bloco SOMBRA E FOCO). Ouro sobre
+   branco = 3,46:1, acima do mínimo de 3:1 pra indicador não-textual. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+}
+
+/* Mesma coisa em controle-pílula (toggle): offset de 3px. */
+@utility focus-ring-pill {
+  &:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+  }
+}
+
+/* Filete ouro à esquerda da linha em hover da tabela. */
+@utility row-accent {
+  box-shadow: inset 2px 0 0 var(--color-gold);
+}
+
+/* Marcador de risco do botão primário destrutivo (D1): filete ouro por dentro
+   do bloco navy. É o mais forte que a paleta permite sem vermelho. */
+@utility danger-inset {
+  box-shadow:
+    inset 0 0 0 1px var(--color-gold),
+    inset 0 0 0 2px var(--color-feedback-error-bg);
+}
+
+/* Sob reduced-motion toda translação e escala caem para 0 e sobra o fade de
+   100ms. Uma regra só, cobrindo os oito utilitários acima. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-toast-in,
+  .anim-toast-in-top,
+  .anim-overlay-in,
+  .anim-modal-in,
+  .anim-sheet-in {
+    animation: overlay-in 100ms linear !important;
+  }
+  .anim-toast-out {
+    animation: toast-out 100ms linear forwards !important;
+  }
+  .anim-modal-reject {
+    animation: none !important;
+  }
+  .anim-skeleton {
+    animation: none !important;
+  }
 }
 
 /* =========================================================================
