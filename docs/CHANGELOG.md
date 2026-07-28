@@ -15,6 +15,81 @@ Ordem: mais recente no topo.
 
 ---
 
+**CONTRATO — Contrato de Dados Campanhas de Email e Tags v1 (D090, D091):**
+congelado em `docs/contrato_dados_campanhas_email_v1.md`, 10 blocos. Permissão
+de email marketing vira três colunas em `contacts` (`email_marketing_status`
+default `legitimo_interesse` + `_em` + `_origem`), elegibilidade vira definição
+única na view `contatos_elegiveis_email` (205 hoje) que UI e envio leem sem
+reimplementar. Cinco tabelas novas: `campanhas`, `campanha_destinatarios`
+(snapshot congelado, append-only), `campanha_eventos` (telemetria Resend +
+auditoria interna com prefixo `auditoria.` — emenda v1.1, D092), `grupos` e
+`grupo_contatos`. Métricas 100% derivadas de eventos, nenhuma coluna contadora.
+Público só por "todos os elegíveis" ou grupo estático curado; segmentação por
+tag fora de v1 (maior tag entre quem tem email: 17 pessoas). Broadcast do Resend
+exige Segment (verificado na doc), então todo público é materializado como
+segmento antes do envio. Incertezas Z2 (DMARC) e Z3 (jurídico BR) marcadas como
+abertas no próprio contrato em vez de resolvidas no achismo; Z1 (correlação
+evento→campanha) foi RESOLVIDA no β: o payload do webhook traz `broadcast_id` e
+a correlação direta está ligada.
+
+**SITE — Módulo de campanhas completo, tags nas duas origens e primitivos de UI
+(lote CAMP, D090–D092):** entrega única em dois commits (`a64d093` + `f2c498e`).
+Primitivos Toast, Modal (3 variantes, incluindo confirmação digitada), DataTable
+e Toggle implementados da folha de componentes
+(`docs/folha_componentes_primitivos_v1.pdf`), tokens centralizados, variante de
+erro sem vermelho (D1 da folha pendente de identidade com a Amanda; troca futura
+= 1 token). Tags: bloco read-only do ClickMassa e bloco interno editável na
+ficha, dois filtros na lista com vocabulário vindo dos catálogos, ação em massa
+com união/remoção, criação inline reusando a action de Configurações (zero
+segundo CRUD). Grupos com CRUD, membros, ação em massa da lista e exclusão com
+palavra digitada. Campanhas: editor em 3 passos com preview desktop/celular,
+rodapé travado com descadastro, preflight bloqueante (assunto, corpo, link, alt
+de imagem, token de descadastro), teste obrigatório com hash de conteúdo que
+invalida ao editar (server-side), agendamento com cancelamento via
+`broadcasts.remove`, resultados com denominador. MODO SEGURO intercepta
+destinatários num ponto único: pipeline resolve o público real (205), loga, e
+envia só pros 4 endereços de teste — `CAMPANHAS_MODO_SEGURO=1` segue ATIVO em
+produção até decisão explícita. TRAP histórica consertada de quebra:
+`emails.send` do Resend não lança em falha ({data, error} ignorado nos dois call
+sites legados) — produção passou meses sem `RESEND_API_KEY` e nenhuma
+notificação de contato saiu, sem um log sequer. Agora o retorno é inspecionado e
+logado.
+
+**INFRA — Fundação de email marketing e faxina (D090):** cinco migrations via
+MCP (`campanhas_email_v1_estrutura`, `sync_clickmassa_tags_resolucao_por_nome`,
+`view_clickmassa_tags_catalogo`, `bucket_publico_campanhas`,
+`drop_colunas_mortas_email_campanhas`). Função `sync_clickmassa_tags()`
+idempotente resolveu 285 contatos com tag por nome→id (19 de 19 nomes casam com
+o catálogo bronze, zero órfão); bucket público `campanhas` (5MB, jpeg/png) —
+email exige URL permanente, URL assinada expira. Webhook do Resend cadastrado
+(11 eventos, incluindo `contact.updated` = descadastro), assinatura Svix
+verificada em produção com 200s reais. Chave Full Access criada (a antiga era
+sending-only). Colunas `emails_abertos` e `campanhas_ativas` DROPADAS na ordem
+do contrato: código parou de escrever primeiro (deploy), banco derrubou depois.
+Expurgo total da fumaça: 39 eventos, 10 campanhas, 1 jornada e 1 contato de
+teste removidos; estado final auditado — 878 contatos, 205 elegíveis, 285 com
+tag CM, zero resíduo.
+
+**Validação (β):** 12 checks do Codinho (fumaça real com broadcast criado no
+Resend, bounce hard suprimindo pra `invalido`, idempotência de reenvio,
+imutabilidade pós-envio, webhook 401 sem assinatura e dedup em replay) + 17
+passos de teste funcional de UI executados por agente de navegador (Comet) em
+produção, 17/17 OK — incluindo invalidação de teste ao editar conteúdo,
+confirmação digitada de exclusão de grupo e ação em massa de tag com desfazer.
+
+**Pendências do lote:** base legal (legítimo interesse) com Nina e Julia
+bloqueia o primeiro disparo real — `CAMPANHAS_MODO_SEGURO` só desliga depois
+disso; DMARC não verificado (Z2); jurídico BR sem fonte primária (Z3);
+`RESEND_SEGMENT_TODOS_ELEGIVEIS_ID` nasce no primeiro envio real (o log grita o
+id); token funcional de erro com a Amanda (D1 da folha); imagem de teste órfã no
+bucket (apagar pelo painel); test-send usa fallback de correlação e pode
+pendurar evento na campanha errada nas métricas de teste (conserto proposto:
+prefixo no assunto ou header de rastreio); `/dev/primitivos` público de
+propósito (suporte a teste por agente); cron de sync segue desligada — o gate de
+religar é o three-way, não o calendário.
+
+---
+
 **CONTRATO — Contrato de Dados Ficha, Documentos e Comunicação v1 (D089):**
 congelado em `docs/contrato_dados_ficha_docs_comunicacao_v1.md`. Quatro blocos:
 newsletter Resend (fonte única `contacts`, opt-out honrado, LGPD pendente),

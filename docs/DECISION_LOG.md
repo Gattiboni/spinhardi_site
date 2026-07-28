@@ -28,6 +28,101 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-07-28] D092 — Auditoria interna dentro de campanha_eventos (emenda v1.1 ao contrato de campanhas)
+
+**Contexto:** A cláusula V1 do contrato definia `campanha_eventos` como
+telemetria do Resend. Na implementação, o Codinho gravou também a trilha de
+auditoria de envio (transições, contagens, exclusões por motivo) na mesma
+tabela, com eventos prefixados `auditoria.` — aproveitando o append-only que a
+tabela já garante em vez de criar uma tabela nova.
+
+**Alternativas consideradas:**
+
+- Tabela `campanha_auditoria` separada: mais pura, mas duplica infraestrutura
+  append-only pra um volume minúsculo.
+- Rejeitar e refazer: custo real por pureza nenhuma.
+
+**Decisão:** Aceita com emenda formal: a tabela passa a ser "eventos de
+campanha" (telemetria Resend + auditoria interna, prefixo `auditoria.`), e TODA
+agregação de métrica filtra o prefixo fora. Divergência de contrato vira emenda
+registrada, nunca edição silenciosa do v1.
+
+**Racional:** Append-only de graça vale mais que taxonomia perfeita. O risco
+real (alguém somar auditoria com email entregue num `count(*)`) morre na regra
+de agregação escrita, não na esperança.
+
+---
+
+### [2026-07-28] D091 — Tags: duas colunas, um escritor cada; vocabulário do ClickMassa resolvido por nome
+
+**Contexto:** `contacts.tags` ia receber escrita do sync E da operadora — o
+mesmo conflito de dois escritores que quebrou email/cidade (fill-null). E o
+ClickMassa já tinha tagueamento humano real (393 contatos, 19 tags curadas)
+enquanto nosso catálogo de 6 tags tinha zero uso; o payload manda NOME, mas a
+coluna `clickmassa_tags_id` é integer[].
+
+**Alternativas consideradas:**
+
+- Uma coluna com merge/precedência: recria o problema do three-way pra mais um
+  campo, com segunda regra de conflito pra manter.
+- Importar o vocabulário do CM pro catálogo interno: mistura ruído operacional
+  ("Trafego e sem resposta") com segmento, e tira o controle da Nina.
+
+**Decisão:** (1) `clickmassa_tags_id` é do sync, read-only na UI;
+`contacts.tags` é da operadora, sync nunca toca. (2) Resolução nome→id contra
+`bronze_clickmassa_tags` (19/19 casam exato) em função própria e idempotente
+(`sync_clickmassa_tags()`), FORA da `promote_contacts_from_bronze` — que está na
+fila do three-way e não será reescrita duas vezes. (3) Tag interna grava `slug`,
+estável sob rename. (4) Exibição resolve id→nome na leitura via view
+`clickmassa_tags_catalogo`: rename no CM aparece sozinho. (5) Substituição
+integral do array a cada ciclo (full refresh), nunca união.
+
+**Racional:** Separar por coluna elimina a regra de precedência em vez de
+duplicá-la. Zero coluna nova, zero merge, e a unificação futura de vocabulário
+já tem ponte dormente (`tags.clickmassa_tag_id`, nula por ora).
+
+---
+
+### [2026-07-28] D090 — Contrato de Dados Campanhas de Email v1: permissão em três colunas, elegibilidade única, snapshot congelado e MODO SEGURO
+
+**Contexto:** Módulo de campanhas (Resend) pra base legada de 205 emails sem
+registro de opt-in, operado por usuária não técnica que nunca abre o painel do
+Resend. Broadcast do Resend só aceita Segment (verificado na doc oficial;
+Audiences deprecado), e o custo de um envio errado é público e irreversível.
+
+**Alternativas consideradas:**
+
+- Opt-in obrigatório antes de qualquer envio: mataria o canal no dia zero pra
+  uma base com relação comercial real; re-permissão vira lote futuro.
+- Contadores em colunas (emails_abertos etc.): já provou ser mentira em
+  produção; métricas passam a ser derivadas de eventos, sempre.
+- Seleção avulsa de destinatários por campanha: trabalho manual descartado a
+  cada envio; grupo estático nomeado é o mesmo esforço com resultado persistente
+  e mapeia 1:1 pra Segment.
+- Testar o primeiro envio "com cuidado" na base real: substituído por
+  interceptação estrutural.
+
+**Decisão:** (1) Permissão = `email_marketing_status`
+(`legitimo_interesse`/`optin`/`descadastrado`/`invalido`) + carimbo e origem;
+webhook escreve descadastro/inválido, back-office escreve opt-in, sync NUNCA
+toca. (2) Elegibilidade tem UMA definição, a view `contatos_elegiveis_email`;
+tela e envio leem a mesma. (3) Envio congela `campanha_destinatarios`
+(append-only, cópia literal de email+nome) e recusa reenvio por estado +
+idempotência; conteúdo trava por hash — editar depois do teste invalida o teste
+no servidor. (4) MODO SEGURO (`CAMPANHAS_MODO_SEGURO=1`): o pipeline resolve o
+público real e loga, mas intercepta num ponto único e envia só pros endereços de
+teste (`@resend.dev` + humanos); fica ligado em produção até a base legal ser
+aprovada por Nina e Julia. (5) Supressão automática server-side: bounce hard →
+inválido, reclamação → descadastrado, unsubscribe (`contact.updated`) →
+descadastrado.
+
+**Racional:** Numa operação de email, a UI é conveniência e o servidor é a única
+garantia. Cada trava existe por um desastre nomeado: hash contra "mandei a
+versão errada", recontagem contra "mandei pra quem saiu", snapshot contra "não
+sei o que foi enviado", modo seguro contra o primeiro envio heroico.
+
+---
+
 ### [D089] Contrato de Dados — Ficha, Documentos e Comunicação v1: Iddas por link, documento nativo, merge three-way por campo
 
 **Data:** 2026-07-27 **Contexto:** anotações da Amanda pediam newsletter via
