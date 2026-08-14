@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getContactById, updateContact } from "@/lib/contacts";
-import { whatsappValidationError } from "@/lib/contacts/phone";
+import { whatsappValidationError, toStoragePhone } from "@/lib/contacts/phone";
 import { requireSession } from "@/lib/auth/session";
 import { tagEmMassa } from "@/lib/tags";
 import { criarGrupo, adicionarMembros } from "@/lib/grupos";
@@ -59,7 +59,13 @@ export async function quickUpdateContact(id: string, input: QuickEditInput): Pro
 
     const patch: Partial<Contact> = {
       name,
-      whatsapp: whatsapp || null,
+      // Grava na forma de ARMAZENAMENTO da base (dígitos com o DDI 55) pela mesma
+      // função que a ficha e os dois formulários usam — era daqui que saía número
+      // sem prefixo, desfazendo a canonicalização retroativa um contato por vez.
+      // Sem fallback pro trim cru (o do `from-form.ts`): ali a entrada pode não
+      // ter passado por validação, aqui a guarda acima já garantiu 10–11 dígitos
+      // (ou 12–13 com 55), faixas em que `toStoragePhone` nunca devolve vazio.
+      whatsapp: whatsapp ? toStoragePhone(whatsapp) : null,
       email,
       status: input.status,
     };

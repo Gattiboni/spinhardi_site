@@ -1,23 +1,41 @@
 /**
- * Normalização canônica de telefone BR — FONTE ÚNICA.
+ * Telefone BR — FONTE ÚNICA das DUAS formas que o sistema usa.
  *
- * Um só lugar para transformar qualquer entrada humana ("(11) 98334-0441",
- * "+55 11 98334 0441", "11983340441") num formato canônico comparável e
- * persistível. Consumido por (e SÓ por):
- *   - validação server-side  → validation.ts   (via whatsappValidationError)
- *   - persistência           → from-form.ts    (o que grava no banco)
- *   - dedup                  → contacts/index.ts (compara canônico vs canônico)
+ * São duas, e tratá-las como uma só foi o bug consertado no lote three-way (M8):
  *
- * CANÔNICO = só dígitos, com DDD, SEM o DDI 55. Ex.: "11983340441".
- *   - fixo:    10 dígitos → DDD (2) + assinante (8), assinante iniciando 2–5;
- *   - celular: 11 dígitos → DDD (2) + 9 + assinante (8).
+ * 1. ARMAZENAMENTO — o que vai pra `contacts.whatsapp`. Só dígitos, COM o DDI:
+ *    "5511983340441". É o formato da base INTEIRA: o que o sync das origens
+ *    grava, o que a ficha grava, o que a migration de canonicalização de
+ *    13/08/2026 aplicou nos registros manuais que estavam sem o prefixo, e o que
+ *    a `promote_contacts_from_bronze` v2 (M5 do contrato three-way) casa por
+ *    IGUALDADE ao promover bronze→contacts. Internacional (12–13 dígitos) fica
+ *    como veio. Produzido por `toStoragePhone` — e SÓ por ele.
  *
- * Regras (ANATEL):
+ * 2. COMPARAÇÃO — nunca persistida. Só dígitos, com DDD, SEM o DDI:
+ *    "11983340441" (o campo `canonical`). Serve pra validar o que o humano
+ *    digitou e pra decidir se dois números são a mesma pessoa tolerando formato
+ *    misto dos dois lados. Produzido por `normalizeBrPhone` /
+ *    `normalizeBrPhoneLegacy`.
+ *
+ * Até 13/08/2026 este docblock declarava a forma 2 como "o canônico persistível".
+ * Era o único elemento do sistema dizendo isso — banco, sync, ficha e RPC sempre
+ * foram com-55 — e por causa disso a captura do site e o cadastro manual gravavam
+ * fora do padrão da base. Não reinverta: comparação sem 55, armazenamento com 55.
+ *
+ * Consumido por:
+ *   - validação server-side  → validation.ts + actions do back-office
+ *                              (via `whatsappValidationError`) ......... forma 2
+ *   - dedup                  → contacts/index.ts (`phoneKeys`) ......... forma 2
+ *   - persistência           → from-form.ts (captura do site e cadastro
+ *                              manual) + edit-validation.ts (ficha) .... forma 1
+ *
+ * Regras da forma de comparação (ANATEL):
  *   - tira tudo que não é dígito;
  *   - remove o DDI 55 quando presente (12–13 dígitos começando com 55 — só aí,
  *     pra não confundir com o DDD 55 de Santa Maria/RS);
  *   - DDD válido: 11–99 (rejeita 0x e 10);
- *   - celular (11 díg) precisa ter o 9 logo após o DDD.
+ *   - celular (11 díg) precisa ter o 9 logo após o DDD;
+ *   - fixo: 10 dígitos → DDD (2) + assinante (8), assinante iniciando 2–5.
  * Fora dessas formas → inválido.
  *
  * PROMOÇÃO DO NONO DÍGITO (celular antigo de 10 díg → 11): NÃO acontece na
@@ -26,6 +44,10 @@
  * um número DIFERENTE do digitado. Por isso a promoção vive só em
  * `normalizeBrPhoneLegacy`, usada EXCLUSIVAMENTE pelo fallback de dedup contra
  * registros legados do banco. O form (validação/persistência) nunca a liga.
+ *
+ * `toStoragePhone` também NÃO valida nem promove nada: reveste com o DDI e ponto.
+ * Quem barra formato ruim é a validação, antes — recusar número na hora de gravar
+ * é decisão de design de outra leva.
  *
  * NÃO tem "server-only": é lógica pura (sem I/O), importável no client. A máscara
  * do form é convenção separada (ContactForm) — a fonte da verdade é sempre esta
@@ -101,11 +123,36 @@ function normalizeCore(raw: string, promoteMobile9: boolean): NormalizedPhone {
 }
 
 /**
- * Normalização ESTRITA — usada por validação e persistência do form.
+ * Normalização ESTRITA (forma de COMPARAÇÃO) — usada pela validação do form e
+ * como etapa de limpeza antes do revestimento de `toStoragePhone`.
  * Celular de 10 dígitos é INVÁLIDO (sem promoção). Fixo de 10 dígitos passa.
+ * O `canonical` que ela devolve NÃO é o que se grava — ver o topo do arquivo.
  */
 export function normalizeBrPhone(raw: string): NormalizedPhone {
   return normalizeCore(raw, false);
+}
+
+/**
+ * Forma de ARMAZENAMENTO da base: dígitos com o DDI 55. Regra ÚNICA do sistema —
+ * a ficha (`edit-validation.ts`) e a captura/cadastro (`from-form.ts`) chamam
+ * esta função, ninguém reimplementa.
+ *
+ * A decisão é SÓ por comprimento, e isso é proposital. Número nacional tem 10
+ * dígitos (fixo: DDD + 8) ou 11 (celular: DDD + 9); número com DDI tem 12 ou 13.
+ * As faixas não se intersectam, então 10–11 dígitos é impossível já estar
+ * prefixado — duplo prefixo não existe nessa faixa. Testar `startsWith("55")`
+ * aqui não evita nada e engole o prefixo de todo cliente do DDD 55 (Santa
+ * Maria/RS e região), que viraria um 11 dígitos fora do padrão da base.
+ * NÃO reintroduza esse teste.
+ *
+ * 12+ dígitos (internacional) → passa como veio, sem reformatar: mexer no formato
+ * de quem já está no padrão é o que quebraria o match do sync com as origens.
+ * Aceita entrada crua ou já reduzida a dígitos — o strip é idempotente.
+ */
+export function toStoragePhone(raw: string): string {
+  const digitos = stripToDigits(raw);
+  const nacional = digitos.length === 10 || digitos.length === 11;
+  return nacional ? `55${digitos}` : digitos;
 }
 
 /**

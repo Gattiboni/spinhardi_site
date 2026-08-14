@@ -83,9 +83,9 @@ export const IDDAS_RESOURCES: IddasResourceSpec[] = [
   // Grupo 2: referência grande (paginada)
   { resource: "aeroporto", path: "aeroporto", table: "bronze_iddas_aeroporto", expected: 4564, mapper: mapAeroporto },
   { resource: "companhia", path: "companhia", table: "bronze_iddas_companhia", expected: 1018, mapper: mapCompanhia },
-  // Grupo 3: núcleo
-  { resource: "pessoa", path: "pessoa", table: "bronze_iddas_pessoa", expected: 838, mapper: mapPessoa },
-  { resource: "orcamento", path: "orcamento", table: "bronze_iddas_orcamento", expected: 614, mapper: mapOrcamento },
+  // Grupo 3: núcleo — volumes remedidos contra a API em 13/08/2026 (eram 838/614)
+  { resource: "pessoa", path: "pessoa", table: "bronze_iddas_pessoa", expected: 882, mapper: mapPessoa },
+  { resource: "orcamento", path: "orcamento", table: "bronze_iddas_orcamento", expected: 675, mapper: mapOrcamento },
   // Grupo 4: transacionais
   { resource: "venda", path: "venda", table: "bronze_iddas_venda", expected: 208, mapper: mapVenda },
   { resource: "receita", path: "receita", table: "bronze_iddas_receita", expected: 441, mapper: mapReceita },

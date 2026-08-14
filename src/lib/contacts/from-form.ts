@@ -7,7 +7,7 @@ import type {
   PerfilViajante,
 } from "./types";
 import { DESTINO_LABELS } from "./types";
-import { normalizeBrPhone } from "./phone";
+import { normalizeBrPhone, toStoragePhone } from "./phone";
 
 /**
  * Campos que tanto o form do site quanto o cadastro manual coletam.
@@ -52,11 +52,17 @@ export function draftContactFromForm(
   const now = new Date().toISOString();
   const observacao = input.observacao?.trim() ?? "";
 
-  // Persiste SEMPRE o WhatsApp no formato canônico (só dígitos, com DDD, sem 55 —
-  // ver phone.ts). O que entra no banco daqui pra frente é canônico; o dedup
-  // passa a comparar canônico vs canônico. Se por acaso não normalizar (caminho
-  // do cadastro manual, que não passa por validação), degrada pro trim cru —
-  // nunca perde o dado.
+  // Persiste SEMPRE o WhatsApp na forma de ARMAZENAMENTO da base: dígitos COM o
+  // DDI 55 (ver phone.ts). Vale pros DOIS caminhos que passam por aqui — captura
+  // do site e cadastro manual —, que até 13/08/2026 gravavam sem o prefixo e
+  // ficavam fora do padrão de todo o resto da base (sync, ficha, RPC de promoção).
+  //
+  // A ordem importa: `normalizeBrPhone` primeiro, porque é ele que limpa e valida
+  // a forma BR (e rejeita celular de 10 dígitos sem fabricar o nono); só então
+  // `toStoragePhone` reveste com o DDI. Número que não normaliza (caminho do
+  // cadastro manual, onde o WhatsApp é opcional) ainda passa pela mesma regra a
+  // partir do que foi digitado, e se nem isso sobrar dígito, degrada pro trim cru
+  // — nunca perde o dado.
   //
   // Campo vazio → null (U1): o cadastro manual do admin aceita contato sem
   // telefone. Gravar "" marcaria `tem_whatsapp` como falso-positivo (só dígitos
@@ -64,6 +70,8 @@ export function draftContactFromForm(
   // (validação separada), nunca chega aqui vazio.
   const rawWhatsapp = input.whatsapp?.trim() ?? "";
   const phone = rawWhatsapp ? normalizeBrPhone(rawWhatsapp) : null;
+  const stored = toStoragePhone(phone?.ok ? phone.canonical : rawWhatsapp);
+  const whatsapp = rawWhatsapp === "" ? null : stored || rawWhatsapp;
 
   return {
     // Contato nascendo da captura/cadastro: nenhuma edição humana de card ainda.
@@ -71,7 +79,7 @@ export function draftContactFromForm(
     qualificacaoEditadoEm: null,
 
     name: input.name.trim(),
-    whatsapp: rawWhatsapp === "" ? null : phone?.ok ? phone.canonical : rawWhatsapp,
+    whatsapp,
     email: blankToNull(input.email),
     cpf: null,
     dataNascimento: null,

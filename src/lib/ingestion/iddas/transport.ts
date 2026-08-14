@@ -9,8 +9,22 @@ export const RETRY_DELAYS = [500, 1000, 2000];
 // Teto de espera ao honrar Retry-After — evita um valor absurdo travar a sync.
 export const RETRY_AFTER_CAP_MS = 30_000;
 
+// Teto do excerto do corpo de erro que entra na mensagem: o bastante pra
+// identificar a causa (mensagem da API, <title> de uma página de erro HTML) sem
+// despejar uma página inteira no log.
+const ERR_BODY_EXCERPT = 300;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Achata o corpo de erro numa linha e corta no teto, sinalizando o corte. */
+function excerptBody(body: string): string {
+  const flat = body.replace(/\s+/g, " ").trim();
+  if (flat === "") return "(corpo vazio)";
+  return flat.length > ERR_BODY_EXCERPT
+    ? `${flat.slice(0, ERR_BODY_EXCERPT)}…(+${flat.length - ERR_BODY_EXCERPT} chars)`
+    : flat;
 }
 
 /**
@@ -131,11 +145,18 @@ export function createIddasTransport(cfg: IddasConfig, logger: Logger): IddasTra
           },
         });
         if (!res.ok) {
-          let errBody: unknown;
+          // O corpo é lido UMA vez, como TEXTO. Antes era `res.json()` com fallback
+          // `res.text()`: o json() já consome o stream, então resposta de erro
+          // não-JSON (a API devolve página HTML em alguns 4xx/5xx) estourava
+          // "Body is unusable" — o erro escapava pelo catch de rede lá embaixo,
+          // mascarava o status real e queimava as tentativas com uma causa falsa.
+          // O parse de JSON agora é sobre o texto já lido, nunca sobre a resposta.
+          const rawBody = await res.text().catch(() => "");
+          let corpo = rawBody;
           try {
-            errBody = await res.json();
+            corpo = JSON.stringify(JSON.parse(rawBody));
           } catch {
-            errBody = await res.text();
+            // não é JSON — segue o texto cru, que é o que interessa no excerto
           }
           if (attempt < RETRY_DELAYS.length && (res.status === 429 || res.status >= 500)) {
             // 429: honra Retry-After (capado) quando presente; senão, backoff
@@ -156,7 +177,10 @@ export function createIddasTransport(cfg: IddasConfig, logger: Logger): IddasTra
             await sleep(waitMs);
             continue;
           }
-          throw new Error(`HTTP ${res.status}: ${JSON.stringify(errBody)}`);
+          // Status HTTP real + excerto do corpo (JSON normalizado; não-JSON como
+          // veio). Prefixo `HTTP <status>` preservado — é o que os consumidores
+          // (ex.: sondas) casam pra extrair o status da mensagem.
+          throw new Error(`HTTP ${res.status}: ${excerptBody(corpo)}`);
         }
         return await res.json();
       } catch (err) {

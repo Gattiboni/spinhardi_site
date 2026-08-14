@@ -10,6 +10,7 @@ import {
   PERFIS_OPTIONS,
   PRAZOS_OPTIONS,
 } from "./types";
+import { toStoragePhone } from "./phone";
 
 /**
  * Validação + normalização dos campos editáveis na FICHA do contato (M1 do
@@ -90,30 +91,6 @@ export type DadosPessoaisPatch = {
 const WHATSAPP_MIN_DIGITOS = 10;
 const WHATSAPP_MAX_DIGITOS = 13;
 
-/**
- * Alinha o número digitado à convenção da base: 55-prefixado (877/878 registros).
- * O card de "possível duplicado" e a fusão por telefone comparam IGUALDADE nesse
- * formato — número gravado sem o 55 não casaria com o resto da base.
- *
- * A decisão é SÓ por comprimento, e isso é proposital. Número nacional tem 10
- * dígitos (fixo: DDD + 8) ou 11 (celular: DDD + 9); número com DDI tem 12 ou 13.
- * As faixas não se intersectam, então 10–11 dígitos é impossível já estar
- * prefixado — duplo prefixo não existe nessa faixa. Testar `startsWith("55")`
- * aqui não evita nada e engole o prefixo de todo cliente do DDD 55 (Santa
- * Maria/RS e região), que viraria um 11 dígitos fora do padrão da base.
- * NÃO reintroduza esse teste.
- *
- * 12+ dígitos → grava como digitado, sem reformatar: mexer no formato de quem já
- * está no padrão é o que quebraria o match do sync com as origens.
- *
- * NÃO é a normalização canônica de `phone.ts` (aquela TIRA o 55): aqui a
- * convenção é a oposta, a da base.
- */
-function comDdi55(digitos: string): string {
-  const nacional = digitos.length === 10 || digitos.length === 11;
-  return nacional ? `55${digitos}` : digitos;
-}
-
 const ANO_MINIMO_NASCIMENTO = 1900;
 
 // Idade mínima do CONTATO. O contato é o comprador da viagem: assina contrato,
@@ -167,8 +144,9 @@ export function normalizeDadosPessoais(
   }
 
   // Faixa conferida sobre o que a pessoa digitou; o DDI entra depois (10–11
-  // dígitos viram 12–13, dentro do que a base já usa).
-  const whatsapp = comDdi55(digitados);
+  // dígitos viram 12–13, dentro do que a base já usa). A regra do 55 mora em
+  // `phone.ts` — mesma função que a captura e o cadastro manual usam.
+  const whatsapp = toStoragePhone(digitados);
 
   const dataNascimento = blankToNull(input.dataNascimento);
   if (dataNascimento) {

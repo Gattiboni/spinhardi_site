@@ -67,7 +67,7 @@ Paginação via query param `?page=N`. Page size padrão: **10**. Testado e conf
 | `hospedagem` | 200 | sim | 10 | **109** | sim | id, **id_orcamento**, identificador_orcamento, nome, data_entrada, data_saida, localizador |
 | `infosolicitacao` | 200 | sim | 3 | 3 | não | nome, campo, tipo, opcoes, obrigatorio (config de campos do form público) |
 | `motivoreprovacao` | 200 | sim | 8 | 8 | não | id, nome, ativo |
-| `orcamento` | 200 | sim | 10 | **614** | sim | id, titulo, identificador, situacao, nome_situacao, **cliente** (pessoa.id), **canal_venda**, **usuario**, passageiros_*, valor, data_orcamento, voos[], hospedagem[], transporte[], cruzeiro[], seguro[], roteiro[], etiquetas[] |
+| `orcamento` | 200 | sim | 10 | **614** | sim | id, titulo, identificador, situacao, nome_situacao, **cliente** (pessoa.id), **canal_venda**, **usuario**, passageiros_*, valor, data_orcamento, voos[], hospedagem[], transporte[], cruzeiro[], seguro[], roteiro[] — **`etiquetas[]` NÃO vem na lista**, só no detalhe `GET /orcamento/{id}` (medido pela sonda `scripts/sonda-iddas-etiquetas.ts`, 13/08/2026: etiquetas tipo C, 470 aplicações) |
 | `passeio` | 200 | **NÃO** | 0 | **0** | n/a | (sem dados — recurso vazio) |
 | `pessoa` | 200 | sim | 10 | **838** | sim | id, nome, nascimento, sexo, tipo_cliente, celular, email, cpf_cnpj, rg, passaporte, canal_venda, familia[], created_at |
 | `produtoservico` | 200 | **NÃO** | 0 | **0** | n/a | (sem dados — recurso vazio) |
@@ -95,7 +95,7 @@ orcamento.cliente         ──FK──→ pessoa.id
 orcamento.canal_venda     ──FK──→ canal.id
 orcamento.usuario         ──FK──→ usuario.id
 orcamento.situacao (code) ──FK──→ situacao.codigo  (ATENÇÃO: é o campo "codigo", não "id"!)
-orcamento.etiquetas[]     ──embed──→ etiqueta.id
+orcamento.etiquetas[]     ──embed──→ etiqueta.id   (só no DETALHE /orcamento/{id}, não na lista)
 
 venda.id_orcamento        ──FK──→ orcamento.id
 cruzeiro.id_orcamento     ──FK──→ orcamento.id
