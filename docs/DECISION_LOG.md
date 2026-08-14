@@ -28,6 +28,83 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-08-14] D094 — Telefone: armazenamento com-55 é a regra única, exportada, com três escritores fechados
+
+**Contexto:** O banco estava 100% canônico com-55 (migration retroativa de
+13/08) e a `promote_contacts_from_bronze` v2 casa por igualdade de telefone —
+mas `phone.ts`, autodeclarado fonte única da verdade, documentava sem-55 como
+canônico, a ficha implementava com-55 por conta própria (`comDdi55` local) e o
+form compartilhado ATIVAMENTE removia o 55 na escrita. O grep de superfície
+achou ainda um terceiro escritor sem régua nenhuma: `quickUpdateContact` (edição
+rápida da lista) gravava o que a Nina digitasse — cada edição inline desfazia a
+migration um contato por vez, silenciosamente.
+
+**Alternativas consideradas:**
+
+- Promover sem-55 (obedecer o docblock): exigiria migration reversa num banco já
+  canônico e quebraria o outbound do ClickMassa que espera E.164.
+- Nome `comDdi55` pro export: descreve a mecânica, não o papel; envelhece mal se
+  o internacional crescer.
+- Aproveitar e validar formato na edição rápida: reabriria a decisão de UX do
+  internacional já deferida — fora do lote.
+
+**Decisão:** (1) `toStoragePhone` exportada de `phone.ts` é a ÚNICA regra de
+armazenamento: 10-11 dígitos → prefixa 55; 12-13 passa intacto; zero validação
+nova; nunca `startsWith("55")` (engoliria o DDD 55 de Santa Maria). (2) Docblock
+declara as duas formas por papel: armazenamento com-55 (citando a migration de
+13/08 e a promote v2), comparação sem-55 (`normalizeBrPhone`/`phoneKeys`, nunca
+persistida) — com registro explícito de que a inversão foi deliberada. (3) Todo
+escritor de `contacts.whatsapp` passa pela função: ficha, forms e edição rápida;
+escritor novo que não passe é violação de contrato. (4) Validação de formato na
+edição rápida fica pro lote de UX (assimetria registrada: lista recusa
+internacional, ficha aceita).
+
+**Racional:** Dual-writer de REGRA é tão tóxico quanto dual-writer de coluna: a
+mesma transformação definida em dois lugares diverge com certeza, só não se sabe
+quando. Um export nomeado pelo papel mata a segunda definição e dá endereço
+único pro conhecimento que não pode morrer (o TRAP do DDD 55).
+
+---
+
+### [2026-08-14] D093 — Three-way v1 executado: fusão por telefone na promoção, CRM como histórico, religada condicionada a sync manual com gate
+
+**Contexto:** Cron pausada desde 25/07 (D088) enquanto a promoção antiga
+duplicava em vez de fundir; a Nina criou 26 contatos manuais no período, vários
+também existentes no ClickMassa — campo minado armado pra religada. O contrato
+three-way v1 (`docs/contrato_three_way_merge_v1.md`, M1-M9) precisava sair do
+papel e a cron não podia religar no escuro.
+
+**Alternativas consideradas:**
+
+- Religar e deixar a cron "se acertar": cada ciclo criaria duplicatas novas dos
+  26 manuais; o custo de fusão só cresceria.
+- Importar anexos/etiquetas do Iddas junto: etiqueta não toca as colunas do
+  merge e o lote crítico não engorda com o ortogonal — lote próprio.
+- Deletar da silver o que sumiu da origem: descartado como postura — o CRM é
+  histórico; detecção de deleção fica como ponto de extensão nomeado.
+
+**Decisão:** (1) Promoção funde por telefone canônico; ambiguidade (dois
+contatos, mesmo telefone) resolve determinística pra UM contato, nunca duplica
+nem linka o mesmo externo duas vezes — a pergunta humana residual fica visível
+como contato sem link. (2) `is_user` sai do filtro (zero correlação com ser
+cliente; provado no banco). (3) `last_synced_values` seeda da bronze CONGELADA,
+não do estado do contato: edição humana feita durante a pausa não vira "valor
+que a origem mandou". (4) Religada só após sync manual com gate por etapa:
+snapshot pré via MCP → ingestão só-bronze (`?ingestOnly=1`) → auditoria →
+promoção via MCP com contagem capturada → auditoria pós → prova do caminho
+completo da rota → toggle. Critério de sucesso do sync Iddas é o
+`ingestion_log`, nunca o curl (corte de gateway aos ~340s, função completa aos
+~546s). (5) Assinatura da RPC preservada no CREATE OR REPLACE — consumidor
+nenhum recompilado.
+
+**Racional:** Fusão por telefone era a única chave presente dos dois lados dos
+26 manuais; o gate por etapa transformou a religada de aposta em medição (26
+inseridos previstos e ocorridos, 8/8 fusões, 17 grupos de duplicata estáveis em
+três medições). Idempotência foi provada por contraste, não presumida: a mesma
+função que inseriu 26 com trabalho a fazer devolveu 0/0 sem.
+
+---
+
 ### [2026-07-28] D092 — Auditoria interna dentro de campanha_eventos (emenda v1.1 ao contrato de campanhas)
 
 **Contexto:** A cláusula V1 do contrato definia `campanha_eventos` como

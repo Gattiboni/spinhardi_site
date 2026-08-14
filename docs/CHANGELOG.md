@@ -15,6 +15,88 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-08-14
+
+---
+
+**CONTRATO — Contrato Three-Way Merge v1 (D093):** congelado em
+`docs/contrato_three_way_merge_v1.md`, M1-M9. Fusão por telefone canônico na
+promoção, filtro `is_user` removido (correlacionava com `is_wa_contact` e
+barrava 217 contatos, 38 com venda confirmada — Leitura A provada no banco),
+telefone internacional 12-13 dígitos aceito, `last_synced_values` como seed do
+merge por campo (emenda M6: seed vem da bronze congelada, não do contato — a
+revisão manual da Nina fica blindada). Postura cravada: o CRM é histórico,
+registro sumido da origem permanece na bronze e no back-office (pessoa 968930 é
+404 no Iddas e segue viva); detecção de deleção é ponto de extensão nomeado, não
+implementado. Etiquetas do Iddas ficaram FORA por decisão: a sonda entregou a
+receita (vínculo orçamento-etiqueta em tabela própria, refresh incremental de 12
+chamadas filtradas em vez de 675 detalhes), mas nada disso toca as colunas que o
+merge resolve — vira lote próprio.
+
+**INFRA — Three-way executado, sync manual auditado e cron religada (D093):**
+quatro migrations via MCP (`three_way_m4_m6_last_synced_values`,
+`three_way_m8_normalizacao_whatsapp_retroativa`,
+`three_way_m2_reparo_duplicatas`, `three_way_m1_m3_m4_m5_promote_v2`). Seed 100%
+dos links vigentes (675 Iddas + 530 CM na data); 12 telefones canonizados
+retroativamente; 27 duplicatas fundidas por lista de UUIDs aprovada (par
+Luísa/Luis Coli mantido de propósito — decisão barata, confirma com a Nina);
+`promote_contacts_from_bronze` v2 reescrita com CREATE OR REPLACE preservando a
+assinatura `(fonte, inseridos, preenchidos)`. Sync manual em produção com gate
+por etapa: ingestão só-bronze (`?ingestOnly=1`) trouxe 19 dias de mudança (+130
+contatos CM, +27 pessoas, +26 orçamentos; fantasmas confirmados: 892 na bronze
+vs 882 na API), promoção via MCP inseriu 26 exatos e linkou 8/8 manuais da Nina
+por telefone — a fusão funcionou no mundo real na primeira rodada. Par das Anas
+(mesmo telefone): promoção escolheu uma deterministicamente, deu os dois links
+pra ela e NÃO duplicou nem linkou o mesmo externo duas vezes; a outra segue sem
+link aguardando decisão humana. Caminho completo da rota provado com deltas zero
+(idempotência real, não hipótese) e cron religada: primeiro disparo autônomo do
+agendador às 04:30 UTC, completed, depois de 20 dias pausada. TRAP operacional
+dupla: (1) o apex `spinharditurismo.com.br` responde 308 pra `www.` e o curl
+descarta o `Authorization` no redirect — chamada manual de cron é sempre no
+`www.`; (2) o curl externo do sync Iddas corta aos ~340s (limite de gateway,
+reprodutível) mas a função continua e completa em ~546s — sync do Iddas NUNCA se
+julga pelo curl, julga-se pelo `ingestion_log`.
+
+**SITE — Telefone canônico com-55 em todos os escritores + acabamentos (D094):**
+commit único de 14/08. `phone.ts` exporta `toStoragePhone` como regra única de
+armazenamento (10-11 dígitos → prefixa 55; internacional 12-13 passa intacto;
+DDD 55 de Santa Maria protegido — sem `startsWith("55")`); docblock reescrito
+declarando com-55 como canônico com registro do "não reinverta": o próprio
+arquivo era o único elemento do sistema afirmando o contrário. Três escritores
+de `contacts.whatsapp` fecham na mesma régua: ficha (`edit-validation` importa
+em vez de definir), forms compartilhados (`draftContactFromForm` aplica na saída
+preservando "nunca perde o dado" no caminho degradado) e edição rápida da lista
+(`quickUpdateContact` — furo pego pelo grep do Codinho, fechado como E3-B;
+fallback dispensado com prova: a guarda pré-existente barra entrada sem dígito
+antes do patch). Assimetria conhecida e registrada: edição rápida NÃO aceita
+internacional (régua BR estrita pré-existente), a ficha aceita — insumo do lote
+futuro de UX de validação. Acabamentos: transporte Iddas lê o body uma vez e
+devolve status HTTP real no erro (o "Body is unusable" mascarava 500 e queimava
+4 requests); sentinelas de backfill atualizadas 838/614→882/675 (só protegem
+backfill manual — nunca pintariam a cron); `docs/misc_etls/iddas-endpoints.md`
+corrigido na linha que gerou a falsa expectativa de anexos.
+
+**Validação (β):** `tsc --noEmit` + `next build` limpos; provas determinísticas
+17/17 (E3-A) e 16/16 (E3-B) exercitando as funções reais do repo, incluindo DDD
+55 e internacional nos dois níveis; sync manual auditado via MCP em três
+medições consecutivas sem variação — 1.028 contatos, 17 grupos de duplicata
+(zero nova), 868/704 links, zero sem seed, zero telefone fora do canônico;
+idempotência provada por contraste (mesma função: 26 inseridos com trabalho a
+fazer, 0/0 sem); cron viva com disparo autônomo `completed` às 04:30 UTC.
+
+**Pendências do lote:** base legal (legítimo interesse) com Nina e Julia segue
+bloqueando o primeiro disparo real — `CAMPANHAS_MODO_SEGURO` ligado (mesma
+pendência do lote CAMP); DMARC não verificado (Z2, idem); contato "Teste"
+(telefone da Amanda) a expurgar da `contacts`; mensagem de suporte pra Nina deve
+cobrir: par das Anas, Luísa/Luis Coli e os telefones placeholder (551999999xxxx)
+que ela cadastrou; etiquetas do Iddas = lote próprio com receita pronta; token
+funcional de erro com a Amanda (D1) e imagem de teste órfã no bucket seguem do
+CAMP; `RESEND_SEGMENT_TODOS_ELEGIVEIS_ID` nasce no primeiro envio real.
+RESOLVIDA do CAMP: "cron de sync segue desligada" — o gate era o three-way, o
+three-way passou, a cron voltou.
+
+---
+
 **CONTRATO — Contrato de Dados Campanhas de Email e Tags v1 (D090, D091):**
 congelado em `docs/contrato_dados_campanhas_email_v1.md`, 10 blocos. Permissão
 de email marketing vira três colunas em `contacts` (`email_marketing_status`
