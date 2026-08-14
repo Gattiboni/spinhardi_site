@@ -166,9 +166,38 @@ type KanbanRpcRow = {
  * o que estourava a URL (HeadersOverflowError) com ~586 jornadas. Uma chamada,
  * zero `.in()`.
  */
+/**
+ * Slugs de `contacts.tags` por contato, pra decorar os cards do kanban.
+ *
+ * Uma query só, sem `.in(...)`: filtrar pelos contatos do quadro exigiria a
+ * lista de ids na URL — exatamente o que estourou o header antes. A tabela toda
+ * são ~1k linhas de duas colunas, e só as com tag entram no mapa. Degrada pra
+ * mapa vazio em erro: tag no card é decoração, nunca motivo pro funil quebrar.
+ */
+async function getTagsPorContato(): Promise<Map<string, string[]>> {
+  const mapa = new Map<string, string[]>();
+  try {
+    const { data, error } = await supabaseAdmin()
+      .from("contacts")
+      .select("id, tags")
+      .not("tags", "is", null);
+    if (error) throw error;
+
+    for (const linha of (data as { id: string; tags: string[] | null }[]) ?? []) {
+      if (linha.tags && linha.tags.length > 0) mapa.set(linha.id, linha.tags);
+    }
+  } catch (err) {
+    console.error("[jornadas] getTagsPorContato:", err);
+  }
+  return mapa;
+}
+
 export async function getKanbanJornadas(): Promise<JornadaCard[]> {
   try {
-    const { data, error } = await supabaseAdmin().rpc("gold_kanban_jornadas");
+    const [{ data, error }, tagsPorContato] = await Promise.all([
+      supabaseAdmin().rpc("gold_kanban_jornadas"),
+      getTagsPorContato(),
+    ]);
     if (error) throw error;
 
     return ((data as KanbanRpcRow[]) ?? []).map((r) => ({
@@ -186,6 +215,7 @@ export async function getKanbanJornadas(): Promise<JornadaCard[]> {
       createdAt: r.created_at,
       updatedAt: r.estagio_atualizado_em,
       contatoNome: r.contato_nome,
+      tagsInternas: (r.contact_id && tagsPorContato.get(r.contact_id)) || [],
       proximaTarefa:
         r.proxima_tarefa_data == null
           ? null

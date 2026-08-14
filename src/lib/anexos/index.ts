@@ -7,8 +7,14 @@ import { isAnexoPermitido } from "./types";
  * Acesso a anexos — Storage privado + tabela `anexos` (service role, server-only).
  *
  * Bucket `anexos` é PRIVADO: a UI nunca recebe URL pública, só URL ASSINADA
- * temporária (`signedUrlDoAnexo`). Upload e delete passam pelo service role
+ * temporária (`signedUrlDoAnexo`). Delete e registro passam pelo service role
  * (bypassa RLS) — as Server Actions que chamam já estão atrás de `requireSession`.
+ *
+ * UPLOAD É DIRETO DO NAVEGADOR (D-anexos): o servidor só assina uma URL de
+ * upload (`criarUploadAssinado`) e depois registra o metadado (`registrarAnexo`).
+ * O arquivo NUNCA trafega pela Server Action — é por isso que um PDF de 20MB
+ * passa, mesmo com `bodySizeLimit: "3mb"` no next.config (limite que segue
+ * valendo pra capa do blog, agora sem acoplamento nenhum com anexos).
  *
  * Path no bucket: `{jornada|contact}/{ownerId}/{uuid}-{nome}` — o uuid evita
  * colisão de nomes; o prefixo por dono mantém os arquivos organizados e fáceis
@@ -48,8 +54,28 @@ function rowToAnexo(row: AnexoRow): Anexo {
 const COLS =
   "id, contact_id, jornada_id, nome_arquivo, storage_path, tipo, tamanho_bytes, uploaded_by, created_at";
 
+/** Coluna de LEITURA do dono. A escrita usa `ownerColumns` (grava os dois FKs). */
 function ownerColumn(owner: AnexoOwner): "jornada_id" | "contact_id" {
   return owner.kind === "jornada" ? "jornada_id" : "contact_id";
+}
+
+/**
+ * FKs gravados no INSERT. Anexo de jornada grava TAMBÉM o `contact_id` da
+ * jornada: o CHECK do banco só exige "ao menos um dono", e com os dois
+ * preenchidos o arquivo aparece na ficha do contato sem tocar em nenhuma
+ * leitura (`getAnexos` do contato segue filtrando por `contact_id`). Jornada
+ * sem contato vinculado grava só o `jornada_id`, como antes.
+ */
+function ownerColumns(owner: AnexoOwner): Record<string, string> {
+  if (owner.kind === "contact") return { contact_id: owner.id };
+  return owner.contactId
+    ? { jornada_id: owner.id, contact_id: owner.contactId }
+    : { jornada_id: owner.id };
+}
+
+/** Prefixo do path no bucket — todo objeto de um dono mora debaixo dele. */
+function ownerPrefix(owner: AnexoOwner): string {
+  return `${owner.kind}/${owner.id}/`;
 }
 
 // Remove separadores de path e espaços problemáticos do nome, preservando a
@@ -74,43 +100,80 @@ export async function getAnexos(owner: AnexoOwner): Promise<Anexo[]> {
   }
 }
 
+/** O que o cliente precisa pra subir o arquivo sozinho, sem credencial nenhuma. */
+export type UploadAssinado = {
+  /** URL de PUT já com o token embutido (válida por ~2h). */
+  signedUrl: string;
+  /** Path no bucket que o cliente devolve no registro. */
+  path: string;
+};
+
 /**
- * Sobe um arquivo pro bucket privado e registra a linha em `anexos`. Valida a
- * extensão antes de gastar upload. Se a inserção da linha falhar, remove o objeto
- * recém-subido (não deixa lixo órfão no Storage).
+ * PASSO 1 do upload: assina uma URL pro cliente subir DIRETO no bucket privado.
+ * Nada é gravado na tabela aqui — o registro é o passo 2, depois do upload
+ * confirmado, pra nunca existir linha apontando pra objeto inexistente.
  */
-export async function uploadAnexo(owner: AnexoOwner, file: File): Promise<Anexo> {
-  if (!isAnexoPermitido(file.name)) {
+export async function criarUploadAssinado(
+  owner: AnexoOwner,
+  nomeArquivo: string,
+): Promise<UploadAssinado> {
+  if (!isAnexoPermitido(nomeArquivo)) {
     throw new Error("Tipo de arquivo não permitido (use PDF, Word, Excel ou imagem).");
   }
 
-  const sb = supabaseAdmin();
-  const path = `${owner.kind}/${owner.id}/${crypto.randomUUID()}-${nomeSeguro(file.name)}`;
+  const path = `${ownerPrefix(owner)}${crypto.randomUUID()}-${nomeSeguro(nomeArquivo)}`;
+  const { data, error } = await supabaseAdmin()
+    .storage.from(BUCKET)
+    .createSignedUploadUrl(path);
 
-  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type || undefined,
-    upsert: false,
-  });
-  if (upErr) throw new Error(`Erro ao subir arquivo: ${upErr.message}`);
+  if (error || !data) {
+    throw new Error(`Erro ao preparar upload: ${error?.message ?? "desconhecido"}`);
+  }
+  return { signedUrl: data.signedUrl, path: data.path };
+}
 
-  const { data, error } = await sb
+/** Metadado que o cliente devolve depois do upload confirmado. */
+export type RegistroAnexo = {
+  path: string;
+  nomeArquivo: string;
+  tipo: string | null;
+  tamanhoBytes: number;
+};
+
+/**
+ * PASSO 2 do upload: registra o metadado do objeto já subido.
+ *
+ * O `path` vem do cliente, então é conferido contra o prefixo do dono — sem
+ * isso, uma chamada forjada registraria um objeto de outro contato/jornada.
+ *
+ * Se ESTE passo falhar depois de o objeto ter subido, o arquivo fica órfão no
+ * bucket (invisível na UI, custo desprezível) e nenhuma linha suja a tabela —
+ * troca deliberada: linha órfã confunde a operadora, byte órfão não.
+ */
+export async function registrarAnexo(
+  owner: AnexoOwner,
+  registro: RegistroAnexo,
+): Promise<Anexo> {
+  if (!isAnexoPermitido(registro.nomeArquivo)) {
+    throw new Error("Tipo de arquivo não permitido (use PDF, Word, Excel ou imagem).");
+  }
+  if (!registro.path.startsWith(ownerPrefix(owner))) {
+    throw new Error("Caminho do arquivo não confere com o dono do anexo.");
+  }
+
+  const { data, error } = await supabaseAdmin()
     .from("anexos")
     .insert({
-      [ownerColumn(owner)]: owner.id,
-      nome_arquivo: file.name,
-      storage_path: path,
-      tipo: file.type || null,
-      tamanho_bytes: file.size,
+      ...ownerColumns(owner),
+      nome_arquivo: registro.nomeArquivo,
+      storage_path: registro.path,
+      tipo: registro.tipo,
+      tamanho_bytes: registro.tamanhoBytes,
     })
     .select(COLS)
     .single();
 
-  if (error) {
-    // Rollback do objeto pra não deixar órfão no bucket.
-    await sb.storage.from(BUCKET).remove([path]);
-    throw new Error(`Erro ao registrar anexo: ${error.message}`);
-  }
-
+  if (error) throw new Error(`Erro ao registrar anexo: ${error.message}`);
   return rowToAnexo(data as AnexoRow);
 }
 

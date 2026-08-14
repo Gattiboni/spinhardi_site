@@ -3,7 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  uploadAnexoAction,
+  criarUploadUrlAction,
+  registrarAnexoAction,
   removeAnexoAction,
   getAnexoUrlAction,
 } from "@/lib/anexos/actions";
@@ -12,15 +13,22 @@ import {
   type AnexoOwner,
   ANEXO_ICON,
   ANEXO_ACCEPT,
+  ANEXO_MAX_MB,
   anexoKind,
   formatTamanho,
+  validarArquivoAnexo,
 } from "@/lib/anexos/types";
 
 /**
  * AnexosBlock — bloco de anexos reutilizável (detalhe da jornada e ficha do
  * contato). Recebe o `owner` (jornada xor contato) e a lista já carregada no
- * server. Upload e remoção passam por Server Actions (service role); a abertura
- * gera uma URL ASSINADA efêmera — o bucket é privado, nunca há URL pública.
+ * server. Remoção passa por Server Action (service role); a abertura gera uma
+ * URL ASSINADA efêmera — o bucket é privado, nunca há URL pública.
+ *
+ * UPLOAD DIRETO (3 passos, ver `subir`): o arquivo vai do navegador pro Storage
+ * por URL assinada e só depois vira linha na tabela. O arquivo NÃO passa pela
+ * Server Action — é o que faz um PDF de 20MB caber (o `bodySizeLimit: "3mb"` do
+ * next.config continua valendo pro resto do app, sem relação com este bloco).
  */
 export default function AnexosBlock({
   owner,
@@ -35,20 +43,76 @@ export default function AnexosBlock({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
+  /**
+   * Sobe o arquivo em 3 passos. Devolve mensagem de erro (string) ou `null` no
+   * sucesso — quem chama joga no `setErro`, então NENHUM caminho fica silencioso.
+   *
+   * 1. action leve assina a URL de upload (só nome/tamanho trafegam);
+   * 2. PUT do arquivo direto pro Storage — mesmo formato que o `uploadToSignedUrl`
+   *    do supabase-js monta (multipart com `cacheControl` + o arquivo), feito com
+   *    `fetch` cru pra não arrastar o client do Supabase pro bundle do browser;
+   * 3. action de registro grava a linha em `anexos`.
+   *
+   * Falha no passo 2 → nada foi criado. Falha no passo 3 → o objeto fica órfão
+   * no bucket (barato e invisível) e a tabela segue limpa.
+   */
+  const subir = async (file: File): Promise<string | null> => {
+    const preparo = await criarUploadUrlAction(owner, file.name, file.size);
+    if (!preparo.success || !preparo.signedUrl || !preparo.path) {
+      return preparo.error ?? "Não foi possível preparar o envio do arquivo.";
+    }
+
+    const body = new FormData();
+    body.append("cacheControl", "3600");
+    body.append("", file);
+
+    let resposta: Response;
+    try {
+      resposta = await fetch(preparo.signedUrl, {
+        method: "PUT",
+        body,
+        headers: { "x-upsert": "false" },
+      });
+    } catch {
+      return "Falha de conexão ao enviar o arquivo. Tente de novo.";
+    }
+    if (!resposta.ok) {
+      return `Não foi possível enviar o arquivo (erro ${resposta.status}).`;
+    }
+
+    const registro = await registrarAnexoAction(owner, {
+      path: preparo.path,
+      nomeArquivo: file.name,
+      tipo: file.type || null,
+      tamanhoBytes: file.size,
+    });
+    return registro.success ? null : (registro.error ?? "Arquivo enviado, mas não registrado.");
+  };
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setErro(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    startTransition(async () => {
-      const result = await uploadAnexoAction(owner, fd);
+
+    // Barra tamanho/extensão ANTES de gastar rede. O servidor revalida.
+    const validacao = validarArquivoAnexo(file);
+    if (!validacao.ok) {
       if (inputRef.current) inputRef.current.value = "";
-      if (result.success) {
-        router.refresh();
-      } else {
-        setErro(result.error ?? "Não foi possível subir o arquivo.");
+      setErro(validacao.erro);
+      return;
+    }
+
+    startTransition(async () => {
+      let falha: string | null;
+      try {
+        falha = await subir(file);
+      } catch (err) {
+        console.error("[AnexosBlock] upload:", err);
+        falha = "Não foi possível subir o arquivo.";
       }
+      if (inputRef.current) inputRef.current.value = "";
+      if (falha) setErro(falha);
+      else router.refresh();
     });
   };
 
@@ -107,7 +171,7 @@ export default function AnexosBlock({
       {erro && <p className="font-body text-sm text-red-600 mt-3">{erro}</p>}
 
       <p className="font-body text-xs text-dark/40 mt-3">
-        PDF, Word, Excel ou imagem (JPG/PNG).
+        PDF, Word, Excel ou imagem (JPG/PNG) — até {ANEXO_MAX_MB}MB.
       </p>
 
       {anexos.length === 0 ? (

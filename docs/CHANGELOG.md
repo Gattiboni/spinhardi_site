@@ -19,6 +19,112 @@ Ordem: mais recente no topo.
 
 ---
 
+**CONTRATO — Contrato Calendário v1 (D095):** congelado em
+`docs/contrato_calendario_v1.md` com mock aprovado integralmente
+(`docs/mock_calendario_v1.html`). A RPC
+`calendar_events_between(p_inicio,
+p_fim)` é a definição ÚNICA do que aparece no
+calendário — tarefas locais, tarefas do Iddas como espelho read-only (`situacao`
+C=concluída/A=aberta), check-in derivado D-2 de voo com embarque futuro (estado
+em `calendar_checkins`, data nunca gravada), voos, hospedagens, transportes
+(datas só no `raw_payload` — TRAP documentada), cruzeiros, seguros e
+aniversários com recorrência resolvida na própria RPC (29/02 → 28/02 em ano não
+bissexto). Cadeia de contato dos derivados: `id_orcamento` →
+`bronze_iddas_orcamento.cliente` → `contact_external_links`. Hierarquia por
+`role` de `user_profiles` com de-para de identidade como DADO
+(`iddas_usuario_id`/`clickmassa_user_id` semeados: Nina 6713/60, Julia 6810/67,
+Amanda 7916/164, Isaura 7767/144, Bruna –/170 — email falha pra Nina e Julia,
+por isso é coluna e não join). Write-back no Iddas (`POST/PUT/DELETE /tarefa`
+existem na spec) é ponto de extensão nomeado, não implementado — lição
+dual-writer.
+
+**INFRA — Calendário: três migrations via MCP + rebaixamento de role:**
+`calendario_v1_tarefas_e_checkins` (tabela `tarefas` com trigger
+`set_updated_at` reusado; `calendar_checkins` chaveada por `voo_bronze_id`),
+`calendario_v1_depara_usuarios` e `calendario_v1_rpc_calendar_events_between`
+(helpers `iddas_date`/`iddas_time` null-safe pra sentinela `0000-00-00` e casts
+de texto da bronze). TRAP de SQL: a primeira aplicação da RPC falhou —
+`ORDER BY` por nome de coluna exige alias na primeira perna do UNION; corrigida
+na segunda. Marcela Pires rebaixada admin→editor via MCP (página de gestão de
+usuários ainda não existe). β de banco com dado vivo: agosto/2026 = 41 voos (39
+com contato resolvido pela cadeia), 25 check-ins, 18 aniversários, 13
+hospedagens (overlap multi-dia provado com entrada em 25/07), 5 tarefas Iddas
+com 5/5 responsável mapeado pelo de-para; roundtrip de tarefa inserida/lida na
+RPC/apagada; 9 aniversários na virada 2026→2027.
+
+**SITE — Calendário v1 no admin (D095) + batch FIX de anexos e funil (D096):**
+rota `/admin/calendario` com três visões — Mês (célula com máx 3 + popover "+N
+mais" agrupado Trabalho/Operação), Semana e Agenda (Atrasadas/Hoje/Próximos 30
+dias) — drawer lateral com meta por tipo, microtexto de origem e "Abrir contato"
+contextual, composer de célula com responsável default da sessão, drag HTML5
+nativo só em tarefa local (zero dependência nova), "hoje" decidido server-side
+em America/Sao_Paulo (Vercel roda UTC e discordaria do browser entre 21h e
+meia-noite), paleta funcional Tailwind 700 ≥4,5:1 com Tarefas=emerald-700
+(verde-pinheiro ausente resolve a adjacência com navy por construção),
+chips/escopo/visão em localStorage e visão+data na URL (`?v=&d=`, deep-link).
+Hierarquia: admin com seletor Meu/Time/por-pessoa (avatares com contador);
+demais roles travados em "Meu"
+
+- operação sem dono. Módulos existentes tocados só pra registro: AdminSidebar
+  (link) e `roles.ts` (allowlist `/admin/calendario/*` pro editor) — aditivos.
+  FIX: upload de anexo em 3 passos (`criarUploadUrlAction` → PUT direto ao
+  Storage com URL assinada → `registrarAnexoAction` validando o path contra o
+  prefixo do dono) — o binário não passa mais pelo server action e o
+  `bodySizeLimit: 3mb` do Next fica intocado; PDFs grandes param de morrer em
+  413 engolido; validação client 25MB + allowlist; `AnexoOwner` vira união
+  discriminada com `contactId` OBRIGATÓRIO na variante jornada — anexo de
+  jornada grava os dois FKs e aparece na ficha; tags do contato projetadas
+  read-only no card do funil (teto 2 + "+N", query única sem `.in()`);
+  `NEXT_PUBLIC_CLICKMASSA_PANEL_URL` documentada no `.env.example`.
+
+**DOC — Investigação I1-I6 do catch-up, vereditos (D097):** conversas do
+ClickMassa BLOQUEADAS por identidade de credencial — o JWT da env carrega
+`tenantId`/`profile`/`sessionId` mas nenhum id de usuário, e o fork Whaticket
+exige `req.user.id` (500 em `/tickets` com `userId undefined`); rota interna
+`/messages/{ticketId}` existe; dois caminhos documentados na fila (pull com
+credencial de usuário; push via webhooks "Mensagem criada" + "Atendimento
+finalizado histórico" — sem retroativo). `provider: "baileys"` confirmado no
+payload da sessão — resposta definitiva do "QR ou API oficial?": conexão
+não-oficial. Causa do bug de PDF confirmada (`bodySizeLimit` compartilhado com a
+capa do blog + UI engolindo o 413). Spec integral do Iddas (56 paths):
+`POST/PUT/DELETE /tarefa` existem (PUT é full-body, não PATCH),
+`POST /auth/refresh` existe (a exploração de junho disse que não), detalhe de
+tarefa é mais pobre que a lista, `pessoa.familia[]` existe na API e não é
+ingerido.
+
+**Validação (β):** `tsc --noEmit` + `next build` + eslint limpos, rota ƒ
+`/admin/calendario`; 36/36 checks determinísticos do
+`scripts/beta-calendario.ts` contra a RPC real — agosto bateu exato
+(41/25/18/13/5), escopos admin/time 130, admin/meu 127 = 7 próprias + 120 do
+time, editor 123 = 3 + 120, filtro por pessoa preservando os 120 sem dono, 130
+chaves únicas, leitura estática confirmando RPC única, zero acesso a bronze na
+UI e nenhum dos 7 nomes/uuids no código; teste de UI em dev-contra-prod via
+navegador com escritas reais revertidas e resíduo zero — ciclo completo da
+tarefa (criar → concluir com persistência pós-reload → reabrir → editar com tipo
+e contato → excluir com modal destrutivo que não fecha no clique de fundo),
+check-in marcado/persistido/desfeito, popover, drawer de voo abrindo a ficha
+certa pela cadeia, console sem erros; checkbox e corpo do chip são botões
+separados com aria-label dinâmico (Concluir↔Reabrir).
+
+**Pendências do lote:** três ajustes na RPC via MCP (meta do voo sem os IATA que
+o C4 anuncia — estão no título; `bronze_iddas_seguro` zerada em 2020-2030 — chip
+Seguros nasce vazio; `current_date` da RPC em UTC desloca ~3h a virada da janela
+de check-in); drag de reagendamento fora do alcance da automação de teste
+(dragstart HTML5 não dispara em drag sintético) — conferir no smoke de produção;
+herdadas vivas: base legal LGPD com Nina/Julia + DMARC (MODO SEGURO ligado),
+etiquetas do Iddas (receita pronta), token funcional de erro com a Amanda (D1),
+imagem de teste órfã no bucket, `RESEND_SEGMENT_TODOS_ELEGIVEIS_ID` no primeiro
+envio real; novas nomeadas: conversas do CM em fila (D097), identidade sem
+telefone + `familia[]` = contrato próprio, blacklist de LID exige revisão do
+U1.3, semântica do enum `voo.checkin` (1-5) desconhecida, página de gestão de
+usuários. RESOLVIDAS da entrada anterior: contato "Teste" expurgado via MCP;
+mensagem de suporte pra Nina coberta pela mensagem de release desta leva (par
+das Anas, Luísa/Luis Coli, telefones placeholder).
+
+**Decisões relacionadas:** D095 · D096 · D097.
+
+---
+
 **CONTRATO — Contrato Three-Way Merge v1 (D093):** congelado em
 `docs/contrato_three_way_merge_v1.md`, M1-M9. Fusão por telefone canônico na
 promoção, filtro `is_user` removido (correlacionava com `is_wa_contact` e

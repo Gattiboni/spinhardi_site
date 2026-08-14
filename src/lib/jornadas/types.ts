@@ -110,4 +110,10 @@ export type FollowUpTarefa = {
 /** Card do kanban: jornada + contato + a tarefa futura mais próxima (badge). */
 export type JornadaCard = JornadaComContato & {
   proximaTarefa: FollowUpTarefa | null;
+  /**
+   * SLUGS das tags internas do contato vinculado (`contacts.tags`), projetados
+   * no card só pra exibição. Read-only por definição: a jornada não tem tag
+   * própria e não existe edição por aqui — quem edita é a ficha do contato.
+   */
+  tagsInternas: string[];
 };

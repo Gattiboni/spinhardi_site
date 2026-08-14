@@ -34,7 +34,7 @@ export default async function JornadaDetalhe({ params }: Props) {
     jornada.contactId
       ? getJornadasDoContato(jornada.contactId)
       : Promise.resolve({ abertas: [], fechadas: [] }),
-    getAnexos({ kind: "jornada", id: jornada.id }),
+    getAnexos({ kind: "jornada", id: jornada.id, contactId: jornada.contactId }),
   ]);
 
   // "Histórico do cliente" = as OUTRAS jornadas do mesmo contato (exclui esta).

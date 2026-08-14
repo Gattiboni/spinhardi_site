@@ -505,7 +505,12 @@ export default function JornadaDetailClient({
             )}
           </div>
 
-          <AnexosBlock owner={{ kind: "jornada", id: jornada.id }} anexos={anexos} />
+          {/* contactId vai junto: o anexo subido aqui grava os dois FKs e passa
+              a aparecer também na ficha do contato (leitura inalterada). */}
+          <AnexosBlock
+            owner={{ kind: "jornada", id: jornada.id, contactId: jornada.contactId }}
+            anexos={anexos}
+          />
         </div>
       </div>
     </div>

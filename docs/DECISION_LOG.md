@@ -28,6 +28,104 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-08-14] D095 — Calendário v1: leitura única via RPC, escrita local mínima, Iddas como espelho
+
+**Contexto:** O calendário era o maior item do catch-up (tarefas + check-in +
+viagens + aniversários, com hierarquia por pessoa) e a bronze já ingeria as sete
+categorias com dado vivo. Faltava decidir onde mora a regra de leitura, o que é
+editável e como a hierarquia funciona sem página de gestão de usuários.
+
+**Alternativas consideradas:**
+
+- Biblioteca de calendário (FullCalendar/dnd-kit): descartada — o mock provou as
+  três visões e o drag em vanilla; zero dependência nova.
+- Write-back no Iddas via `POST/PUT /tarefa` já nesta fase: descartada — lição
+  dual-writer; vira ponto de extensão nomeado no contrato.
+- Silver de eventos materializada: descartada — RPC `stable` resolve leitura sem
+  criar tabela derivada pra sincronizar.
+- Recorrência de aniversário na UI: descartada — regra de leitura pertence à
+  RPC, senão cada visão reimplementa.
+
+**Decisão:** (1) `calendar_events_between` é A definição do que aparece no
+calendário; toda visão consome a RPC e a UI nunca reimplementa regra de leitura
+— divergência é mudança de contrato, não contorno. (2) Editáveis: apenas tarefas
+locais (tabela `tarefas`) e o estado de check-in (`calendar_checkins` por
+`voo_bronze_id`; a data D-2 é derivada e nunca gravada). (3) Tarefa do Iddas é
+espelho read-only com cadeado e edição na origem. (4) Hierarquia lida do `role`
+de `user_profiles`; o de-para de identidade é DADO em colunas
+(`iddas_usuario_id`/`clickmassa_user_id`), hardcode de nome/uuid proibido. (5)
+Preferências de visualização (chips, escopo, visão) em localStorage na v1;
+servidor só decide "hoje" (America/Sao_Paulo).
+
+**Racional:** Eligibility-como-view já provou o padrão no lote CAMP: regra
+definida uma vez, consumida em todo lugar. Escrita mínima evita o segundo
+escritor que quebrou tags e telefone no passado.
+
+**Responsável:** Alan **Status:** Ativa
+
+---
+
+### [2026-08-14] D096 — Anexos: upload direto ao Storage com URL assinada; anexo de jornada carrega os dois FKs
+
+**Contexto:** PDFs acima de ~3MB estouravam o `bodySizeLimit` do server action
+(compartilhado com a capa do blog) e a UI engolia o 413 — upload "sumia" sem
+erro. Anexo criado na jornada gravava só `jornada_id` e nunca aparecia na ficha
+do contato.
+
+**Alternativas consideradas:**
+
+- Subir o `bodySizeLimit`: descartada — o teto só mudaria de lugar, a rota é
+  compartilhada e limites de proxy do host viram a próxima parede.
+- Aceitar anexo de jornada órfão de contato: descartada — quebra a leitura da
+  ficha e a limpeza por dono.
+
+**Decisão:** (1) Upload em 3 passos: `criarUploadUrlAction` → PUT direto ao
+bucket com URL assinada → `registrarAnexoAction`; o binário nunca atravessa o
+server action e `next.config` fica intocado. (2) `registrarAnexo` valida o path
+recebido contra o prefixo do dono — ninguém registra arquivo fora da própria
+pasta. (3) Limite 25MB + allowlist de MIME validados no client. (4) `AnexoOwner`
+é união discriminada e a variante jornada EXIGE `contactId`: todo anexo de
+jornada nasce com os dois FKs.
+
+**Racional:** O caminho assinado é o desenho canônico do Supabase Storage pra
+arquivo grande; o dual-FK obrigatório elimina por tipo a classe de bug "anexo
+invisível".
+
+**Responsável:** Alan **Status:** Ativa
+
+---
+
+### [2026-08-14] D097 — Conversas do ClickMassa: bloqueio de identidade reconhecido, fila com dois caminhos, sem contorno
+
+**Contexto:** Ingerir as conversas do WhatsApp era o item mais pedido do
+catch-up. A sonda provou que o JWT da env não carrega identidade de usuário
+(`tenantId`/`profile`/`sessionId` apenas) e a API interna do fork Whaticket
+exige `req.user.id` — `/tickets` responde 500 com `userId undefined`. A rota
+`/messages/{ticketId}` existe e responde.
+
+**Alternativas consideradas:**
+
+- Capturar JWT de sessão do painel e usar como base permanente: descartada —
+  credencial de pessoa, expira e personifica; serve só pra sonda pontual.
+- Forjar/adivinhar `userId` na chamada: descartada — contorno de auth, violação
+  direta do zero-gambiarra.
+- Webhooks do painel ("Mensagem criada" + "Atendimento finalizado histórico"):
+  viável, mas sem retroativo — não descartada, é um dos dois caminhos da fila.
+
+**Decisão:** (1) A fase conversas entra em FILA com dois caminhos documentados —
+pull com credencial de usuário dedicada OU push via webhooks — e a escolha só
+acontece quando a fase abrir. (2) Nenhuma ingestão parcial improvisada até lá.
+(3) IA sobre conversas (extração de destino/datas/pax) segue VETADA até a
+liberação de créditos de API pela Nina — é a fase 2 e depende da 1.
+
+**Racional:** O bloqueio é de credencial, não de arquitetura; documentar os dois
+caminhos agora evita re-sondagem, e não contornar auth é o princípio, não uma
+preferência.
+
+**Responsável:** Alan **Status:** Ativa
+
+---
+
 ### [2026-08-14] D094 — Telefone: armazenamento com-55 é a regra única, exportada, com três escritores fechados
 
 **Contexto:** O banco estava 100% canônico com-55 (migration retroativa de

@@ -11,6 +11,8 @@ import {
   type EstagioJornada,
   type JornadaCard,
 } from "@/lib/jornadas/types";
+import { resolverTagsInternas, type TagInterna } from "@/lib/tags/shared";
+import { TagInternaBadge } from "@/components/admin/TagBadge";
 import {
   moverJornadaAction,
   marcarAprovadoAction,
@@ -36,6 +38,11 @@ function dataCurta(iso: string | null): string {
 // mais") — sem custo de servidor, só client-side slice.
 const PAGE_SIZE = 50;
 
+// Teto de badges de tag no card. A lista de contatos usa 3, mas o card do funil
+// tem 288px e já carrega título, valor, nome, "dias parado" e follow-up: 2 + "+N"
+// é o que cabe sem quebrar a densidade da coluna.
+const TETO_TAGS_CARD = 2;
+
 // Cabeçalho de cada coluna (cor combina com o StageBadge). Cobre os 5 estágios.
 const COLUMN_STYLE: Record<EstagioJornada, { bar: string }> = {
   "primeiro contato": { bar: "#caa45d" },
@@ -52,6 +59,7 @@ const COLUMN_STYLE: Record<EstagioJornada, { bar: string }> = {
 // pra não abrir nem arrastar.
 function JornadaCardView({
   jornada,
+  catalogoInterno,
   busy,
   fechado,
   onOpen,
@@ -60,6 +68,7 @@ function JornadaCardView({
   onPerder,
 }: {
   jornada: JornadaCard;
+  catalogoInterno: TagInterna[];
   busy: boolean;
   fechado: boolean;
   onOpen: () => void;
@@ -86,6 +95,10 @@ function JornadaCardView({
   const selo = fechado
     ? `${jornada.estagio === "aprovado" ? "Ganho" : "Perdido"} ${dataCurta(jornada.closedAt)}`
     : null;
+  // Tags INTERNAS do contato vinculado — projeção read-only, mesmo vocabulário
+  // (slug→nome/cor) e mesmo badge da lista de contatos. Órfã aparece em cinza.
+  const tags = resolverTagsInternas(jornada.tagsInternas, catalogoInterno);
+  const tagsSobrando = tags.length - TETO_TAGS_CARD;
 
   return (
     <div
@@ -164,6 +177,25 @@ function JornadaCardView({
         <p className="font-body text-xs text-dark/50 mt-1 truncate">{jornada.contatoNome}</p>
       )}
 
+      {tags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          {tags.slice(0, TETO_TAGS_CARD).map((t) => (
+            <TagInternaBadge key={t.slug} nome={t.name} cor={t.cor} orfao={t.orfao} />
+          ))}
+          {tagsSobrando > 0 && (
+            <span
+              className="font-body text-xs text-dark/50"
+              title={tags
+                .slice(TETO_TAGS_CARD)
+                .map((t) => t.name)
+                .join(", ")}
+            >
+              +{tagsSobrando}
+            </span>
+          )}
+        </div>
+      )}
+
       {selo ? (
         <p className="mt-2 font-body text-xs text-dark/50">{selo}</p>
       ) : (
@@ -186,7 +218,13 @@ function JornadaCardView({
 }
 
 // ─── Board ───────────────────────────────────────────────────────
-export default function KanbanClient({ jornadas }: { jornadas: JornadaCard[] }) {
+export default function KanbanClient({
+  jornadas,
+  catalogoInterno,
+}: {
+  jornadas: JornadaCard[];
+  catalogoInterno: TagInterna[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -353,6 +391,7 @@ export default function KanbanClient({ jornadas }: { jornadas: JornadaCard[] }) 
                         <JornadaCardView
                           key={j.id}
                           jornada={j}
+                          catalogoInterno={catalogoInterno}
                           busy={pending && busyId === j.id}
                           fechado={fechado}
                           onOpen={() => router.push(`/admin/jornadas/${j.id}`)}

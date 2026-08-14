@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getKanbanJornadas, getJornadasPendentes } from "@/lib/jornadas";
+import { getCatalogoInterno } from "@/lib/tags";
 import KanbanClient from "./KanbanClient";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +11,16 @@ export const metadata: Metadata = {
 };
 
 export default async function JornadasPage() {
-  const [jornadas, pendentes] = await Promise.all([
+  const [jornadas, pendentes, catalogoInterno] = await Promise.all([
     getKanbanJornadas(),
     getJornadasPendentes(),
+    // Vocabulário slug→nome/cor das tags internas, o MESMO da lista de contatos.
+    // `getCatalogoInterno` lança em erro; aqui degrada pra vazio — sem catálogo
+    // o card só deixa de mostrar as tags, o quadro segue de pé.
+    getCatalogoInterno().catch((err) => {
+      console.error("[jornadas] catálogo de tags:", err);
+      return [];
+    }),
   ]);
 
   // O kanban traz todas as aprovadas; os agregados do topo contam só as abertas.
@@ -48,7 +56,7 @@ export default async function JornadasPage() {
         </Link>
       </header>
 
-      <KanbanClient jornadas={jornadas} />
+      <KanbanClient jornadas={jornadas} catalogoInterno={catalogoInterno} />
     </div>
   );
 }
