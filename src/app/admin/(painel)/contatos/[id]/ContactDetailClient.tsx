@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import Modal, { type ConfirmResult } from "@/components/ui/primitives/Modal";
 import StageBadge from "@/components/admin/StageBadge";
 import WhatsAppBadge from "@/components/admin/WhatsAppBadge";
 import AnexosBlock from "@/components/admin/AnexosBlock";
@@ -1313,6 +1314,7 @@ function TimelineItem({
   const isNota = it.tipo === "nota_interna";
   const formSub = it.tipo === "form_submission" ? parseFormSubmission(it.metadata) : null;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [editing, setEditing] = useState(false);
   const [texto, setTexto] = useState(it.descricao);
   const [busy, setBusy] = useState(false);
@@ -1346,18 +1348,16 @@ function TimelineItem({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Excluir esta nota? Não dá pra desfazer.")) return;
-    setBusy(true);
+  // Modal destrutivo do padrão da casa no lugar do `confirm()` nativo — mesma
+  // troca feita na exclusão de tag e de origem neste lote. Devolve `null` em
+  // sucesso ou a mensagem, que é o contrato do primitivo.
+  const handleDelete = async (): Promise<ConfirmResult> => {
     setErro(null);
-    setMenuOpen(false);
     const result = await deleteContactNote(contactId, it.id);
-    setBusy(false);
-    if (result.success) {
-      router.refresh();
-    } else {
-      setErro(result.error ?? "Não foi possível excluir.");
-    }
+    if (!result.success) return result.error ?? "Não foi possível excluir.";
+    setMenuOpen(false);
+    router.refresh();
+    return null;
   };
 
   const inputClass =
@@ -1437,7 +1437,10 @@ function TimelineItem({
                     <button
                       type="button"
                       role="menuitem"
-                      onClick={handleDelete}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setConfirmandoExclusao(true);
+                      }}
                       className="block w-full text-left px-3 py-2 font-body text-sm text-red-600 hover:bg-red-50"
                     >
                       Excluir
@@ -1448,6 +1451,17 @@ function TimelineItem({
             )}
           </div>
         )}
+
+        <Modal
+          open={confirmandoExclusao}
+          onClose={() => setConfirmandoExclusao(false)}
+          variant="destrutiva"
+          titulo="Excluir esta nota?"
+          descricao="A nota sai da timeline do contato. Isso não tem como desfazer."
+          primarioLabel="Excluir nota"
+          onConfirmar={handleDelete}
+          data-testid="modal-excluir-nota"
+        />
 
         {!editing && formSub && <FormSubmissionDetails data={formSub} />}
 
@@ -1468,6 +1482,7 @@ export default function ContactDetailClient({
   catalogoTagsClickmassa,
   grupos,
   historicoEmail,
+  ehAdmin,
 }: {
   contact: Contact;
   interactions: ContactInteraction[];
@@ -1478,6 +1493,8 @@ export default function ContactDetailClient({
   catalogoTagsClickmassa: TagClickMassa[];
   grupos: Grupo[];
   historicoEmail: HistoricoEmail[];
+  /** Só admin vê "Gerenciar tags" no bloco de tags (T2 do contrato de tags v1). */
+  ehAdmin: boolean;
 }) {
   const iddasLink = findLink(externalLinks, "iddas");
 
@@ -1507,6 +1524,7 @@ export default function ContactDetailClient({
         clickmassaTagsId={contact.clickmassaTagsId}
         catalogoInterno={catalogoTagsInternas}
         catalogoClickmassa={catalogoTagsClickmassa}
+        ehAdmin={ehAdmin}
       />
 
       <EmailMarketingCard

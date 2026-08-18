@@ -5,6 +5,7 @@ import { getAnexos } from "@/lib/anexos";
 import { getCatalogos } from "@/lib/tags";
 import { getGruposDoContato } from "@/lib/grupos";
 import { getHistoricoEmailDoContato } from "@/lib/campanhas";
+import { requireSession } from "@/lib/auth/session";
 import { notFound } from "next/navigation";
 import ContactDetailClient from "./ContactDetailClient";
 import type { Metadata } from "next";
@@ -29,7 +30,7 @@ export default async function ContatoDetalhe({ params }: Props) {
   const contact = await getContactById(id);
   if (!contact) notFound();
 
-  const [interactions, externalLinks, jornadas, anexos, catalogos, grupos, historicoEmail] =
+  const [interactions, externalLinks, jornadas, anexos, catalogos, grupos, historicoEmail, sessao] =
     await Promise.all([
       getContactInteractions(id),
       getContactExternalLinks(id),
@@ -40,6 +41,9 @@ export default async function ContatoDetalhe({ params }: Props) {
       getCatalogos(),
       getGruposDoContato(id),
       getHistoricoEmailDoContato(id),
+      // O layout do painel já garante sessão; aqui ela desce só pra decidir se
+      // "Gerenciar tags" aparece — editar/excluir catálogo é admin (T2).
+      requireSession(),
     ]);
 
   return (
@@ -53,6 +57,7 @@ export default async function ContatoDetalhe({ params }: Props) {
       catalogoTagsClickmassa={catalogos.clickmassa}
       grupos={grupos}
       historicoEmail={historicoEmail}
+      ehAdmin={sessao.role === "admin"}
     />
   );
 }

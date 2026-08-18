@@ -337,7 +337,12 @@ export function contactPatchToRow(patch: Partial<Contact>): Partial<ContactInser
   if ("proximoFollowUp" in patch) row.proximo_follow_up = patch.proximoFollowUp;
   if ("notasInternas" in patch) row.notas_internas = patch.notasInternas;
 
-  if ("tags" in patch) row.tags = patch.tags;
+  // `tags` NAO entra no patch (contrato de tags v1, T3). A coluna e escrita
+  // EXCLUSIVAMENTE por `lib/tags`, que valida slug contra o catalogo antes de
+  // gravar; um patch generico passando por aqui gravava array cru, sem
+  // validacao nenhuma. Nenhum caller usava (grep em 18/08/2026) — era porta
+  // aberta, nao caminho vivo. Quem precisar escrever tag chama
+  // `definirTagsDoContato` ou `tagEmMassa`.
 
   // Permissao de e-mail marketing: so o webhook e o pipeline passam por aqui,
   // e sempre com as tres juntas (sem status_em/origem nao existe prova, P4).

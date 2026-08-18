@@ -37,6 +37,7 @@ import {
   somaMeses,
   type DataISO,
 } from "@/lib/calendario/datas";
+import { casaFiltroPorContato, FILTRO_TAG_TODAS, type TagInterna } from "@/lib/tags/shared";
 import { EventoChip, VisaoAgenda, VisaoMes, VisaoSemana, type AcoesEvento } from "./Visoes";
 import DrawerEvento from "./DrawerEvento";
 import FormTarefa, { paraInput, valoresIniciais, type ValoresTarefa } from "./FormTarefa";
@@ -67,6 +68,13 @@ import {
 type Props = {
   eventos: CalendarEvent[];
   pessoas: Pessoa[];
+  /**
+   * `contactId → slugs`, como array de pares (Map não sobrevive à serialização
+   * RSC). Vocabulário do filtro por tag: a RPC entrega `contact_id` em todo
+   * evento, mas não as tags do contato (T5).
+   */
+  tagsPorContato: [string, string[]][];
+  catalogoTags: TagInterna[];
   hoje: DataISO;
   visao: Visao;
   ancora: DataISO;
@@ -78,7 +86,13 @@ type Props = {
 
 type Override = { concluida?: boolean; dataInicio?: DataISO };
 
-type Prefs = { cats: string[]; escopo: Escopo; visao: Visao };
+/**
+ * `tag` entrou na v1 de tags transversais. Acrescentar chave é retrocompatível
+ * por construção: `decodificarPrefs` lê campo a campo e ignora o que não
+ * reconhece, então preferência salva antes deste lote simplesmente não tem
+ * filtro de tag — não quebra, nasce em "todas".
+ */
+type Prefs = { cats: string[]; escopo: Escopo; visao: Visao; tag: string };
 
 /** Preferência é de UI, por usuário e por navegador — `localStorage` na v1 (C6). */
 function chavePrefs(usuarioId: string): string {
@@ -114,10 +128,11 @@ type PrefsDecodificadas = {
   cats: Set<Categoria> | null;
   escopo: Escopo | null;
   visao: Visao | null;
+  tag: string | null;
 };
 
 function decodificarPrefs(bruto: string | null): PrefsDecodificadas {
-  const vazio: PrefsDecodificadas = { cats: null, escopo: null, visao: null };
+  const vazio: PrefsDecodificadas = { cats: null, escopo: null, visao: null, tag: null };
   if (!bruto) return vazio;
   try {
     const p = JSON.parse(bruto) as Partial<Prefs>;
@@ -126,6 +141,10 @@ function decodificarPrefs(bruto: string | null): PrefsDecodificadas {
       cats: cats.length > 0 ? new Set(cats) : null,
       escopo: p.escopo === "meu" || p.escopo === "time" ? p.escopo : null,
       visao: p.visao === "mes" || p.visao === "semana" || p.visao === "agenda" ? p.visao : null,
+      // Slug é texto livre do catálogo: valida-se o TIPO aqui, e a existência
+      // fica com o select (tag apagada some da lista e o filtro esvazia a tela
+      // até alguém limpar — por isso o estado ativo é sempre visível).
+      tag: typeof p.tag === "string" && p.tag ? p.tag : null,
     };
   } catch {
     return vazio;
@@ -135,6 +154,8 @@ function decodificarPrefs(bruto: string | null): PrefsDecodificadas {
 export default function CalendarioClient({
   eventos,
   pessoas,
+  tagsPorContato,
+  catalogoTags,
   hoje,
   visao,
   ancora,
@@ -158,6 +179,7 @@ export default function CalendarioClient({
 
   const [catsEscolhidas, setCatsEscolhidas] = useState<Set<Categoria> | null>(null);
   const [escopoEscolhido, setEscopoEscolhido] = useState<Escopo | null>(null);
+  const [tagEscolhida, setTagEscolhida] = useState<string | null>(null);
   const [pessoasSel, setPessoasSel] = useState<Set<string>>(
     () => new Set(pessoas.map((p) => p.id)),
   );
@@ -172,6 +194,11 @@ export default function CalendarioClient({
   const escopo: Escopo = usuario.ehAdmin
     ? (escopoEscolhido ?? prefsSalvas.escopo ?? "time")
     : "meu";
+
+  // Mesma disciplina dos chips: escolha desta sessão vence, senão a preferência
+  // salva, senão o default (sem filtro).
+  const tag = tagEscolhida ?? prefsSalvas.tag ?? FILTRO_TAG_TODAS;
+  const mapaTags = useMemo(() => new Map(tagsPorContato), [tagsPorContato]);
 
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   // Sentinela pra saber que a lista do servidor trocou (ver bloco de reset).
@@ -208,13 +235,13 @@ export default function CalendarioClient({
   const persistir = useCallback(
     (parcial: Partial<Prefs>) => {
       try {
-        const atual: Prefs = { cats: [...cats], escopo, visao };
+        const atual: Prefs = { cats: [...cats], escopo, visao, tag };
         localStorage.setItem(chavePrefs(usuario.id), JSON.stringify({ ...atual, ...parcial }));
       } catch {
         // Preferência não salva não quebra a tela.
       }
     },
-    [cats, escopo, visao, usuario.id],
+    [cats, escopo, visao, tag, usuario.id],
   );
 
   // A visão salva só assume quando a URL não mandou uma — link compartilhado com
@@ -229,21 +256,29 @@ export default function CalendarioClient({
 
   // ── Eventos exibidos ────────────────────────────────────────────
   const eventosVisiveis = useMemo(() => {
-    return eventos
-      .map((ev) => {
-        const o = overrides[chaveEvento(ev)];
-        return o ? { ...ev, ...o } : ev;
-      })
-      .filter((ev) => cats.has(categoriaDe(ev.eventType)))
-      .filter((ev) =>
-        eventoVisivel(ev, {
-          ehAdmin: usuario.ehAdmin,
-          escopo,
-          usuarioId: usuario.id,
-          pessoasSelecionadas: pessoasSel,
-        }),
-      );
-  }, [eventos, overrides, cats, escopo, pessoasSel, usuario.ehAdmin, usuario.id]);
+    return (
+      eventos
+        .map((ev) => {
+          const o = overrides[chaveEvento(ev)];
+          return o ? { ...ev, ...o } : ev;
+        })
+        .filter((ev) => cats.has(categoriaDe(ev.eventType)))
+        .filter((ev) =>
+          eventoVisivel(ev, {
+            ehAdmin: usuario.ehAdmin,
+            escopo,
+            usuarioId: usuario.id,
+            pessoasSelecionadas: pessoasSel,
+          }),
+        )
+        // Filtro por tag, ESTRITO (T5): com filtro ligado passa só quem tem
+        // contato resolvido E com a tag. Evento sem contato — 13,6% da janela
+        // medida na investigação — some enquanto o filtro está ativo. Foi decisão
+        // de 18/08 ("menos é mais"), e é o que exige o estado do filtro ficar
+        // sempre visível na barra: senão a tela some sem explicação.
+        .filter((ev) => casaFiltroPorContato(ev.contactId, tag, mapaTags))
+    );
+  }, [eventos, overrides, cats, escopo, pessoasSel, tag, mapaTags, usuario.ehAdmin, usuario.id]);
 
   /** Pendentes por pessoa pro contador do avatar — do conjunto TOTAL, não do filtrado. */
   const pendentesPorPessoa = useMemo(() => {
@@ -544,7 +579,67 @@ export default function CalendarioClient({
             </button>
           );
         })}
+
+        {/* Filtro por tag do contato (T5). Entra no FIM da faixa de chips, com
+            `ml-auto`, pra não quebrar a leitura dos oito chips como um grupo — o
+            arranjo final da barra é aprovação visual do Alan. */}
+        <div className="ml-auto flex items-center gap-2">
+          <label
+            htmlFor="filtro-tag-calendario"
+            className="font-body text-[12.5px] text-text-muted"
+          >
+            Tag do cliente
+          </label>
+          <select
+            id="filtro-tag-calendario"
+            value={tag}
+            onChange={(e) => {
+              setTagEscolhida(e.target.value);
+              persistir({ tag: e.target.value });
+            }}
+            data-testid="filtro-tag-calendario"
+            className={[
+              "h-8 px-2 rounded-md border font-body text-[12.5px] bg-surface focus-ring transition-colors duration-short",
+              tag === FILTRO_TAG_TODAS
+                ? "border-border-strong text-text-muted"
+                : "border-navy text-navy font-semibold",
+            ].join(" ")}
+          >
+            <option value={FILTRO_TAG_TODAS}>Todas</option>
+            {catalogoTags.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.name}
+                {t.isActive ? "" : " (desativada)"}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* O filtro estrito esconde tudo que não tem contato: sem este aviso, a
+          operadora veria o calendário esvaziar sem saber por quê. */}
+      {tag !== FILTRO_TAG_TODAS && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-2 mb-2 px-3 py-1.5 rounded-md bg-attention-bg"
+        >
+          <span className="font-body text-[12.5px] text-navy">
+            Mostrando só o que é de cliente com a tag{" "}
+            <b>{catalogoTags.find((t) => t.slug === tag)?.name ?? tag}</b> — eventos sem cliente
+            vinculado estão escondidos.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setTagEscolhida(FILTRO_TAG_TODAS);
+              persistir({ tag: FILTRO_TAG_TODAS });
+            }}
+            className="font-body text-[12.5px] text-navy underline hover:no-underline focus-ring rounded-sm"
+          >
+            Limpar filtro
+          </button>
+        </div>
+      )}
 
       {/* ── Escopo (C5) ── */}
       <div className="flex flex-wrap items-center gap-3 mb-4">

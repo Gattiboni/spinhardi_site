@@ -3,6 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
+import {
+  normalizarSlug,
+  ehErroDeUnicidade,
+  mensagemSlugEmUso,
+  HEX_TAG_RE,
+} from "@/lib/tags/shared";
+import { revalidarCatalogoDeTags } from "@/lib/tags/revalidate";
 import type {
   CaptureOriginInsertRow,
   CaptureOriginUpdateRow,
@@ -26,26 +33,15 @@ export type TagInput = {
   is_active: boolean;
 };
 
-/** "Indicação de Cliente" → "indicacao-de-cliente". */
-function slugify(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+// "Indicação de Cliente" → "indicacao-de-cliente". A normalização vive em
+// `lib/tags/shared` (T3): era a mesma regra escrita duas vezes, uma aqui e uma
+// lá, e o cliente adivinhava o que este arquivo ia gravar. Agora é uma só, e
+// serve tanto `tags` quanto `capture_origins`.
+const slugify = normalizarSlug;
 
 function validateName(name: string): string | null {
   if (name.trim().length < 2) return "Informe um nome com ao menos 2 caracteres.";
   return null;
-}
-
-function isUniqueViolation(message: string): boolean {
-  return /duplicate key|unique/i.test(message);
 }
 
 // Campo de texto nullable: string vazia/espacos viram null.
@@ -76,7 +72,7 @@ export async function createCaptureOrigin(input: CaptureOriginInput): Promise<Ac
   const { error } = await supabaseAdmin().from("capture_origins").insert(row);
 
   if (error) {
-    if (isUniqueViolation(error.message)) {
+    if (ehErroDeUnicidade(error.message)) {
       return { success: false, error: "Já existe uma origem com esse nome." };
     }
     return { success: false, error: "Não foi possível criar a origem." };
@@ -127,16 +123,24 @@ export async function deleteCaptureOrigin(id: string): Promise<ActionResult> {
 // Tags
 // ─────────────────────────────────────────────────────────────────
 
+/**
+ * CRUD completo do catálogo, admin (T2). É esta action que tem `grupo` e cor
+ * livre; a criação no ponto de uso (ficha, lista, funil) é a `criarTagInline`
+ * de `lib/tags/actions`, que exige só sessão e resolve a cor pela paleta.
+ */
 export async function createTag(input: TagInput): Promise<ActionResult> {
   await requireRole("admin");
 
   const invalid = validateName(input.name);
   if (invalid) return { success: false, error: invalid };
-  if (!HEX_RE.test(input.cor)) return { success: false, error: "Cor inválida (use #RRGGBB)." };
+  if (!HEX_TAG_RE.test(input.cor)) return { success: false, error: "Cor inválida (use #RRGGBB)." };
+
+  const slug = slugify(input.name);
+  if (!slug) return { success: false, error: "Use ao menos uma letra ou número no nome da tag." };
 
   const row: TagInsertRow = {
     name: input.name.trim(),
-    slug: slugify(input.name),
+    slug,
     cor: input.cor,
     grupo: toNullable(input.grupo),
     is_active: input.is_active,
@@ -145,13 +149,16 @@ export async function createTag(input: TagInput): Promise<ActionResult> {
   const { error } = await supabaseAdmin().from("tags").insert(row);
 
   if (error) {
-    if (isUniqueViolation(error.message)) {
-      return { success: false, error: "Já existe uma tag com esse nome." };
+    // O UNIQUE de `tags` é em SLUG (o banco não tem unique em `name`): dizer
+    // "esse nome já existe" mandava procurar um nome idêntico que não existe —
+    // "Lua de Mel" e "Lua-de-Mel" são nomes diferentes e o mesmo slug (T7).
+    if (ehErroDeUnicidade(error.message)) {
+      return { success: false, error: mensagemSlugEmUso(slug) };
     }
     return { success: false, error: "Não foi possível criar a tag." };
   }
 
-  revalidatePath("/admin/configuracoes");
+  revalidarCatalogoDeTags();
   return { success: true };
 }
 
@@ -162,7 +169,7 @@ export async function updateTag(id: string, fields: Partial<TagInput>): Promise<
     const invalid = validateName(fields.name);
     if (invalid) return { success: false, error: invalid };
   }
-  if (fields.cor !== undefined && !HEX_RE.test(fields.cor)) {
+  if (fields.cor !== undefined && !HEX_TAG_RE.test(fields.cor)) {
     return { success: false, error: "Cor inválida (use #RRGGBB)." };
   }
 
@@ -177,7 +184,9 @@ export async function updateTag(id: string, fields: Partial<TagInput>): Promise<
 
   if (error) return { success: false, error: "Não foi possível salvar a tag." };
 
-  revalidatePath("/admin/configuracoes");
+  // Renomear/recolorir muda o VOCABULÁRIO: sem as quatro telas, a tag seguia
+  // com o nome velho na ficha, na lista e no funil até alguém dar F5 (T6).
+  revalidarCatalogoDeTags();
   return { success: true };
 }
 
@@ -188,6 +197,9 @@ export async function deleteTag(id: string): Promise<ActionResult> {
 
   if (error) return { success: false, error: "Não foi possível excluir a tag." };
 
-  revalidatePath("/admin/configuracoes");
+  // Sem cascata, por decisão (T3): os slugs já gravados viram órfãos e seguem
+  // aparecendo em cinza, com ✕ pra sair. A revalidação é o que faz eles
+  // aparecerem como órfãos na hora, em vez de continuarem coloridos.
+  revalidarCatalogoDeTags();
   return { success: true };
 }

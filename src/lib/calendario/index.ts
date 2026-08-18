@@ -68,6 +68,14 @@ function rowToEvent(row: CalendarEventRow): CalendarEvent {
  * O range é o da visão corrente: a grade de 42 dias no Mês, os 7 dias na Semana,
  * hoje−60/hoje+30 na Agenda. Quem monta o range é o chamador (`page.tsx`).
  */
+/**
+ * PONTO DE EXTENSÃO (contrato de tags transversais v1, T8): `p_tags text[]` como
+ * terceiro parâmetro da RPC, empurrando o filtro por tag pro Postgres. Só vale a
+ * pena quando o calendário tiver paginação server-side — hoje o filtro roda no
+ * cliente sobre o payload que já veio, e a RPC segue intocada. Mudar a
+ * assinatura exige `DROP FUNCTION calendar_events_between(date, date)` antes do
+ * `CREATE`; `CREATE OR REPLACE` não cobre troca de argumentos.
+ */
 export async function getCalendarEvents(inicio: DataISO, fim: DataISO): Promise<CalendarEvent[]> {
   try {
     const { data, error } = await supabaseAdmin().rpc("calendar_events_between", {

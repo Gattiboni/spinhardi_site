@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth/session";
 import { getCalendarEvents, getPessoasAprovadas } from "@/lib/calendario";
+import { getCatalogoInterno, getTagsPorContato } from "@/lib/tags";
 import { ehVisao, type Visao } from "@/lib/calendario/types";
 import {
   diasDaSemana,
@@ -60,6 +61,11 @@ function calcularRange(
 export default async function CalendarioPage({
   searchParams,
 }: {
+  // PONTO DE EXTENSÃO (T8): `?tag=` pra deep-link de calendário filtrado (e
+  // pro caminho jornada/contato → calendário, que hoje não existe). Ficou de
+  // fora por decisão: o filtro de tag vive em `localStorage`, como os chips.
+  // Entrar aqui obriga a definir a precedência URL × preferência, do jeito que
+  // `visaoExplicita` já faz pra `?v=`.
   searchParams: Promise<{ v?: string; d?: string }>;
 }) {
   const [sessao, params] = await Promise.all([requireSession(), searchParams]);
@@ -74,15 +80,31 @@ export default async function CalendarioPage({
 
   const { inicio, fim } = calcularRange(visao, ancora, hoje);
 
-  const [eventos, pessoas] = await Promise.all([
+  // O filtro por tag (contrato de tags transversais v1, T5) NÃO passa pela RPC:
+  // `calendar_events_between` já devolve `contact_id` em todos os nove ramos, e
+  // o que falta é só o vocabulário. Duas leituras em paralelo resolvem — o mapa
+  // `contactId → slugs` (a mesma varredura única que o kanban usa) e o catálogo
+  // interno pro select. A RPC fica intocada, zero migration.
+  const [eventos, pessoas, tagsPorContato, catalogoTags] = await Promise.all([
     getCalendarEvents(inicio, fim),
     getPessoasAprovadas(),
+    getTagsPorContato(),
+    getCatalogoInterno().catch((err) => {
+      // Sem catálogo o select nasce vazio e o calendário segue de pé — mesmo
+      // degradê do kanban.
+      console.error("[calendario] catálogo de tags:", err);
+      return [];
+    }),
   ]);
 
   return (
     <CalendarioClient
       eventos={eventos}
       pessoas={pessoas}
+      // Map não atravessa a fronteira servidor→cliente na serialização do RSC:
+      // vai como array de pares e o cliente remonta.
+      tagsPorContato={[...tagsPorContato.entries()]}
+      catalogoTags={catalogoTags}
       hoje={hoje}
       visao={visao}
       ancora={ancora}

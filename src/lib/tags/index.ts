@@ -1,6 +1,13 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { validarTagsInternas, unirTags, removerTag } from "./shared";
+import {
+  validarTagsInternas,
+  unirTags,
+  removerTag,
+  validarEntradaTag,
+  ehErroDeUnicidade,
+  mensagemSlugEmUso,
+} from "./shared";
 import type { TagClickMassa, TagInterna } from "./shared";
 
 /**
@@ -30,6 +37,14 @@ type LinhaTagCm = {
   ativa: boolean | null;
 };
 
+/**
+ * PONTO DE EXTENSÃO (T8): `tags.iddas_etiqueta_id`, no molde da ponte dormente
+ * `clickmassa_tag_id` (UNIQUE, hoje 100% nula). É por onde o vocabulário das
+ * etiquetas do Iddas se ligaria ao catálogo interno quando aquele lote rodar.
+ * NÃO implementado aqui: etiqueta do Iddas é de ORÇAMENTO, não de contato, e o
+ * vínculo vive em tabela própria — nada neste módulo bloqueia (frente E da
+ * investigação α).
+ */
 export async function getCatalogoInterno(): Promise<TagInterna[]> {
   const { data, error } = await supabaseAdmin()
     .from("tags")
@@ -66,6 +81,91 @@ export async function getCatalogos(): Promise<{
 }> {
   const [internas, clickmassa] = await Promise.all([getCatalogoInterno(), getCatalogoClickMassa()]);
   return { internas, clickmassa };
+}
+
+/**
+ * Slugs de `contacts.tags` por contato — mapa `contactId → slugs`.
+ *
+ * Uma query só, sem `.in(...)`: filtrar pelos contatos de uma tela exigiria a
+ * lista de ids na URL, exatamente o que estourou o header do kanban antes
+ * (`UND_ERR_HEADERS_OVERFLOW`). A tabela toda são ~1k linhas de duas colunas, e
+ * só as com tag entram no mapa. Degrada pra mapa vazio em erro: tag é decoração
+ * e filtro, nunca motivo pra uma tela cair.
+ *
+ * Nasceu privada em `lib/jornadas` (decoração do card) e subiu pra cá quando o
+ * calendário passou a precisar do mesmo mapa pro filtro por tag — dois
+ * consumidores, uma query.
+ */
+export async function getTagsPorContato(): Promise<Map<string, string[]>> {
+  const mapa = new Map<string, string[]>();
+  try {
+    const { data, error } = await supabaseAdmin()
+      .from("contacts")
+      .select("id, tags")
+      .not("tags", "is", null);
+    if (error) throw error;
+
+    for (const linha of (data as { id: string; tags: string[] | null }[]) ?? []) {
+      if (linha.tags && linha.tags.length > 0) mapa.set(linha.id, linha.tags);
+    }
+  } catch (err) {
+    console.error("[tags] getTagsPorContato:", err);
+  }
+  return mapa;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Escrita — catálogo `tags` (criação no ponto de uso)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Cria uma tag no catálogo a partir do ponto de uso (T2/T3).
+ *
+ * Diferenças que justificam existir ao lado do `createTag` de Configurações:
+ *
+ *  • DEVOLVE a tag criada. O chamador antigo tinha que adivinhar o slug com uma
+ *    segunda cópia da normalização e esperar um `router.refresh()` pra ver a tag
+ *    aparecer no catálogo. Com o retorno, ela já entra aplicada na hora.
+ *  • Cor OPCIONAL, resolvida pela paleta — a criação inline não tem seletor.
+ *  • Sem `grupo`: campo de curadoria, vive em Configurações.
+ *
+ * A guarda de permissão NÃO está aqui: este módulo é acesso a dados. Quem exige
+ * sessão é a action (`./actions`), como no resto do repo.
+ */
+export async function criarTagInterna(entrada: {
+  name: string;
+  cor?: string | null;
+}): Promise<{ ok: true; tag: TagInterna } | { ok: false; erro: string }> {
+  const catalogo = await getCatalogoInterno();
+  const validacao = validarEntradaTag(entrada, catalogo);
+  if (!validacao.ok) return { ok: false, erro: validacao.erro };
+
+  const { name, slug, cor } = validacao.valor;
+
+  const { data, error } = await supabaseAdmin()
+    .from("tags")
+    .insert({ name, slug, cor, grupo: null, is_active: true })
+    .select("id, name, slug, cor, grupo, is_active")
+    .single();
+
+  if (error) {
+    if (ehErroDeUnicidade(error.message)) return { ok: false, erro: mensagemSlugEmUso(slug) };
+    console.error("[tags.criarTagInterna]", error);
+    return { ok: false, erro: "Não foi possível criar a tag." };
+  }
+
+  const linha = data as LinhaTagInterna;
+  return {
+    ok: true,
+    tag: {
+      id: linha.id,
+      name: linha.name,
+      slug: linha.slug,
+      cor: linha.cor,
+      grupo: linha.grupo,
+      isActive: linha.is_active,
+    },
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────

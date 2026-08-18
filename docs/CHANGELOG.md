@@ -15,6 +15,83 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-08-18
+
+---
+
+**CONTRATO — Contrato Tags Transversais v1 (D098):** congelado em
+`docs/contrato_tags_transversais_v1.md` com insumo integral da investigação α
+(`docs/investigacao_tags_transversais_alpha.md` — 4 divergências instrução×repo,
+volumes reais, RPC dissecada ramo a ramo). Tag interna vira conceito
+transversal: criação no ponto de uso por qualquer aprovado (`requireSession` —
+decisão Alan: "tarefa operacional não depende do espasmo de atenção de admin"),
+gestão (rename/cor/excluir) segue admin-only; filtro por UMA tag em Jornadas,
+Contatos (existente, intocado) e Calendário; modelo ClickUp — criação inline sem
+governança, empilhamento tolerado (768 aplicações em 418 contatos já na base,
+média 1,8/contato). Filtro do calendário é ESTRITO por decisão ("menos é mais"):
+tag ativa esconde evento sem contato vinculado, com aviso explícito na faixa e
+persistência em Prefs/localStorage. Etiquetas Iddas FORA por decisão (eixo de
+orçamento, não de contato; receita de ingestão pronta, lote próprio);
+Jornadas↔Calendário fora, mapa pronto na frente F da α (`tarefas_jornada` é
+classe temporal invisível pra RPC; `meta.jornada_id` viaja sem consumidor).
+Pontos de extensão nomeados: `p_tags` nas duas funções SQL, `?tag=` na URL,
+`tags.iddas_etiqueta_id` no molde da ponte CM.
+
+**SITE — Tags transversais implementadas, lote 100% TypeScript (D098):** zero
+migration, zero SQL, zero dependência (+1232/−418, 6 arquivos novos, 17
+alterados). `criarTagInline` em `lib/tags/actions.ts` devolve a tag criada (mata
+prever-slug + corrida de refresh), normalização de slug consolidada em UMA
+função canônica de `shared.ts` (Configurações importa; morrem as duas cópias),
+paleta fixa de 10 cores ancorada no trio da marca com contraste mínimo 5,30:1
+calculado no β — TRAP: o ouro #AD8330 dá 3,46:1 e REPROVA como badge vazada,
+entra o matiz escurecido #8A6520. Kanban: popover no card (aplicadas preenchidas
+vs disponíveis vazadas, criação inline, microtexto do multi-card), escrita via
+`aplicarTagEmMassa` com 1 id + `revalidatePath("/admin/jornadas")` que faltava;
+filtro client-side com contador e Limpar. Ficha: criação inline, tag DESATIVADA
+tratada como órfã no editor (✕ em "Fora do catálogo ativo") — desarma o impasse
+do save travado achado na α; modal "Gerenciar tags" (admin-only) com `TagRow`
+extraído pra `components/admin/`, confirmação embutida (folha de primitivos
+proíbe modal sobre modal). Escritor latente de `contacts.tags` em
+`contactPatchToRow` FECHADO; mensagem de colisão corrigida (é slug, não nome —
+par real provado: "Lua de Mel"/"Lua-de-Mel" → mesmo slug; exemplo da α estava
+errado, correção do próprio Codinho). Extras sinalizados: `confirm()` nativo →
+Modal destrutiva também em origem de captação e nota interna (arquivos já
+tocados). Emendas de papelada: `contact_tags (A CRIAR)` anotado como substituído
+por D091 no contrato do back-office (DIV-3) e C5.4 do contrato do calendário
+corrigido pra 4 admin + 4 editor (DIV-4).
+
+**Validação (β):** `tsc --noEmit` + `next build` (18,2s) + eslint + prettier
+limpos; 29/29 provas determinísticas (`scripts/beta-tags.ts`) exercitando as
+funções reais — slug byte a byte, permissão, colisão, WCAG da paleta sobre a
+constante real, predicados dos filtros; roteiro de UI executado via navegador em
+dev-contra-prod com escritas reais revertidas e resíduo zero provado por query
+(10 tags, zero slug de teste, zero órfã, contato de teste de volta às 3 tags
+originais): criação no popover nascendo aplicada, reflexo cruzado
+kanban→ficha→lista sem F5, filtro estrito do kanban (1 card visível, "5 jornadas
+com esta tag" — multi-card do mesmo contato confirmado como modelo, não bug),
+rename com slug estável, exclusão com confirmação embutida, desativada removível
+na ficha (antes: save sem saída), filtro do calendário escondendo sem-contato
+com aviso e persistindo no reload, criação inline da lista entrando já
+selecionada; console limpo nas interações rastreadas.
+
+**Pendências do lote:** prova de RUNTIME da criação por editor não executada
+(2AM, sem sessão de editor disponível) — permissão coberta pelas provas
+determinísticas e pelo disclaimer na mensagem de release ("testa e me avisa");
+hierarquia de roles por construção (rank editor<admin em vez de allowlist por
+portão) — instrução pronta, adiada por decisão de escopo; `router.refresh()`
+pós-save da ficha exibe estado antigo ~1s (padrão do repo, registrado, sem
+ação); fila nomeada: etiquetas Iddas (receita pronta) e contrato
+Jornadas↔Calendário (mapa na α). Herdadas vivas do lote anterior: três ajustes
+da RPC do calendário via MCP, drag de reagendamento sem smoke manual, base legal
+LGPD + DMARC (MODO SEGURO ligado), token de erro D1, imagem órfã no bucket,
+`RESEND_SEGMENT_TODOS_ELEGIVEIS_ID`, conversas CM em fila (D097), página de
+gestão de usuários.
+
+**Decisões relacionadas:** D098 (herda D091: slug como identidade, escritora
+única, duas colunas um escritor cada).
+
+---
+
 ## 2026-08-14
 
 ---

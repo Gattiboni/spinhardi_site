@@ -14,10 +14,20 @@
  *
  * Tag interna ÓRFÃ (slug gravado cuja tag saiu do catálogo) é exibida
  * normalmente, em cinza, e nunca some da ficha (T6).
+ *
+ * Tag INATIVA (ainda no catálogo, `is_active=false`) usa o mesmo cinza: as duas
+ * são recusadas na escrita por `validarTagsInternas`, então pintar a inativa com
+ * a cor dela prometia uma tag utilizável que não é. O que muda entre as duas é o
+ * texto do `title` — órfã sumiu do catálogo, inativa foi desligada.
  */
+
+import { COR_TAG_PADRAO } from "@/lib/tags/shared";
 
 const BASE =
   "inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full font-body text-xs whitespace-nowrap";
+
+/** Cinza de "fora do catálogo ativo" — vale pra órfã e pra desativada. */
+const CINZA_FORA_DO_CATALOGO = "#7F889A";
 
 export function TagClickMassaBadge({ nome, cor }: { nome: string; cor: string | null }) {
   const fundo = cor?.trim() || "#5A667D";
@@ -36,22 +46,33 @@ export function TagInternaBadge({
   nome,
   cor,
   orfao = false,
+  inativa = false,
   onRemover,
 }: {
   nome: string;
   cor: string | null;
   orfao?: boolean;
+  /** Existe no catálogo, mas desligada — mesmo cinza da órfã, outro título. */
+  inativa?: boolean;
   onRemover?: () => void;
 }) {
-  const tinta = orfao ? "#7F889A" : cor?.trim() || "#1A2B4A";
+  const foraDoCatalogoAtivo = orfao || inativa;
+  // Sem cor gravada (só acontece em linha antiga), cai no primeiro da paleta —
+  // mesma fonte da cor default de criação, pra não haver hex solto por aqui.
+  const tinta = foraDoCatalogoAtivo ? CINZA_FORA_DO_CATALOGO : cor?.trim() || COR_TAG_PADRAO;
+  const titulo = orfao
+    ? `${nome} — esta tag não está mais no catálogo`
+    : inativa
+      ? `${nome} — esta tag foi desativada no catálogo`
+      : `Tag interna: ${nome}`;
   return (
     <span
       className={`${BASE} border bg-surface`}
       style={{ color: tinta, borderColor: tinta }}
-      title={orfao ? `${nome} — esta tag não está mais no catálogo` : `Tag interna: ${nome}`}
+      title={titulo}
     >
       {nome}
-      {orfao && <span aria-hidden="true">·</span>}
+      {foraDoCatalogoAtivo && <span aria-hidden="true">·</span>}
       {onRemover && (
         <button
           type="button"

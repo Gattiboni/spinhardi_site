@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getTagsPorContato } from "@/lib/tags";
 import type {
   Jornada,
   JornadaComContato,
@@ -67,16 +68,11 @@ const COLS =
 // Resolução de nome do contato (join leve em memória)
 // ─────────────────────────────────────────────────────────────────
 
-async function resolveContatoNomes(
-  contactIds: (string | null)[],
-): Promise<Map<string, string>> {
+async function resolveContatoNomes(contactIds: (string | null)[]): Promise<Map<string, string>> {
   const ids = [...new Set(contactIds.filter((x): x is string => !!x))];
   if (ids.length === 0) return new Map();
 
-  const { data, error } = await supabaseAdmin()
-    .from("contacts")
-    .select("id, name")
-    .in("id", ids);
+  const { data, error } = await supabaseAdmin().from("contacts").select("id, name").in("id", ids);
 
   if (error) throw error;
 
@@ -165,33 +161,17 @@ type KanbanRpcRow = {
  * `gold_kanban_jornadas` — antes resolvíamos em memória com `.in("id", [...])`,
  * o que estourava a URL (HeadersOverflowError) com ~586 jornadas. Uma chamada,
  * zero `.in()`.
- */
-/**
- * Slugs de `contacts.tags` por contato, pra decorar os cards do kanban.
  *
- * Uma query só, sem `.in(...)`: filtrar pelos contatos do quadro exigiria a
- * lista de ids na URL — exatamente o que estourou o header antes. A tabela toda
- * são ~1k linhas de duas colunas, e só as com tag entram no mapa. Degrada pra
- * mapa vazio em erro: tag no card é decoração, nunca motivo pro funil quebrar.
+ * PONTO DE EXTENSÃO (T8): `gold_kanban_jornadas(p_tags text[])`, pra quando o
+ * quadro paginar no servidor. Hoje as 614 jornadas vêm inteiras e o filtro por
+ * tag roda no cliente. Troca de assinatura exige `DROP FUNCTION` antes do
+ * `CREATE`.
+ *
+ * O mapa `contactId → slugs` que decora (e agora filtra) os cards saiu deste
+ * módulo pra `lib/tags`: o calendário passou a precisar do MESMO mapa pro filtro
+ * por tag, e uma query com duas cópias vira duas queries divergentes na primeira
+ * mudança. A disciplina de não usar `.in(...)` foi junto, documentada lá.
  */
-async function getTagsPorContato(): Promise<Map<string, string[]>> {
-  const mapa = new Map<string, string[]>();
-  try {
-    const { data, error } = await supabaseAdmin()
-      .from("contacts")
-      .select("id, tags")
-      .not("tags", "is", null);
-    if (error) throw error;
-
-    for (const linha of (data as { id: string; tags: string[] | null }[]) ?? []) {
-      if (linha.tags && linha.tags.length > 0) mapa.set(linha.id, linha.tags);
-    }
-  } catch (err) {
-    console.error("[jornadas] getTagsPorContato:", err);
-  }
-  return mapa;
-}
-
 export async function getKanbanJornadas(): Promise<JornadaCard[]> {
   try {
     const [{ data, error }, tagsPorContato] = await Promise.all([
@@ -337,9 +317,7 @@ export async function createJornadaManual(
 /** Move a jornada entre colunas abertas do kanban (bumpa estagio_atualizado_em). */
 export async function moverJornada(id: string, estagio: EstagioJornada): Promise<Jornada> {
   if ((ESTAGIOS_FECHADOS as string[]).includes(estagio)) {
-    throw new Error(
-      `moverJornada não fecha jornada (estágio "${estagio}"). Use fecharJornada.`,
-    );
+    throw new Error(`moverJornada não fecha jornada (estágio "${estagio}"). Use fecharJornada.`);
   }
   const { data, error } = await supabaseAdmin()
     .from("jornadas")
@@ -356,10 +334,7 @@ export async function moverJornada(id: string, estagio: EstagioJornada): Promise
  * Fecha a jornada (some do kanban): set estágio fechado + aberta=false +
  * closed_at=now. `estagio` precisa ser um dos fechados (aprovado | reprovado).
  */
-export async function fecharJornada(
-  id: string,
-  estagio: EstagioJornada,
-): Promise<Jornada> {
+export async function fecharJornada(id: string, estagio: EstagioJornada): Promise<Jornada> {
   if (!(ESTAGIOS_FECHADOS as string[]).includes(estagio)) {
     throw new Error(`Estágio de fechamento inválido: ${estagio}`);
   }
@@ -384,10 +359,7 @@ export async function fecharJornada(
  * Aprova uma jornada pendente (entra no kanban). Permite corrigir o estágio
  * sugerido pelo mapper antes de aprovar.
  */
-export async function aprovarJornada(
-  id: string,
-  estagio: EstagioJornada,
-): Promise<Jornada> {
+export async function aprovarJornada(id: string, estagio: EstagioJornada): Promise<Jornada> {
   const { data, error } = await supabaseAdmin()
     .from("jornadas")
     .update({
@@ -407,10 +379,7 @@ export async function aprovarJornada(
  * Edita o valor único da jornada (campo editável da operação no detalhe). O
  * significado (cotação/ganho/perda) vem do estágio — aqui só sobrescreve o número.
  */
-export async function updateValor(
-  id: string,
-  valor: number | null,
-): Promise<Jornada> {
+export async function updateValor(id: string, valor: number | null): Promise<Jornada> {
   const { data, error } = await supabaseAdmin()
     .from("jornadas")
     .update({ valor })
@@ -495,10 +464,7 @@ export async function criarTarefaInterna(
 }
 
 /** Marca/desmarca uma tarefa interna como concluída (seta concluida_em). */
-export async function setTarefaConcluida(
-  id: string,
-  concluida: boolean,
-): Promise<TarefaInterna> {
+export async function setTarefaConcluida(id: string, concluida: boolean): Promise<TarefaInterna> {
   const { data, error } = await supabaseAdmin()
     .from("tarefas_jornada")
     .update({

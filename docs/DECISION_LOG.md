@@ -28,6 +28,43 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-08-18] D098 — Tags transversais: criação operacional pra todos, gestão admin, filtro estrito no calendário, Iddas fora
+
+**Data:** 2026-08-18 · **Owner:** Alan
+
+**Contexto.** O caso de uso da operação (sprint de reativação da Bruna/Isa)
+pediu marcação e filtro de contatos em Jornadas — exatamente o que a tag interna
+já fazia na ficha e na lista, sem afordance no kanban nem filtro no
+kanban/calendário. A investigação α mapeou 4 escritores de `contacts.tags` (um
+latente sem validação), um impasse de save com tag desativada, e três
+vocabulários de natureza distinta (interna=contato, CM=contato read-only,
+Iddas=orçamento, nunca ingerida).
+
+**Decisão.** (1) **Criar tag é de qualquer aprovado** (`requireSession`): tarefa
+operacional não pode depender de admin; editar/excluir segue admin porque
+exclusão não tem desfazer nem cascata. (2) **Filtro do calendário é estrito:**
+tag ativa esconde evento sem contato vinculado, com aviso explícito — "menos é
+mais" pra operadora; diverge de propósito da regra C5.2 do filtro por pessoa
+(que preserva sem-dono). (3) **Etiquetas Iddas ficam fora:** eixo de orçamento,
+não de contato; a receita de ingestão (12 chamadas) está pronta e vira lote
+próprio com o filtro transversal já na tela pra orientar a exibição. (4) **Zero
+SQL neste lote:** filtros client-side sobre payload existente (614 jornadas,
+mapa contato→slugs no padrão do kanban), RPCs intactas com `p_tags` como ponto
+de extensão nomeado — mesmo princípio da D091 (slug como identidade estável,
+escritora única da coluna) e do C4 (RPC como definição única, apresentação é do
+front). (5) **Ciclo de vida:** desativada vira removível como órfã no editor;
+órfã permanece pra sempre (histórico > taxonomia); escritor latente fechado.
+
+**Alternativas descartadas.** Coluna nova no funil pro sprint (quebra o funil:
+etapa ≠ motivo — a coluna diz onde a conversa está, a tag diz por quê);
+parâmetro de tag nas RPCs agora (DROP FUNCTION + ganho nulo em 614 cards;
+reavaliar quando houver paginação server-side); ingerir etiquetas Iddas junto
+(terceiro vocabulário de natureza diferente antes do transversal nascer);
+`requireRole` relaxado na action de Configurações (mudaria semântica de tela
+admin usada por duas rotas — nasceu `criarTagInline` própria).
+
+---
+
 ### [2026-08-14] D095 — Calendário v1: leitura única via RPC, escrita local mínima, Iddas como espelho
 
 **Contexto:** O calendário era o maior item do catch-up (tarefas + check-in +

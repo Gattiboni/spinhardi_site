@@ -414,6 +414,9 @@ export async function salvarTagsInternas(
 
     revalidatePath(`/admin/contatos/${contactId}`);
     revalidatePath("/admin/contatos");
+    // O card do funil projeta as tags do contato: sem isto, tag aplicada na
+    // ficha só aparecia no kanban depois de um F5 (T6).
+    revalidatePath("/admin/jornadas");
     return { success: true };
   } catch (err) {
     console.error("[salvarTagsInternas] erro ao salvar tags:", err);

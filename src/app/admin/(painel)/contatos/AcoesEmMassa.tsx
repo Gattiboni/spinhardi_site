@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/primitives/Modal";
 import { useToast } from "@/components/ui/primitives/Toast";
-import { preverSlug, type TagInterna } from "@/lib/tags/shared";
+import type { TagInterna } from "@/lib/tags/shared";
 import type { Grupo } from "@/lib/grupos/types";
 import { aplicarTagEmMassa, adicionarAoGrupoEmMassa } from "./actions";
-import { createTag } from "../configuracoes/actions";
+import { criarTagInline } from "@/lib/tags/actions";
 
 /**
  * Barra de ações em massa da lista de contatos.
@@ -21,11 +21,11 @@ import { createTag } from "../configuracoes/actions";
  * primário) porque tira dado de várias pessoas de uma vez e não tem desfazer.
  * "Adicionar" é união — não destrói nada — e vai em modal simples.
  *
- * CRIAR TAG INLINE chama `createTag`, a MESMA server action de Configurações
- * (T7): mesma geração de slug, mesma validação, zero segundo CRUD. Consequência
- * conhecida: aquela action exige role `admin`, então editor não cria tag daqui.
- * Está documentado no relatório do lote — mudar isso é decisão de permissão,
- * não deste componente.
+ * CRIAR TAG INLINE chama `criarTagInline` (contrato de tags v1, T2): exige só
+ * sessão aprovada, então EDITOR CRIA TAG DAQUI — a trava de `admin` que a action
+ * de Configurações impunha caiu, porque criar tag é gesto operacional. E como a
+ * action devolve a tag criada, o slug não é mais adivinhado nem esperamos o
+ * `router.refresh()` pra poder selecioná-la: ela já entra escolhida no select.
  */
 export default function AcoesEmMassa({
   selecionados,
@@ -45,13 +45,22 @@ export default function AcoesEmMassa({
   const [slug, setSlug] = useState("");
   const [novaTag, setNovaTag] = useState("");
   const [criandoTag, setCriandoTag] = useState(false);
+  // Tags criadas nesta sessão do modal. O `router.refresh()` recarrega o
+  // catálogo por baixo, mas o modal continua montado com a prop antiga até a
+  // árvore nova chegar — sem isto a tag recém-criada some do select por um
+  // instante, que é exatamente o pisca que o retorno da action existe pra matar.
+  const [criadasAgora, setCriadasAgora] = useState<TagInterna[]>([]);
   const [grupoEscolhido, setGrupoEscolhido] = useState("");
   const [novoGrupo, setNovoGrupo] = useState("");
 
   const n = selecionados.length;
   if (n === 0) return null;
 
-  const ativas = catalogoInterno.filter((t) => t.isActive);
+  const conhecidas = [
+    ...catalogoInterno,
+    ...criadasAgora.filter((nova) => !catalogoInterno.some((t) => t.slug === nova.slug)),
+  ];
+  const ativas = conhecidas.filter((t) => t.isActive);
   const plural = n === 1 ? "contato" : "contatos";
 
   const fechar = () => {
@@ -62,26 +71,29 @@ export default function AcoesEmMassa({
     setNovoGrupo("");
   };
 
-  const criarTagInline = async () => {
+  const criarTag = async () => {
     const nome = novaTag.trim();
     if (nome.length < 2) {
       toast.erro("Dê um nome com ao menos 2 letras pra tag.");
       return;
     }
     setCriandoTag(true);
-    // Cor default do catálogo interno — a operadora ajusta em Configurações.
-    const r = await createTag({ name: nome, cor: "#1A2B4A", grupo: null, is_active: true });
+    // Sem `cor`: a paleta de `lib/tags/shared` resolve (T3/T7).
+    const r = await criarTagInline({ name: nome });
     setCriandoTag(false);
 
-    if (!r.success) {
+    if (!r.success || !r.tag) {
       toast.erro(r.error ?? "Não foi possível criar a tag.");
       return;
     }
-    // O slug é gerado pela action de Configurações; aqui a gente PREVÊ o mesmo
-    // (mesma função de normalização) só pra já deixar a tag escolhida.
-    setSlug(preverSlug(nome));
+    // A tag volta na resposta: o slug é o REAL, não uma previsão, e a seleção
+    // não espera o catálogo chegar pelo refresh.
+    setSlug(r.tag.slug);
+    setCriadasAgora((prev) =>
+      prev.some((t) => t.slug === r.tag!.slug) ? prev : [...prev, r.tag!],
+    );
     setNovaTag("");
-    toast.sucesso(`Tag "${nome}" criada.`);
+    toast.sucesso(`Tag "${r.tag.name}" criada.`);
     router.refresh();
   };
 
@@ -200,7 +212,7 @@ export default function AcoesEmMassa({
             </div>
             <button
               type="button"
-              onClick={criarTagInline}
+              onClick={criarTag}
               disabled={criandoTag}
               className={`${botao} disabled:text-text-disabled`}
             >
@@ -232,7 +244,7 @@ export default function AcoesEmMassa({
             <option value="">Escolha a tag…</option>
             {/* Remover aceita tag DESATIVADA: dá pra tirar uma tag que saiu do
                 catálogo depois de ter sido aplicada. */}
-            {catalogoInterno.map((t) => (
+            {conhecidas.map((t) => (
               <option key={t.slug} value={t.slug}>
                 {t.name}
                 {t.isActive ? "" : " (desativada)"}

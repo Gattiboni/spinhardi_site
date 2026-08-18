@@ -118,6 +118,10 @@ export async function aplicarTagEmMassa(
 
     revalidatePath("/admin/contatos");
     contactIds.forEach((id) => revalidatePath(`/admin/contatos/${id}`));
+    // O kanban projeta as tags do contato em cada card, e agora esta action é
+    // também o escritor do popover de tag do funil (T6) — sem esta linha, a tag
+    // aplicada num card só aparecia no quadro depois de um F5.
+    revalidatePath("/admin/jornadas");
     return { success: true, afetados: resultado.afetados };
   } catch (err) {
     console.error("[aplicarTagEmMassa] erro:", err);

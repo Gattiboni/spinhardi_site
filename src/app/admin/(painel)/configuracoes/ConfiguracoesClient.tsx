@@ -3,56 +3,41 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
+import Modal, { type ConfirmResult } from "@/components/ui/primitives/Modal";
+import TagRow, {
+  inputClassCatalogo as inputClass,
+  BadgeCatalogo as Badge,
+  LinhaErro as ErrorLine,
+  ToggleCatalogo as Toggle,
+} from "@/components/admin/TagRow";
+import { COR_TAG_PADRAO, type TagInterna } from "@/lib/tags/shared";
 import type { CaptureOrigin, Tag } from "@/lib/configuracoes/types";
 import {
   createCaptureOrigin,
   updateCaptureOrigin,
   deleteCaptureOrigin,
   createTag,
-  updateTag,
-  deleteTag,
 } from "./actions";
 
-const inputClass =
-  "px-3 py-2 border border-dark/20 rounded-md font-body text-sm text-dark focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-short";
-
-const DEFAULT_TAG_COLOR = "#B89D5A";
-
-// ─────────────────────────────────────────────────────────────────
-// Primitivos compartilhados
-// ─────────────────────────────────────────────────────────────────
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="inline-flex items-center gap-2 font-body text-sm text-dark/70"
-    >
-      <span
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-short ${
-          checked ? "bg-gold" : "bg-dark/20"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all duration-short ${
-            checked ? "left-4.5" : "left-0.5"
-          }`}
-        />
-      </span>
-      {label}
-    </button>
-  );
+/**
+ * A LINHA DE TAG não mora mais aqui: virou `components/admin/TagRow`, porque a
+ * ficha do contato passou a oferecer a mesma gestão num modal (contrato de tags
+ * v1, T4). Os três átomos visuais desta página (campo, badge, toggle) foram
+ * junto na extração e voltam por import — uma implementação, dois lugares.
+ *
+ * `TagRow` fala `TagInterna` (o tipo de `lib/tags`, `isActive` em camelCase),
+ * enquanto esta página lê `Tag` de `lib/configuracoes` (`is_active`). São a
+ * mesma linha do banco com dois nomes de campo; `paraTagInterna` faz a ponte.
+ */
+function paraTagInterna(tag: Tag): TagInterna {
+  return {
+    id: tag.id,
+    name: tag.name,
+    slug: tag.slug,
+    cor: tag.cor,
+    grupo: tag.grupo,
+    isActive: tag.is_active,
+  };
 }
 
 function Card({
@@ -73,20 +58,6 @@ function Card({
   );
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "gold" }) {
-  const cls = tone === "gold" ? "bg-gold/10 text-gold" : "bg-dark/10 text-dark/50";
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-body ${cls}`}>
-      {children}
-    </span>
-  );
-}
-
-function ErrorLine({ message }: { message: string | null }) {
-  if (!message) return null;
-  return <span className="w-full font-body text-xs text-red-700">{message}</span>;
-}
-
 // ─────────────────────────────────────────────────────────────────
 // Origens de captação
 // ─────────────────────────────────────────────────────────────────
@@ -98,6 +69,7 @@ function OriginRow({ origin, onChanged }: { origin: CaptureOrigin; onChanged: ()
   const [isActive, setIsActive] = useState(origin.is_active);
   const [campanhaAtiva, setCampanhaAtiva] = useState(origin.campanha_ativa);
   const [error, setError] = useState<string | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const reset = () => {
@@ -126,14 +98,13 @@ function OriginRow({ origin, onChanged }: { origin: CaptureOrigin; onChanged: ()
     });
   };
 
-  const remove = () => {
-    if (!confirm(`Excluir a origem "${origin.name}"?`)) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await deleteCaptureOrigin(origin.id);
-      if (res.success) onChanged();
-      else setError(res.error ?? "Erro ao excluir.");
-    });
+  // Mesma régua da exclusão de tag: modal destrutivo do padrão da casa, não o
+  // `confirm()` nativo — as duas linhas desta página são o mesmo gesto.
+  const excluir = async (): Promise<ConfirmResult> => {
+    const res = await deleteCaptureOrigin(origin.id);
+    if (!res.success) return res.error ?? "Erro ao excluir.";
+    onChanged();
+    return null;
   };
 
   if (editing) {
@@ -199,13 +170,25 @@ function OriginRow({ origin, onChanged }: { origin: CaptureOrigin; onChanged: ()
         </button>
         <button
           type="button"
-          onClick={remove}
+          onClick={() => setConfirmandoExclusao(true)}
           disabled={pending}
           className="text-red-600 hover:underline disabled:opacity-50"
         >
           Excluir
         </button>
       </div>
+
+      <Modal
+        open={confirmandoExclusao}
+        onClose={() => setConfirmandoExclusao(false)}
+        variant="destrutiva"
+        titulo={`Excluir a origem "${origin.name}"?`}
+        descricao="Os contatos que já vieram por esta origem continuam apontando pra ela. Isso não tem como desfazer."
+        primarioLabel="Excluir origem"
+        onConfirmar={excluir}
+        data-testid="modal-excluir-origem"
+      />
+
       <ErrorLine message={error} />
     </li>
   );
@@ -300,137 +283,10 @@ function OriginAddForm({ onChanged }: { onChanged: () => void }) {
 // Tags
 // ─────────────────────────────────────────────────────────────────
 
-function TagRow({ tag, onChanged }: { tag: Tag; onChanged: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(tag.name);
-  const [cor, setCor] = useState(tag.cor);
-  const [grupo, setGrupo] = useState(tag.grupo ?? "");
-  const [isActive, setIsActive] = useState(tag.is_active);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const reset = () => {
-    setName(tag.name);
-    setCor(tag.cor);
-    setGrupo(tag.grupo ?? "");
-    setIsActive(tag.is_active);
-    setError(null);
-  };
-
-  const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const res = await updateTag(tag.id, { name, cor, grupo, is_active: isActive });
-      if (res.success) {
-        setEditing(false);
-        onChanged();
-      } else {
-        setError(res.error ?? "Erro ao salvar.");
-      }
-    });
-  };
-
-  const remove = () => {
-    if (!confirm(`Excluir a tag "${tag.name}"?`)) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await deleteTag(tag.id);
-      if (res.success) onChanged();
-      else setError(res.error ?? "Erro ao excluir.");
-    });
-  };
-
-  if (editing) {
-    return (
-      <li className="flex flex-col gap-2 py-3 border-b border-dark/5 last:border-0">
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={cor}
-            onChange={(e) => setCor(e.target.value)}
-            className="h-8 w-8 shrink-0 cursor-pointer rounded border border-dark/20"
-            aria-label="Cor"
-          />
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nome"
-            className={`${inputClass} flex-1 min-w-32`}
-          />
-        </div>
-        <input
-          type="text"
-          value={grupo}
-          onChange={(e) => setGrupo(e.target.value)}
-          placeholder="Grupo (opcional)"
-          className={inputClass}
-        />
-        <div className="flex flex-wrap items-center gap-4 pt-1">
-          <Toggle checked={isActive} onChange={setIsActive} label="Ativa" />
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              onClick={save}
-              disabled={pending}
-              className="font-body text-sm text-green-700 hover:underline disabled:opacity-50"
-            >
-              Salvar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                reset();
-              }}
-              className="font-body text-sm text-dark/50 hover:underline"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-        <ErrorLine message={error} />
-      </li>
-    );
-  }
-
-  return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 border-b border-dark/5 last:border-0 font-body text-sm">
-      <span
-        className="h-4 w-4 shrink-0 rounded-full border border-dark/10"
-        style={{ backgroundColor: tag.cor }}
-        aria-hidden="true"
-      />
-      <span className="text-dark font-medium">{tag.name}</span>
-      <span className="text-dark/30 text-xs">{tag.slug}</span>
-      {tag.grupo && <Badge tone="muted">{tag.grupo}</Badge>}
-      {!tag.is_active && <Badge tone="muted">Inativa</Badge>}
-      <div className="ml-auto flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="text-gold hover:underline"
-        >
-          Editar
-        </button>
-        <button
-          type="button"
-          onClick={remove}
-          disabled={pending}
-          className="text-red-600 hover:underline disabled:opacity-50"
-        >
-          Excluir
-        </button>
-      </div>
-      <ErrorLine message={error} />
-    </li>
-  );
-}
-
 function TagAddForm({ onChanged }: { onChanged: () => void }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
-  const [cor, setCor] = useState(DEFAULT_TAG_COLOR);
+  const [cor, setCor] = useState(COR_TAG_PADRAO);
   const [grupo, setGrupo] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -438,7 +294,7 @@ function TagAddForm({ onChanged }: { onChanged: () => void }) {
 
   const reset = () => {
     setName("");
-    setCor(DEFAULT_TAG_COLOR);
+    setCor(COR_TAG_PADRAO);
     setGrupo("");
     setIsActive(true);
     setError(null);
@@ -554,7 +410,7 @@ export default function ConfiguracoesClient({
           {tags.length > 0 ? (
             <ul className="mb-5">
               {tags.map((tag) => (
-                <TagRow key={tag.id} tag={tag} onChanged={onChanged} />
+                <TagRow key={tag.id} tag={paraTagInterna(tag)} onChanged={onChanged} />
               ))}
             </ul>
           ) : (
