@@ -35,3 +35,14 @@ export const FOOTER_SERVICE_LINKS: NavLink[] = [
   { href: "/viagens/pacotes", label: "Pacotes e Serviços Avulsos" },
   { href: "/viagens/sob-medida", label: "Viagem Sob Medida" },
 ];
+
+/**
+ * Links legais — rodapé inferior do Footer, ao lado do copyright.
+ *
+ * Fica FORA de `FOOTER_PAGE_LINKS`, do `NAV_LINKS` e do MobileMenu de propósito:
+ * é link de referência (rodapé inferior), não item de navegação. Declarado como
+ * lista porque o próximo (termos de uso) entra aqui sem tocar o Footer.
+ */
+export const FOOTER_LEGAL_LINKS: NavLink[] = [
+  { href: "/politica-de-privacidade", label: "Política de privacidade" },
+];

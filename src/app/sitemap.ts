@@ -27,6 +27,7 @@ const STATIC_PATHS = [
   "/viagens/sob-medida",
   "/contato",
   "/blog",
+  "/politica-de-privacidade",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

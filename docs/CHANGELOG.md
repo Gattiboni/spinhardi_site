@@ -15,6 +15,95 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-08
+
+---
+
+**SITE — Política de privacidade, link no rodapé e aviso no formulário (D099):**
+fecha a pendência aberta em 29/06 ("LGPD — implementar EM BREVE"). Lote 100%
+aditivo: zero migration, zero SQL, zero dependência, zero env. Nova rota
+`src/app/(public)/politica-de-privacidade/page.tsx` — Server Component estático
+(prerender `○`), copy hardcoded como as demais institucionais, 11 seções em H2,
+metadata própria (`<title>Política de privacidade | Spinhardi Turismo</title>`,
+description = parágrafo de abertura, canonical em `www`), indexável, data de
+atualização como constante `DD/MM/AAAA` no arquivo (nunca dinâmica — mentiria a
+cada build). Controlador nomeado com dado real do cartão CNPJ: Spinhardi Turismo
+Ltda, 53.291.591/0001-60, sede a nível de cidade (endereço continua não
+publicado). Canal do titular: `contato@spinharditurismo.com.br` (caixa
+confirmada pelas sócias; senha pedida pra o Alan operar o canal). Copy da seção
+"Quais dados coletamos" reescrita pelo Codinho contra o form REAL: 13 campos
+(`name`, `whatsapp`, `email`, `destinoTipo`, `destinoTexto`, `prazoIdeal`,
+`dataIda`, `passageirosAdultos/Criancas/Bebes`, `perfilViajante`,
+`orcamentoEstimado`, `observacao` + honeypot `website`), não os 4 do mapa de
+copies v1; "nada é obrigatório" corrigido pra "nome e WhatsApp obrigatórios",
+que é o que a action exige. `navigation.ts` ganha `FOOTER_LEGAL_LINKS` (lista,
+não link solto — termos de uso entram sem tocar o Footer); `Footer.tsx` passa a
+consumir dali no rodapé inferior (o link tinha saído dos DOIS lugares em 29/06,
+o bloco era `<p>` puro). `ContactForm.tsx`: microtexto "Ao enviar, você concorda
+com a nossa Política de privacidade." abaixo do botão, sem checkbox (base legal
+do contato é preparação de contrato, art. 7º V — não pede consentimento;
+`values`, `handleSubmit`, `submitContact`, honeypot e validação byte-idênticos
+por diff). `sitemap.ts`: rota em `STATIC_PATHS`. `Header.tsx`: rota em
+`LIGHT_ROUTES` — fora do escopo declarado na instrução, sinalizado pelo Codinho
+com reversão de 1 linha e aceito: o docblock do array já previa a extensão e sem
+ela o header ficava transparente sobre fundo branco. TRAP:
+`Última atualização: {CONST}` em JSX vira dois text nodes com `<!-- -->` no meio
+e quebra grep no HTML servido — interpolar como string única.
+
+**DECISÃO — Vercel Analytics descartado (D100, revisa D011):** nunca foi
+instalado (decisão de 29/05 sem execução: nenhum `@vercel/analytics` no repo,
+Web Analytics desligado no dashboard). Fica fora de vez: painel a mais pra um
+público que não vai olhar. Stack de analytics passa a GA4 + Search Console.
+
+**INFRA — Google, estado zero:** nenhuma propriedade GA4, Search Console não
+conectado, Business Profile nunca criado (pendência de D084), Ads fora da Fase
+
+1. Regra fixada: tudo nasce em `spinhardi.turismo@gmail.com` (mesmo padrão D003
+   da infra, mesma conta do Resend), sócias entram como proprietárias; zero
+   senha de terceiro. Mensagem enviada ao grupo pedindo (a) emails das sócias
+   pra propriedade e (b) se já existe perfil no Maps/Meu Negócio, mesmo
+   abandonado — empresa com 40 anos costuma ter perfil auto-gerado sem dono;
+   caminho é reivindicar, não criar. Aguardando resposta. Fato novo pra doc:
+   cartão CNPJ diz abertura em 22/12/2023, JSON-LD da home diz
+   `foundingDate: "1987"` — não é contradição na política (que não cita
+   fundação), mas é o par de fatos que alguém vai perguntar um dia.
+
+**Validação (β):** `next build` + `lint` limpos; rota 200 com H1, 11 H2 e
+"Última atualização: 08/09/2026"; `<title>`, `<meta description>` e canonical
+conferidos no HTML servido; os três literais (Ltda, CNPJ, contato@) conferidos
+no servido, não no fonte; rodapé inferior "© 2026 Spinhardi Turismo · Todos os
+direitos reservados · Política de privacidade" → 200 em qualquer página pública;
+nav principal, `NAV_LINKS`, `FOOTER_PAGE_LINKS` e `MobileMenu.tsx` intocados;
+`<loc>` da nova rota no sitemap; header servido com `bg-navy
+shadow-lg` na rota.
+Olho do Claude via navegador em `localhost:3000`: `/politica-de-privacidade` e
+`/contato` (microtexto acima do "Também pode chamar direto no WhatsApp", link
+vivo, rodapé). Envio real do form NÃO executado (grava contato + jornada em
+produção, dispara email pro time e boas-vindas no WhatsApp via ClickMassa —
+efeito externo sem autorização de escrita); prova de não-regressão pelo diff da
+action.
+
+**Pendências do lote:** smoke do form em produção pós-deploy (submit com "TESTE"
+no nome, apagar a jornada depois); revisão jurídica da copy (a pendência de
+29/06 dizia "conteúdo jurídico precisa de revisão" — segue dizendo); seção 4
+nomeia legítimo interesse pras comunicações a clientes, que é a decisão de 27/07
+AINDA pendente de aprovação da Nina e da Julia — se recusarem, o parágrafo muda;
+seção 6 escrita pro estado atual (só cookies essenciais) e é o parágrafo que o
+lote do GA4 troca junto com o banner de consentimento; Google inteiro aguarda
+resposta do grupo. Herdadas vivas: três ajustes da RPC do calendário via MCP,
+drag de reagendamento sem smoke manual, DMARC (MODO SEGURO ligado), token de
+erro D1, imagem órfã no bucket, `RESEND_SEGMENT_TODOS_ELEGIVEIS_ID`, conversas
+CM em fila (D097), página de gestão de usuários, hierarquia de roles por
+construção (instrução pronta), etiquetas Iddas (receita pronta), contrato
+Jornadas↔Calendário, email institucional ainda não configurado no Resend,
+Business Profile (agora dentro da frente Google).
+
+**Decisões relacionadas:** D099 (herda D084: dado institucional errado é pior
+que ausente — endereço fica a nível de cidade; herda D003: conta em nome da
+Spinhardi, sem senha de terceiro), D100 (revisa D011).
+
+---
+
 ## 2026-08-18
 
 ---

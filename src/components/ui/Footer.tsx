@@ -2,7 +2,7 @@ import Link from "next/link";
 import Container from "@/components/ui/Container";
 import Logo from "@/components/ui/Logo";
 import Divider from "@/components/ui/Divider";
-import { FOOTER_PAGE_LINKS, FOOTER_SERVICE_LINKS } from "@/lib/navigation";
+import { FOOTER_PAGE_LINKS, FOOTER_SERVICE_LINKS, FOOTER_LEGAL_LINKS } from "@/lib/navigation";
 import { buildWhatsAppURL } from "@/lib/whatsapp/constants";
 
 const INSTAGRAM_URL = "https://instagram.com/spinharditurismo";
@@ -103,11 +103,24 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Rodapé inferior */}
+        {/* Rodapé inferior — copyright + links legais na MESMA linha de texto,
+            separados por "·" como no copy aprovado. Os links vêm do navigation.ts
+            (fonte única), não hardcoded aqui. */}
         <Divider tone="light" />
         <div className="py-8">
           <p className="text-center font-body text-xs text-white/50 md:text-left">
             © 2026 Spinhardi Turismo · Todos os direitos reservados
+            {FOOTER_LEGAL_LINKS.map(({ href, label }) => (
+              <span key={href}>
+                {" · "}
+                <Link
+                  href={href}
+                  className="transition-colors duration-short hover:text-white/80"
+                >
+                  {label}
+                </Link>
+              </span>
+            ))}
           </p>
         </div>
       </Container>

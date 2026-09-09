@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import { submitContact, type ContactFormData } from "@/app/(public)/contato/actions";
@@ -510,6 +511,20 @@ export default function ContactForm() {
         <Button type="submit" variant="primary" size="lg" disabled={loading}>
           {loading ? "Enviando..." : "Enviar pedido de cotação"}
         </Button>
+        {/* Aviso LGPD no ponto de coleta. SEM checkbox de propósito: a base legal
+            deste contato é preparação de contrato (LGPD art. 7º, V), que não exige
+            consentimento — checkbox seria fricção que a lei não pede. É só texto:
+            nada muda no state, no payload, na validação nem no honeypot. */}
+        <p className="mt-4 font-body text-sm text-dark/60">
+          Ao enviar, você concorda com a nossa{" "}
+          <Link
+            href="/politica-de-privacidade"
+            className="underline underline-offset-4 transition-colors duration-short hover:text-dark"
+          >
+            Política de privacidade
+          </Link>
+          .
+        </p>
         <p className="mt-4 font-body text-sm text-dark/60">
           Também pode chamar direto no WhatsApp.
         </p>

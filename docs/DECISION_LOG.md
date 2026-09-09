@@ -28,6 +28,74 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-08] D100 — Vercel Analytics fora: stack de analytics passa a GA4 + Search Console (revisa D011)
+
+**Data:** 2026-09-08 · **Owner:** Alan
+
+**Contexto.** D011 (29/05) fixou GA4 + Search Console + Vercel Analytics.
+Verificação de 08/09 no dashboard e no repo: Web Analytics nunca foi habilitado,
+`@vercel/analytics` nunca entrou no `package.json`, zero dado coletado. A
+decisão existia só no papel. Vercel Analytics só conta a partir do dia em que o
+script entra no site, sem retroativo, e entregaria visitas/páginas/referrer que
+o GA4 também entrega.
+
+**Decisão.** (1) **Vercel Analytics sai da stack**, sem instalar: é um painel a
+mais pra duas usuárias que não vão abrir dois painéis — "menos é mais", mesmo
+princípio do filtro estrito da D098. (2) **Stack de analytics = GA4 + Search
+Console**, ambos sob `spinhardi.turismo@gmail.com`, com as sócias como
+proprietárias (padrão D003). (3) **D011 passa a Revisada** neste ponto; o resto
+dela (Looker descartado, Plausible/PostHog só com dor real) continua valendo.
+
+**Alternativas descartadas.** Instalar mesmo assim porque "é grátis no Pro"
+(grátis em dinheiro, caro em atenção da Nina); Speed Insights sozinho pra Core
+Web Vitals (dado de engenharia, não de operação — reavaliar se aparecer problema
+real de performance).
+
+---
+
+### [2026-09-08] D099 — LGPD base mínima: política pública estática, aviso no ponto de coleta sem checkbox, consentimento de cookie adiado pro lote do GA4
+
+**Data:** 2026-09-08 · **Owner:** Alan
+
+**Contexto.** O site coleta dado pessoal por formulário desde o go-live (D081:
+form cria contato + jornada), o back-office espelha Iddas e ClickMassa, e o
+rodapé perdeu o link de política em 29/06 porque a página não existia. GA4 está
+a um lote de distância e traz cookie não-essencial. Faltava a base mínima que
+qualquer um desses pede: quem é o controlador, o que coleta, com que base, com
+quem compartilha e por onde o titular reclama.
+
+**Decisão.** (1) **Página estática, copy hardcoded, indexável:** mesmo padrão
+das institucionais; copy no Sanity é a mesma pendência de 29/06, não deste lote.
+(2) **Controlador com dado real e endereço a nível de cidade:** razão social e
+CNPJ do cartão, sede "Serra Negra, SP" — herda D084 (dado institucional errado é
+pior que ausente; endereço não se publica). (3) **Sem checkbox no formulário:**
+base legal do contato é preparação/execução de contrato (art. 7º, V), que não
+exige consentimento; o microtexto com link informa no ponto de coleta e não
+adiciona fricção que a Nina não pediu e a lei não pede. Action, validação e
+honeypot intocados por construção. (4) **Canal do titular =
+`contato@spinharditurismo.com.br`:** caixa confirmada pelas sócias; agente de
+pequeno porte é dispensado de indicar encarregado (Res. CD/ANPD 2/2022) mas
+precisa de canal que alguém leia — o Alan passa a operar a caixa. (5)
+**Consentimento de cookie NÃO entra agora:** sem GA4 não há cookie não-essencial
+pra consentir; a seção 6 descreve o estado atual e é o ponto de extensão nomeado
+que o lote do GA4 troca junto com o banner. (6) **Rodapé inferior consome
+`FOOTER_LEGAL_LINKS`** (lista em `navigation.ts`), pra termos de uso ou
+similares entrarem sem tocar o Footer — mesmo princípio de fonte única de
+D-navegação (31/05). (7) **Copy do form segue o form real, não o mapa de
+copies:** 13 campos, nome e WhatsApp obrigatórios; regra herdada do "repo
+reality over prompt specs".
+
+**Alternativas descartadas.** Checkbox de consentimento no form (fricção sem
+base legal que a exija; reavaliar só se entrar newsletter por consentimento no
+próprio form); banner de cookie preventivo (banner sem cookie é ruído; entra com
+o GA4); política no Sanity já (dobraria o lote; segue a pendência de copy
+institucional no CMS); data de atualização dinâmica (mente a cada build); termos
+de uso (site sem conta de usuário não precisa; a lista de links legais já deixa
+o lugar). Pendente fora da decisão: revisão jurídica da copy e a aprovação da
+base de legítimo interesse pelas sócias (27/07), que a seção 4 presume.
+
+---
+
 ### [2026-08-18] D098 — Tags transversais: criação operacional pra todos, gestão admin, filtro estrito no calendário, Iddas fora
 
 **Data:** 2026-08-18 · **Owner:** Alan
