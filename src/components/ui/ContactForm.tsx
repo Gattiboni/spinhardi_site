@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import { submitContact, type ContactFormData } from "@/app/(public)/contato/actions";
 import { whatsappValidationError } from "@/lib/contacts/phone";
+import { trackEvent } from "@/lib/analytics/track";
 import {
   DESTINOS_OPTIONS,
   PRAZOS_OPTIONS,
@@ -126,6 +127,7 @@ export default function ContactForm() {
       const result = await submitContact(values);
       if (result.success) {
         setSubmitted(true);
+        trackEvent("generate_lead", { method: "form_contato" });
       } else {
         const msg = result.error || "Algo deu errado. Tente novamente.";
         // Erro de validação de um campo específico → cola no campo e foca nele.

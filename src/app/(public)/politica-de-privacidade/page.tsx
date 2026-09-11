@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import Section from "@/components/ui/Section";
 import Container from "@/components/ui/Container";
 import Breadcrumb from "@/components/ui/Breadcrumb";
+import { CookiePreferenceButton } from "@/components/consent";
 
 /**
  * Data da última revisão da política. HARDCODED de propósito: data dinâmica aqui
  * mentiria a cada build (mudaria sem o texto ter mudado). Quem editar a copy
  * atualiza esta constante na mesma edição. Formato DD/MM/AAAA, como o texto pede.
  */
-const ULTIMA_ATUALIZACAO = "08/09/2026";
+const ULTIMA_ATUALIZACAO = "11/09/2026";
 
 /** Parágrafo de abertura — reusado como `description` do metadata (fonte única). */
 const ABERTURA =
@@ -41,8 +42,9 @@ function SectionTitle({ children }: { children: string }) {
  * post do blog — é texto corrido longo, não uma página de blocos. Sem hero, sem
  * imagem, sem CTA final, de propósito: página de referência, não de conversão.
  *
- * Seção 6 (Cookies) descreve o estado ATUAL (só cookies essenciais). Quando o GA4
- * entrar, é esse parágrafo que muda, junto do consentimento — nada disso aqui hoje.
+ * Seção 6 (Cookies) descreve o GA4 sob consentimento e traz o botão que revoga a
+ * escolha (`CookiePreferenceButton`, o único pedaço client desta página; sem a env
+ * do GA4 ele não renderiza, e a copy segue verdadeira: "só com a sua autorização").
  */
 export default function PoliticaDePrivacidade() {
   return (
@@ -121,8 +123,8 @@ export default function PoliticaDePrivacidade() {
                 serviço funcionar: os fornecedores da viagem (companhias aéreas, hotéis,
                 operadoras, seguradoras), somente na contratação e só o necessário para cada um;
                 as plataformas que usamos para hospedar o site e o nosso sistema, atender por
-                WhatsApp, gerir a agência e enviar e-mails, todas atuando sob nossas instruções;
-                e autoridades públicas, quando a lei exigir.
+                WhatsApp, gerir a agência, enviar e-mails e medir a audiência, todas atuando sob
+                nossas instruções; e autoridades públicas, quando a lei exigir.
               </p>
               <p>
                 Alguns desses provedores mantêm servidores fora do Brasil. Nesses casos, a
@@ -132,11 +134,13 @@ export default function PoliticaDePrivacidade() {
 
             <SectionTitle>6. Cookies</SectionTitle>
             <p>
-              Hoje o site usa apenas os cookies estritamente necessários para funcionar. Não
-              usamos cookies de publicidade. Se passarmos a usar ferramentas de medição de
-              audiência, pediremos sua autorização antes de ativá-las e atualizaremos esta
-              página.
+              Usamos cookies estritamente necessários para o site funcionar e, só com a sua
+              autorização, cookies do Google Analytics para medir a audiência: quais páginas são
+              vistas e de onde as visitas chegam. Você escolhe no aviso que aparece na primeira
+              visita e pode mudar de ideia quando quiser, no botão abaixo. Não usamos cookies de
+              publicidade.
             </p>
+            <CookiePreferenceButton />
 
             <SectionTitle>7. Por quanto tempo guardamos</SectionTitle>
             <p>
