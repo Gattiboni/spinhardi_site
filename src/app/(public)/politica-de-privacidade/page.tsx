@@ -112,8 +112,9 @@ export default function PoliticaDePrivacidade() {
               Quando você entra em contato, a base é a preparação e a execução do contrato de
               viagem. Quando emitimos documentos e notas, a base é o cumprimento de obrigação
               legal. As comunicações para quem já é cliente se apoiam no nosso legítimo interesse
-              em manter o relacionamento, sempre com o descadastro disponível. Ferramentas de
-              medição de audiência, se e quando forem ativadas, dependerão do seu consentimento.
+              em manter o relacionamento, sempre com o descadastro disponível. As ferramentas de
+              medição de audiência (Google Analytics) só funcionam com o seu consentimento, que
+              você dá ou nega no aviso de cookies.
             </p>
 
             <SectionTitle>5. Com quem compartilhamos</SectionTitle>
