@@ -28,6 +28,50 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-11] D101 — GA4 só carrega após consentimento explícito; sem Consent Mode, sem GTM; um evento de negócio por código
+
+**Data:** 2026-09-11 · **Owner:** Alan
+
+**Contexto.** D099 publicou uma política que promete "pediremos sua
+autorização antes" (seção 6) e "revogar um consentimento" (seção 8). Instalar
+o snippet padrão do GA4 no `<head>` tornaria as duas frases falsas no mesmo
+dia. O Consent Mode do Google, mesmo em "denied", envia pings cookieless com
+IP pro Google antes de qualquer resposta do visitante. GTM adicionaria uma
+camada de configuração fora do repo, sem versionamento, pra um site com um
+objetivo.
+
+**Decisão.** (1) **Nada do Google entra no DOM antes do Aceitar.** O script
+só é injetado quando `consent === "granted"`; sem env, sem banner e sem tag.
+(2) **Sem Consent Mode.** O "meio termo" do Google viola a seção 6 e não
+compra nada num site deste tamanho (conversões modeladas são irrelevantes).
+(3) **Sem Google Tag Manager.** gtag direto, versionado no repo, um
+`Measurement ID` por env. Se um dia houver mais de três tags, reavaliar.
+(4) **Consentimento é módulo próprio, sem React,** com versão na chave e
+validade de 12 meses; a UI (provider, banner, botão) consome o módulo. Mudança
+de política = nova versão da chave, nunca um "reperguntar" manual.
+(5) **Só o público consente.** Provider e loader vivem em `(public)/layout`;
+admin nunca tem banner nem tag, tráfego da equipe nunca entra na propriedade.
+(6) **Um evento por código, no vocabulário do GA4:** `generate_lead` no sucesso
+do form, sem parâmetro pessoal. Tudo o mais (`page_view` em troca de rota,
+`scroll`, `click` no WhatsApp, `form_start/form_submit`) vem do Enhanced
+measurement, e evento nomeado nasce na UI do GA4, não no repo.
+(7) **`debug_mode` por hostname,** não por env: qualquer host que não seja o
+canônico vai pro DebugView e cai no filtro Developer traffic. Preview e
+localhost nunca sujam relatório, sem dança de liga/desliga de variável.
+(8) **Propriedade sob `contato@spinharditurismo.com.br`,** conta do domínio da
+empresa, escolha das sócias; Alan opera, ninguém compartilha senha em grupo.
+
+**Alternativas descartadas.** Snippet no `<head>` como o GA4 sugere (viola
+D099); Consent Mode v2 default denied (ping com IP antes do consentimento);
+GTM (configuração fora do repo); cookie de consentimento em vez de
+`localStorage` (SSR do banner não vale a complexidade; banner client-only já
+não pisca com snapshot `undefined`); banner no root layout (admin não é
+público); Vercel Analytics em paralelo (D100); leitura de métricas no painel
+admin neste lote (Fase 4 do stub, Data API + service account, lote próprio);
+`generate_lead` com parâmetros do form (dado pessoal no Google).
+
+---
+
 ### [2026-09-08] D100 — Vercel Analytics fora: stack de analytics passa a GA4 + Search Console (revisa D011)
 
 **Data:** 2026-09-08 · **Owner:** Alan

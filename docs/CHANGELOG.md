@@ -15,6 +15,96 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-11
+
+---
+
+**SITE — GA4 gated por consentimento: banner, loader, revogação e `generate_lead` (D101):**
+tag do Google Analytics entra no site, mas só depois do Aceitar. Regra dura,
+provada no HTML servido de produção: zero `gtag`, zero `googletagmanager`, zero
+`G-EZ26PTP7P8` no HTML de `/`, `/contato` e `/politica-de-privacidade`; o script
+só existe no cliente após consentimento. Nem Consent Mode "denied", nem ping
+cookieless: com `consent !== "granted"` nenhum byte sai pro Google. Novos:
+`src/lib/consent/` (chave `spinhardi:consent:v1`, valor `{ analytics, at }`,
+validade 12 meses, versão na chave — mudou a política, troca a versão e todo
+mundo é perguntado de novo; guardas de SSR e storage bloqueado, nunca lança),
+`src/components/consent/` (`ConsentProvider` com `useSyncExternalStore` e
+sincronização entre abas via evento `storage`; `CookieBanner` `z-30` abaixo do
+BackToTop, dois botões do mesmo peso e altura, sem cookie wall; `GoogleAnalytics`
+via `next/script` `afterInteractive`, `debug_mode` quando o hostname não é
+`www.spinharditurismo.com.br`; `CookiePreferenceButton`), `src/lib/analytics/
+track.ts` (`trackEvent` no-op sem `window.gtag`, try/catch, nunca quebra o site),
+`scripts/beta-consent.ts` (16 provas em Node puro). Editados: `(public)/layout.tsx`
+(provider + loader só no público; admin sem banner e sem tag), `ContactForm.tsx`
+(2 linhas: import e `trackEvent("generate_lead", { method: "form_contato" })`
+no sucesso; `values`, `handleSubmit`, `submitContact`, honeypot e validação
+byte-idênticos), política (seção 6 reescrita pro estado real + botão "Alterar
+minha escolha de cookies"; seção 5 ganha "medir a audiência"; seção 4 deixa de
+falar em "se e quando forem ativadas"; data 11/09/2026), `.env.example`
+(`NEXT_PUBLIC_GA4_MEASUREMENT_ID=`, sem valor no repo). `lib/analytics/index.ts`
+e o stub `ga4Analytics` (leitura de métrica pro painel, Fase 4) intocados.
+Enhanced measurement cobre `page_view` em troca de rota do Next, `scroll`,
+`click` no WhatsApp e `form_start/form_submit` sem código. TRAP: o `primary`
+recebeu `border-2 border-gold` invisível pra igualar a altura do `secondary`
+(`border-2`); sem isso os botões do banner ficam desalinhados.
+
+**INFRA — GA4 e Vercel, fatos que a doc não tinha:** conta Google Analytics
+"Spinhardi Turismo" criada 11/09 sob `contato@spinharditurismo.com.br` (as
+sócias escolheram a caixa do domínio em vez do Gmail; Alan opera de perfil
+Chrome dedicado), propriedade "Spinhardi Turismo", fuso Brasília (veio
+Rio Branco por default, corrigido antes de salvar), moeda BRL, stream web
+"Site Spinhardi" → `https://www.spinharditurismo.com.br`, stream ID
+`15760366528`, Measurement ID `G-EZ26PTP7P8`, objetivos Generate leads +
+Understand web traffic, retenção 14/14 meses com reset, filtro "Tráfego de
+desenvolvimento" (Developer traffic, Exclude, Active) além do Internal Traffic
+em Testing. Na Vercel o projeto de produção se chama `spinhardi-preview` (nome
+torto, é o único projeto; `www.spinharditurismo.com.br` aponta pra ele); env
+`NEXT_PUBLIC_GA4_MEASUREMENT_ID` setada em todos os ambientes. Env da Sanity
+(`NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`) escopadas só em
+Production, o que mata qualquer Preview Deployment no build
+(`Configuration must contain projectId` em `/sitemap.xml`) — corrigir do
+desktop. Fluxo remoto desta semana: Alan no tablet, Codinho no Claude Code na
+web (container na nuvem com clone do GitHub, sem `.env.local`, proxy bloqueia
+Microsoft/Sanity/Supabase/Resend; push de commit permitido, delete de ref
+remota não). Branch `feat/ga4-consentimento` usada só pra tentar preview,
+fast-forward em `main` sem PR e sem merge commit.
+
+**Validação (β):** Codinho: `lint` + `tsc` limpos; `beta-consent.ts` 16/16;
+HTML servido por `next dev` com e sem env sem `gtag`/ID/banner; admin sem chunk
+de consentimento; fluxo em Chromium 18/18 (banner → Recusar persiste → revogar
+reabre → Aceitar injeta script, `dataLayer` recebe `config` com `debug_mode`,
+request pro googletagmanager só depois do Aceitar). Build de produção
+provado pela Vercel (`31b9253`, 42s, Ready). Produção, no tablet e no GA4
+Realtime: HTML exportado do Output da Vercel com 0 `gtag`/0 ID; banner na
+primeira visita; Recusar sobrevive ao reload; "Alterar minha escolha" reabre;
+Aceitar → `page_view`, `first_visit`, `session_start`; `/viagens` via troca de
+rota → `page_view` 3 com título "Viagens | Spinhardi"; WhatsApp → `click` 1;
+`scroll` 1; usuário em Araraquara no mapa. Form `TESTE GA4` enviado 14:57:
+jornada criada e boas-vindas da ClickMassa recebidas; `generate_lead` NÃO
+visto em produção (Realtime consultado fora da janela de 30 min; relatório
+processado leva 24-48h). Prova de código do evento: teste 3.3 + fluxo Chromium.
+
+**Pendências do lote:** confirmar `generate_lead` no relatório Events e marcar
+como Key event (base da otimização do Ads); apagar jornada `TESTE GA4` pelo
+admin; apagar no GitHub as branches sobrando `feat/ga4-consentimento`
+(idêntica à main) e `vercel/install-vercel-web-analytics-1gggyo` (criada pela
+Vercel, morta por D100); banner cobre o CTA dourado do hero em largura de
+tablet paisagem na primeira visita (ajuste de posição); env da Sanity em
+Preview; prettier sujo em 65 arquivos na `main` (lote só de formatação);
+`graphify-out` desatualizado; `sitemap.ts` e `generateStaticParams` do blog
+batem na Sanity em build sem try/catch (Sanity fora = deploy morto); Fase 4 do
+stub `ga4Analytics` (Data API + service account); Search Console (verificação
+por TXT no DNS da Vercel — a verificação "via GA" exige tag pra todo visitante
+e a nossa só carrega após consentimento); Business Profile aguarda resposta
+das sócias sobre perfil existente; revisão jurídica da política e aprovação
+da base de legítimo interesse (27/07) seguem abertas. Herdadas vivas: ver
+2026-09-08.
+
+**Decisões relacionadas:** D101 (herda D099: a política só promete o que
+existe; herda D011/D100: stack GA4 + Search Console).
+
+---
+
 ## 2026-09-08
 
 ---
