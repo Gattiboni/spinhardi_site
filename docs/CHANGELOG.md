@@ -15,6 +15,67 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-12
+
+---
+
+**SITE — Destinos: seção na home, 4 páginas internas, índice `/destinos` e item de menu (D102):**
+copy da Amanda (12/09) implementada literalmente. Fonte única
+`src/content/destinos.ts` (array tipado: `slug`, `nome`, `cardTitulo`,
+`cardApoio`, `h1`, `intro[]`, `listaTitulo`, `lista[6]`, `depoimento?`,
+`ctaLabel`, `whatsappMensagem`, `imagem?`) consumida por três lugares: bloco
+novo da home (entre História/1987 e Depoimentos, navy; ordem final Hero,
+Posicionamento, Serviços, História, Destinos, Depoimentos, CTA), índice
+`src/app/(public)/destinos/page.tsx` e rota dinâmica `destinos/[slug]/page.tsx`
+com `generateStaticParams` do array (sem rede) e `notFound()` pra slug
+desconhecido. Metadata por página (`<nome> | Spinhardi Turismo`, description =
+primeira frase da intro, canonical `www`). Estrutura das internas no padrão
+do repo: bloco branco + breadcrumb `Home / <nome>` (nenhuma interna tem hero
+navy; a instrução assumiu errado e foi corrigida pelo Codinho), lista de 6
+itens, bloco CTA navy com UM `CTAWhatsApp` e mensagem pré-preenchida por
+destino ("Oi! Vi a página da Itália no site e queria conversar sobre um
+roteiro por lá."). `DestinoCard` novo em `src/components/ui/` (tone
+light/dark, ramo com `SpinhardiImage` 4:3 pronto) porque `ServiceCard` é
+lista numerada e o card de `/viagens` é inline. `Header.tsx`: `/destinos` em
+`LIGHT_ROUTES` (cobre as 5 rotas por `startsWith`). `sitemap.ts`: 5 rotas em
+`STATIC_PATHS`. Depoimento `null` nos quatro: regra da própria copy, sem
+relato real e autorizado a seção não existe (zero "[DEPOIMENTO]" no DOM).
+`imagem` `null` nos quatro: não existe `public/images/` no repo (fotos moram
+na raiz de `public/`) e nenhum arquivo `destino-<slug>`; cards só texto,
+sem placeholder e sem reaproveitar `destino-pacote-*`. Micro-lote seguinte
+(`c8b368d`): "Destinos" em `NAV_LINKS` entre Viagens e Blog; rodapé herdou
+porque `FOOTER_PAGE_LINKS = [Home, ...NAV_LINKS]` (TRAP: inserir ali de novo
+duplica). Hipótese registrada: esta é a "nova página do site" que a Marcela
+cobrou no grupo em 11/09; nenhuma pendência com esse nome existia na doc.
+
+**Validação (β):** Codinho em `next dev` + Chromium (build de produção
+provado pela Vercel, `c089f84` e `c8b368d` Ready): 5 rotas 200, slug inválido
+404; por página `<title>`, description, canonical, H1, 6 `<li>` no `<main>`,
+exatamente 1 `wa.me` no `<main>` com `encodeURIComponent(whatsappMensagem)`
+(TRAP: Header, MobileMenu e Footer já têm 4 `wa.me` por página; contar só
+dentro do `<main>`), zero `DEPOIMENTO`/`R$`/`a partir de`; home com 4 links na
+ordem Itália, África do Sul, Portugal, Argentina; cliques nos cards e nos
+CTAs; header sólido `rgb(26,43,74)` nas 5 rotas após `LIGHT_ROUTES`; menu
+mobile a 375px com 5 links em linha única sem overflow. Produção, no tablet:
+seção na home, card → `/destinos/italia` → botão → WhatsApp com a mensagem
+da Itália preenchida. Sitemap provado pelo fonte (em dev ele chama a Sanity).
+
+**Pendências do lote:** fotos dos 4 destinos (nomear `destino-italia`,
+`destino-africa-do-sul`, `destino-portugal`, `destino-argentina` na raiz de
+`public/`, preencher `imagem` nos quatro de uma vez; não misturar card com e
+sem foto); depoimentos reais com autorização, um por destino, preencher
+`depoimento` (seção liga sozinha); header lê transparente por até ~400ms em
+navegação client-side pra rota clara por causa do `transition-all` que já
+existia (pré-existente, igual em Sobre e Viagens; carga direta é sólida desde
+o primeiro frame); copy dos destinos no Sanity é a mesma pendência de copy
+institucional no CMS. Herdadas vivas: ver 2026-09-11.
+
+**Decisões relacionadas:** D102 (herda D084: dado institucional errado é
+pior que ausente, aplicado a depoimento e foto; herda D078: serviços e
+navegação enxutos, o quinto item de menu foi decisão explícita do Alan).
+
+---
+
 ## 2026-09-11
 
 ---

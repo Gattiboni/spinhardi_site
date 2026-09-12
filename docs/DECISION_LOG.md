@@ -28,6 +28,50 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-12] D102 — Destinos como conteúdo estático em módulo único, uma rota dinâmica, sem preço, sem urgência, depoimento e foto só quando reais
+
+**Data:** 2026-09-12 · **Owner:** Alan
+
+**Contexto.** A Amanda entregou copy pronta pra 4 destinos (cards na home +
+páginas internas), com duas regras editoriais explícitas: sem preço, sem
+urgência; depoimento inventado derruba a página inteira. O site tem
+institucionais com copy hardcoded e blog no Sanity. Não há fotos nem
+depoimentos reais pros quatro ainda.
+
+**Decisão.** (1) **Conteúdo num módulo único tipado** (`src/content/
+destinos.ts`), não em quatro páginas soltas nem no Sanity agora: a copy é
+estável, a estrutura é idêntica nos quatro, e migrar pro CMS depois é trocar
+a origem do array sem tocar em página. (2) **Uma rota dinâmica**
+`/destinos/[slug]` com `generateStaticParams` do array; adicionar destino é
+adicionar item. (3) **Índice `/destinos` mínimo**, só pra URL natural não dar
+404 e pra ancorar o item de menu; a entrada principal continua a seção da
+home. (4) **Sem preço, sem "a partir de", sem contagem, sem "últimas vagas",
+sem formulário, um único CTA** de WhatsApp por página com mensagem
+pré-preenchida que identifica o destino (o atendimento sabe de onde a pessoa
+veio sem perguntar; o GA4 registra o `click` com a URL inteira, então a
+distinção por destino existe sem código). (5) **Depoimento e foto são campos
+opcionais que ficam `null` até existirem de verdade**: seção de depoimento
+não renderiza sem relato real e autorizado; cards não recebem placeholder,
+stock nem foto de outro slot, e só entram quando os quatro existirem, pra não
+haver grid com dois cards com foto e dois sem. (6) **Padrão visual das
+internas do repo** (bloco branco, breadcrumb, `LIGHT_ROUTES`), não hero
+navy: uma página fora do padrão custa mais que a instrução que a imaginou.
+(7) **"Destinos" no menu principal** como quinto item, decisão do Alan após
+ver a seção no ar: escondida na home fica pouco intuitivo; rodapé herda por
+construção.
+
+**Alternativas descartadas.** Quatro páginas hardcoded independentes (copy
+idêntica em estrutura, quatro lugares pra errar); Sanity já (dobra o lote,
+exige schema e Studio pra conteúdo que não muda toda semana; fica como
+migração de origem); hero navy com Breadcrumb adaptado (toca componente
+compartilhado e cria exceção visual); placeholder de depoimento "em breve"
+(viola a regra editorial e a D084); cards com foto genérica de `destino-
+pacote-*` (mesma coisa); preço ou "a partir de" (a copy é explícita: vira
+item comparável e briga com o sob medida); evento GA4 por destino em código
+(o `click` do Enhanced measurement já carrega a URL com a mensagem).
+
+---
+
 ### [2026-09-11] D101 — GA4 só carrega após consentimento explícito; sem Consent Mode, sem GTM; um evento de negócio por código
 
 **Data:** 2026-09-11 · **Owner:** Alan
