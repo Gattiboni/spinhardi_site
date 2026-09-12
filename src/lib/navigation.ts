@@ -14,11 +14,12 @@ export type NavLink = {
 
 /**
  * Links principais de navegação — Header e Mobile Menu.
- * Ordem aprovada: Sobre · Viagens · Blog · Contato.
+ * Ordem aprovada: Sobre · Viagens · Destinos · Blog · Contato.
  */
 export const NAV_LINKS: NavLink[] = [
   { href: "/sobre", label: "Sobre" },
   { href: "/viagens", label: "Viagens" },
+  { href: "/destinos", label: "Destinos" },
   { href: "/blog", label: "Blog" },
   { href: "/contato", label: "Contato" },
 ];
