@@ -6,12 +6,14 @@ import { WHATSAPP_NUMBER } from "@/lib/whatsapp/constants";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
+import DestinoCard from "@/components/ui/DestinoCard";
 import Divider from "@/components/ui/Divider";
 import HomeHeroBackdrop from "@/components/ui/HomeHeroBackdrop";
 import Section from "@/components/ui/Section";
 import ServiceCard from "@/components/ui/ServiceCard";
 import { SpinhardiImage } from "@/components/ui/SpinhardiImage";
 import TestimonialCard from "@/components/ui/TestimonialCard";
+import { DESTINOS, DESTINOS_SECAO_APOIO, DESTINOS_SECAO_TITULO } from "@/content/destinos";
 
 // Canonical da home. Título/descrição herdam do metadata global do layout — copy
 // da home é decisão do Alan/Amanda, não se inventa aqui.
@@ -238,6 +240,28 @@ export default function Home() {
                 </Link>
               </div>
             </div>
+          </div>
+        </Container>
+      </Section>
+
+      {/* Bloco 4b · Destinos — 4 cards, entrada única pras páginas /destinos/<slug>.
+          Fica entre História (branco) e Depoimentos (navy): navy-navy com o
+          vizinho de baixo, como Bloco 2/3 já são; separado pelo mesmo Divider.
+          Dados de @/content/destinos (fonte única com o índice e a rota). */}
+      <Section spacing="lg" className="bg-navy text-white">
+        <Container>
+          <p className="mb-4 font-body text-sm uppercase tracking-widest text-gold">Destinos</p>
+          <h2 className="mb-4 max-w-3xl font-display text-4xl leading-tight md:text-5xl">
+            {DESTINOS_SECAO_TITULO}
+          </h2>
+          <p className="mb-12 max-w-2xl font-body text-base leading-relaxed text-white/80 lg:text-lg">
+            {DESTINOS_SECAO_APOIO}
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            {DESTINOS.map((destino) => (
+              <DestinoCard key={destino.slug} destino={destino} tone="dark" />
+            ))}
           </div>
         </Container>
       </Section>

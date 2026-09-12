@@ -18,6 +18,7 @@ const LIGHT_ROUTES = [
   "/dev/components",
   "/sobre",
   "/viagens",
+  "/destinos",
   "/contato",
   "/blog",
   "/politica-de-privacidade",
