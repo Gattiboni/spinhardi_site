@@ -28,6 +28,43 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-14] D103 — Fotos de destino por destino, carrossel no card com lightbox compartilhado, scroll-snap sem lib; revisa o item 5 da D102
+
+**Data:** 2026-09-14 · **Owner:** Alan
+
+**Contexto.** D102 fixou "cards só recebem foto quando os quatro existirem".
+Chegaram fotos reais de três destinos; a Itália depende das sócias (Nina
+prometeu). O usuário quer as fotos já no card, em carrossel do tamanho do card,
+com ampliação ao clicar, e não só na página interna.
+
+**Decisão.** (1) **Foto entra por destino.** Card com carrossel nos três que têm
+foto e card só texto na Itália, mesma altura pelo grid, sem placeholder. A
+assimetria é temporária e é ela mesma o pedido pras sócias: o destino de origem
+da empresa é o único sem foto. Revisa o item 5 da D102; o resto da D102 segue.
+(2) **Um lightbox, dois chamadores.** `FotoLightbox` é extraído e compartilhado
+pelo carrossel do card e pela galeria da página interna; comportamento idêntico
+nos dois lugares. (3) **Carrossel com scroll-snap nativo, sem lib.** Arrasto em
+touch e trackpad vem do navegador; setas só reposicionam; índice por
+`IntersectionObserver`. Sem autoplay: a foto é convite, não banner. (4) **Card
+deixa de ser link inteiro.** Botão dentro de `<a>` é HTML inválido; o texto é o
+link, a foto amplia, o hover do `group` mantém o card inteiro reagindo. (5)
+**Ordem de exibição é decisão editorial no array,** não o número do arquivo, e a
+posição 0 é a capa da página no WhatsApp (og:image). (6) **Fotos otimizadas no
+repo, originais fora.** 2000px/q82 por script idempotente; 4K nunca entra no
+git. (7) **Alt é descrição do conteúdo real,** conferida foto a foto, não
+legenda de marketing.
+
+**Alternativas descartadas.** Esperar a Itália pra ligar os quatro de uma vez
+(deixa três destinos sem foto por decisão de terceiro); placeholder ou "fotos em
+breve" na Itália (mesma regra do depoimento em D102); lib de carrossel/lightbox
+(dependência pra o que o navegador faz sozinho); autoplay (rouba atenção do
+texto e do CTA); manter o card como `<Link>` inteiro com o carrossel dentro
+(HTML inválido, foco e leitores de tela quebram); og:image genérico do site nas
+páginas de destino (perde a foto no compartilhamento); commit dos originais em
+4K (27 MB de repo por 9 fotos).
+
+---
+
 ### [2026-09-12] D102 — Destinos como conteúdo estático em módulo único, uma rota dinâmica, sem preço, sem urgência, depoimento e foto só quando reais
 
 **Data:** 2026-09-12 · **Owner:** Alan
@@ -35,40 +72,41 @@ Ordem: mais recente no topo.
 **Contexto.** A Amanda entregou copy pronta pra 4 destinos (cards na home +
 páginas internas), com duas regras editoriais explícitas: sem preço, sem
 urgência; depoimento inventado derruba a página inteira. O site tem
-institucionais com copy hardcoded e blog no Sanity. Não há fotos nem
-depoimentos reais pros quatro ainda.
+institucionais com copy hardcoded e blog no Sanity. Não há fotos nem depoimentos
+reais pros quatro ainda.
 
-**Decisão.** (1) **Conteúdo num módulo único tipado** (`src/content/
-destinos.ts`), não em quatro páginas soltas nem no Sanity agora: a copy é
-estável, a estrutura é idêntica nos quatro, e migrar pro CMS depois é trocar
-a origem do array sem tocar em página. (2) **Uma rota dinâmica**
+**Decisão.** (1) **Conteúdo num módulo único tipado**
+(`src/content/
+destinos.ts`), não em quatro páginas soltas nem no Sanity agora:
+a copy é estável, a estrutura é idêntica nos quatro, e migrar pro CMS depois é
+trocar a origem do array sem tocar em página. (2) **Uma rota dinâmica**
 `/destinos/[slug]` com `generateStaticParams` do array; adicionar destino é
 adicionar item. (3) **Índice `/destinos` mínimo**, só pra URL natural não dar
-404 e pra ancorar o item de menu; a entrada principal continua a seção da
-home. (4) **Sem preço, sem "a partir de", sem contagem, sem "últimas vagas",
-sem formulário, um único CTA** de WhatsApp por página com mensagem
-pré-preenchida que identifica o destino (o atendimento sabe de onde a pessoa
-veio sem perguntar; o GA4 registra o `click` com a URL inteira, então a
-distinção por destino existe sem código). (5) **Depoimento e foto são campos
-opcionais que ficam `null` até existirem de verdade**: seção de depoimento
-não renderiza sem relato real e autorizado; cards não recebem placeholder,
-stock nem foto de outro slot, e só entram quando os quatro existirem, pra não
-haver grid com dois cards com foto e dois sem. (6) **Padrão visual das
-internas do repo** (bloco branco, breadcrumb, `LIGHT_ROUTES`), não hero
-navy: uma página fora do padrão custa mais que a instrução que a imaginou.
-(7) **"Destinos" no menu principal** como quinto item, decisão do Alan após
-ver a seção no ar: escondida na home fica pouco intuitivo; rodapé herda por
-construção.
+404 e pra ancorar o item de menu; a entrada principal continua a seção da home.
+(4) **Sem preço, sem "a partir de", sem contagem, sem "últimas vagas", sem
+formulário, um único CTA** de WhatsApp por página com mensagem pré-preenchida
+que identifica o destino (o atendimento sabe de onde a pessoa veio sem
+perguntar; o GA4 registra o `click` com a URL inteira, então a distinção por
+destino existe sem código). (5) **Depoimento e foto são campos opcionais que
+ficam `null` até existirem de verdade**: seção de depoimento não renderiza sem
+relato real e autorizado; cards não recebem placeholder, stock nem foto de outro
+slot, e só entram quando os quatro existirem, pra não haver grid com dois cards
+com foto e dois sem. (6) **Padrão visual das internas do repo** (bloco branco,
+breadcrumb, `LIGHT_ROUTES`), não hero navy: uma página fora do padrão custa mais
+que a instrução que a imaginou. (7) **"Destinos" no menu principal** como quinto
+item, decisão do Alan após ver a seção no ar: escondida na home fica pouco
+intuitivo; rodapé herda por construção.
 
 **Alternativas descartadas.** Quatro páginas hardcoded independentes (copy
-idêntica em estrutura, quatro lugares pra errar); Sanity já (dobra o lote,
-exige schema e Studio pra conteúdo que não muda toda semana; fica como
-migração de origem); hero navy com Breadcrumb adaptado (toca componente
-compartilhado e cria exceção visual); placeholder de depoimento "em breve"
-(viola a regra editorial e a D084); cards com foto genérica de `destino-
-pacote-*` (mesma coisa); preço ou "a partir de" (a copy é explícita: vira
-item comparável e briga com o sob medida); evento GA4 por destino em código
-(o `click` do Enhanced measurement já carrega a URL com a mensagem).
+idêntica em estrutura, quatro lugares pra errar); Sanity já (dobra o lote, exige
+schema e Studio pra conteúdo que não muda toda semana; fica como migração de
+origem); hero navy com Breadcrumb adaptado (toca componente compartilhado e cria
+exceção visual); placeholder de depoimento "em breve" (viola a regra editorial e
+a D084); cards com foto genérica de `destino-
+pacote-*` (mesma coisa); preço ou
+"a partir de" (a copy é explícita: vira item comparável e briga com o sob
+medida); evento GA4 por destino em código (o `click` do Enhanced measurement já
+carrega a URL com a mensagem).
 
 ---
 
@@ -76,43 +114,42 @@ item comparável e briga com o sob medida); evento GA4 por destino em código
 
 **Data:** 2026-09-11 · **Owner:** Alan
 
-**Contexto.** D099 publicou uma política que promete "pediremos sua
-autorização antes" (seção 6) e "revogar um consentimento" (seção 8). Instalar
-o snippet padrão do GA4 no `<head>` tornaria as duas frases falsas no mesmo
-dia. O Consent Mode do Google, mesmo em "denied", envia pings cookieless com
-IP pro Google antes de qualquer resposta do visitante. GTM adicionaria uma
-camada de configuração fora do repo, sem versionamento, pra um site com um
-objetivo.
+**Contexto.** D099 publicou uma política que promete "pediremos sua autorização
+antes" (seção 6) e "revogar um consentimento" (seção 8). Instalar o snippet
+padrão do GA4 no `<head>` tornaria as duas frases falsas no mesmo dia. O Consent
+Mode do Google, mesmo em "denied", envia pings cookieless com IP pro Google
+antes de qualquer resposta do visitante. GTM adicionaria uma camada de
+configuração fora do repo, sem versionamento, pra um site com um objetivo.
 
-**Decisão.** (1) **Nada do Google entra no DOM antes do Aceitar.** O script
-só é injetado quando `consent === "granted"`; sem env, sem banner e sem tag.
-(2) **Sem Consent Mode.** O "meio termo" do Google viola a seção 6 e não
-compra nada num site deste tamanho (conversões modeladas são irrelevantes).
-(3) **Sem Google Tag Manager.** gtag direto, versionado no repo, um
-`Measurement ID` por env. Se um dia houver mais de três tags, reavaliar.
-(4) **Consentimento é módulo próprio, sem React,** com versão na chave e
-validade de 12 meses; a UI (provider, banner, botão) consome o módulo. Mudança
-de política = nova versão da chave, nunca um "reperguntar" manual.
-(5) **Só o público consente.** Provider e loader vivem em `(public)/layout`;
-admin nunca tem banner nem tag, tráfego da equipe nunca entra na propriedade.
-(6) **Um evento por código, no vocabulário do GA4:** `generate_lead` no sucesso
-do form, sem parâmetro pessoal. Tudo o mais (`page_view` em troca de rota,
-`scroll`, `click` no WhatsApp, `form_start/form_submit`) vem do Enhanced
-measurement, e evento nomeado nasce na UI do GA4, não no repo.
-(7) **`debug_mode` por hostname,** não por env: qualquer host que não seja o
-canônico vai pro DebugView e cai no filtro Developer traffic. Preview e
-localhost nunca sujam relatório, sem dança de liga/desliga de variável.
-(8) **Propriedade sob `contato@spinharditurismo.com.br`,** conta do domínio da
-empresa, escolha das sócias; Alan opera, ninguém compartilha senha em grupo.
+**Decisão.** (1) **Nada do Google entra no DOM antes do Aceitar.** O script só é
+injetado quando `consent === "granted"`; sem env, sem banner e sem tag. (2)
+**Sem Consent Mode.** O "meio termo" do Google viola a seção 6 e não compra nada
+num site deste tamanho (conversões modeladas são irrelevantes). (3) **Sem Google
+Tag Manager.** gtag direto, versionado no repo, um `Measurement ID` por env. Se
+um dia houver mais de três tags, reavaliar. (4) **Consentimento é módulo
+próprio, sem React,** com versão na chave e validade de 12 meses; a UI
+(provider, banner, botão) consome o módulo. Mudança de política = nova versão da
+chave, nunca um "reperguntar" manual. (5) **Só o público consente.** Provider e
+loader vivem em `(public)/layout`; admin nunca tem banner nem tag, tráfego da
+equipe nunca entra na propriedade. (6) **Um evento por código, no vocabulário do
+GA4:** `generate_lead` no sucesso do form, sem parâmetro pessoal. Tudo o mais
+(`page_view` em troca de rota, `scroll`, `click` no WhatsApp,
+`form_start/form_submit`) vem do Enhanced measurement, e evento nomeado nasce na
+UI do GA4, não no repo. (7) **`debug_mode` por hostname,** não por env: qualquer
+host que não seja o canônico vai pro DebugView e cai no filtro Developer
+traffic. Preview e localhost nunca sujam relatório, sem dança de liga/desliga de
+variável. (8) **Propriedade sob `contato@spinharditurismo.com.br`,** conta do
+domínio da empresa, escolha das sócias; Alan opera, ninguém compartilha senha em
+grupo.
 
 **Alternativas descartadas.** Snippet no `<head>` como o GA4 sugere (viola
-D099); Consent Mode v2 default denied (ping com IP antes do consentimento);
-GTM (configuração fora do repo); cookie de consentimento em vez de
-`localStorage` (SSR do banner não vale a complexidade; banner client-only já
-não pisca com snapshot `undefined`); banner no root layout (admin não é
-público); Vercel Analytics em paralelo (D100); leitura de métricas no painel
-admin neste lote (Fase 4 do stub, Data API + service account, lote próprio);
-`generate_lead` com parâmetros do form (dado pessoal no Google).
+D099); Consent Mode v2 default denied (ping com IP antes do consentimento); GTM
+(configuração fora do repo); cookie de consentimento em vez de `localStorage`
+(SSR do banner não vale a complexidade; banner client-only já não pisca com
+snapshot `undefined`); banner no root layout (admin não é público); Vercel
+Analytics em paralelo (D100); leitura de métricas no painel admin neste lote
+(Fase 4 do stub, Data API + service account, lote próprio); `generate_lead` com
+parâmetros do form (dado pessoal no Google).
 
 ---
 

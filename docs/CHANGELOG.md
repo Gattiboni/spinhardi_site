@@ -15,12 +15,91 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-14
+
+---
+
+**SITE — Fotos de destino: carrossel no card, galeria na página interna,
+lightbox compartilhado, og:image por destino (D103):** 9 fotos reais da
+Spinhardi (3 por destino: Argentina, África do Sul, Portugal; Itália ainda sem)
+entram em `public/destino-<slug>-0N.jpeg` otimizadas in-place por
+`scripts/otimizar-fotos-destinos.ts` (`sharp` que o Next já traz, lado maior
+2000px, JPEG q82 mozjpeg, EXIF/ICC zerados com orientação gravada nos pixels,
+idempotente): 28,3 MB → 2,7 MB, maior arquivo 550 KB. Originais fora do repo.
+`destinos.ts` ganha `fotos: { src, alt }[]` (Itália `[]`); campo `imagem`
+removido do tipo, dos 4 objetos e do `DestinoCard` (era o único consumidor).
+**Ordem do array é ordem de exibição e define o og:image (posição 0), não o
+número do arquivo**: Portugal abre com Ponta da Piedade (arquivo 03), não com a
+bandeira. Alts conferidos contra o conteúdo real (os arquivos 01 e 03 vieram
+trocados em relação à primeira lista; as três da Argentina são retrato).
+Componentes novos em `src/components/ui/`: `FotoLightbox` (`<dialog>` nativo com
+`showModal()`, `object-fit: contain` até 90vh/90vw, legenda alt + contador,
+setas circulares, Esc, trava de scroll, foco de volta pro elemento que abriu;
+fechar no backdrop fecha em tudo que borbulha até o fundo porque com `contain` a
+faixa vazia ao lado de uma foto retrato ainda é o `<img>`),
+`DestinoFotoCarrossel` (scroll-snap nativo sem lib: `overflow-x: auto`,
+`snap-x mandatory`, slides `SpinhardiImage` 4:3, índice por
+`IntersectionObserver` threshold 0.6, setas 36px `navy/70` com chevron SVG
+inline que aparecem no hover em ponteiro fino e ficam sempre visíveis em touch,
+pontos com halo preto pra não sumir sobre foto clara, clique no slide abre o
+lightbox no índice atual, sem autoplay) e `DestinoGaleria` (3 miniaturas na
+página interna, entre a intro e "O que entra em um roteiro", consumindo o mesmo
+`FotoLightbox`). `DestinoCard` deixa de ser `<Link>` inteiro (botão dentro de
+`<a>` é HTML inválido): vira `<article class=
+"group">` com o carrossel em cima
+e o bloco de texto como `<Link>`; hover continua dourando título e borda pelo
+`group`. Itália: card sem carrossel, mesma altura pelo grid, texto ao topo, sem
+placeholder. `generateMetadata` das páginas com foto expõe `openGraph.images` =
+foto 0 (link no WhatsApp abre com foto). Home e `/destinos` intocados: o grid já
+estica por padrão e o card já era `flex h-full flex-col`. TRAPS: setas usam
+`scrollTo` no índice calculado por módulo, não `scrollBy` (deslocamento relativo
+não dá a volta circular); `scrollbar-none` do Tailwind emite só
+`scrollbar-width: none`, Safari < 18.2 precisa também de
+`[&::-webkit-scrollbar]:hidden`; `react-hooks/set-state-in-effect` barra
+sincronizar `indiceInicial` em `useEffect`, é ajuste em render
+(`if (aberto !== abertoAnterior)`); `npx
+tsx` NÃO está instalado no repo,
+scripts `.ts` rodam com `node
+--experimental-strip-types` (Node 22.19); ao medir
+Network por CDP, filtrar por `sessionId`, senão requisições de outra aba
+contaminam a medida.
+
+**Validação (β):** `npm run build` (47 páginas), `tsc`, `eslint .`,
+`prettier --check` limpos. HTML servido da home e de `/destinos`: 4 `<article>`
+na ordem Itália, África do Sul, Portugal, Argentina, três com 3 `<img>` (src/alt
+certos, posição 0 primeiro), Itália com zero `<img>`; aninhamento validado por
+parser de HTML, zero `button` em `a` vindos do card. Chrome 14/14: setas opacity
+0/1 conforme hover, 1→2→3→1 circular e 1→3 pela esquerda, ponto 3 vai pro 3,
+clique na foto abre o lightbox na mesma foto, Esc devolve o foco ao slide,
+título navega, seta não navega. 375px: setas sempre visíveis, arrasto real troca
+slide com snap em 341px, 4 cards empilhados, Itália sem espaço no topo, sem
+overflow horizontal. Regressão zero na galeria de `/destinos/portugal`;
+`/destinos/italia` sem galeria e sem `<dialog>`. Altura 440px nos quatro.
+Network em `/destinos`: 9 requisições `w=384`, a `w=1920` só ao abrir o
+lightbox. Claude no navegador do Alan em `localhost:3000/destinos`: seta → slide
+2 com `aria-current` no ponto 2; lightbox "Fotos de Portugal" abre em 2/3 com
+legenda; Esc fecha e foco volta ao slide 2; `a button, button a` = 0; página
+rola depois de fechar.
+
+**Pendências do lote:** fotos da Itália (Nina prometeu; ao chegarem, 3 arquivos
+`destino-italia-0N.jpeg`, rodar o script, preencher `fotos`, zero código novo);
+a home serve 4 `<button>` dentro de `<a>` pré-existentes (`<Link><Button>` pra
+`/sobre` nas linhas ~106, 133, 236 e `/blog` na ~318), corrigir trocando por
+`<Link className={buttonStyles(...)}>` como o `CTAWhatsApp` já faz; depoimentos
+reais por destino seguem abertos. Herdadas vivas: ver 2026-09-12 e 2026-09-11.
+
+**Decisões relacionadas:** D103 (revisa o item 5 da D102: foto entra por
+destino, não "quatro ou nenhum"; herda D031: `SpinhardiImage` em todo slot de
+conteúdo).
+
+---
+
 ## 2026-09-12
 
 ---
 
-**SITE — Destinos: seção na home, 4 páginas internas, índice `/destinos` e item de menu (D102):**
-copy da Amanda (12/09) implementada literalmente. Fonte única
+**SITE — Destinos: seção na home, 4 páginas internas, índice `/destinos` e item
+de menu (D102):** copy da Amanda (12/09) implementada literalmente. Fonte única
 `src/content/destinos.ts` (array tipado: `slug`, `nome`, `cardTitulo`,
 `cardApoio`, `h1`, `intro[]`, `listaTitulo`, `lista[6]`, `depoimento?`,
 `ctaLabel`, `whatsappMensagem`, `imagem?`) consumida por três lugares: bloco
@@ -29,50 +108,50 @@ Posicionamento, Serviços, História, Destinos, Depoimentos, CTA), índice
 `src/app/(public)/destinos/page.tsx` e rota dinâmica `destinos/[slug]/page.tsx`
 com `generateStaticParams` do array (sem rede) e `notFound()` pra slug
 desconhecido. Metadata por página (`<nome> | Spinhardi Turismo`, description =
-primeira frase da intro, canonical `www`). Estrutura das internas no padrão
-do repo: bloco branco + breadcrumb `Home / <nome>` (nenhuma interna tem hero
-navy; a instrução assumiu errado e foi corrigida pelo Codinho), lista de 6
-itens, bloco CTA navy com UM `CTAWhatsApp` e mensagem pré-preenchida por
-destino ("Oi! Vi a página da Itália no site e queria conversar sobre um
-roteiro por lá."). `DestinoCard` novo em `src/components/ui/` (tone
-light/dark, ramo com `SpinhardiImage` 4:3 pronto) porque `ServiceCard` é
-lista numerada e o card de `/viagens` é inline. `Header.tsx`: `/destinos` em
-`LIGHT_ROUTES` (cobre as 5 rotas por `startsWith`). `sitemap.ts`: 5 rotas em
-`STATIC_PATHS`. Depoimento `null` nos quatro: regra da própria copy, sem
-relato real e autorizado a seção não existe (zero "[DEPOIMENTO]" no DOM).
-`imagem` `null` nos quatro: não existe `public/images/` no repo (fotos moram
-na raiz de `public/`) e nenhum arquivo `destino-<slug>`; cards só texto,
-sem placeholder e sem reaproveitar `destino-pacote-*`. Micro-lote seguinte
-(`c8b368d`): "Destinos" em `NAV_LINKS` entre Viagens e Blog; rodapé herdou
-porque `FOOTER_PAGE_LINKS = [Home, ...NAV_LINKS]` (TRAP: inserir ali de novo
-duplica). Hipótese registrada: esta é a "nova página do site" que a Marcela
-cobrou no grupo em 11/09; nenhuma pendência com esse nome existia na doc.
+primeira frase da intro, canonical `www`). Estrutura das internas no padrão do
+repo: bloco branco + breadcrumb `Home / <nome>` (nenhuma interna tem hero navy;
+a instrução assumiu errado e foi corrigida pelo Codinho), lista de 6 itens,
+bloco CTA navy com UM `CTAWhatsApp` e mensagem pré-preenchida por destino ("Oi!
+Vi a página da Itália no site e queria conversar sobre um roteiro por lá.").
+`DestinoCard` novo em `src/components/ui/` (tone light/dark, ramo com
+`SpinhardiImage` 4:3 pronto) porque `ServiceCard` é lista numerada e o card de
+`/viagens` é inline. `Header.tsx`: `/destinos` em `LIGHT_ROUTES` (cobre as 5
+rotas por `startsWith`). `sitemap.ts`: 5 rotas em `STATIC_PATHS`. Depoimento
+`null` nos quatro: regra da própria copy, sem relato real e autorizado a seção
+não existe (zero "[DEPOIMENTO]" no DOM). `imagem` `null` nos quatro: não existe
+`public/images/` no repo (fotos moram na raiz de `public/`) e nenhum arquivo
+`destino-<slug>`; cards só texto, sem placeholder e sem reaproveitar
+`destino-pacote-*`. Micro-lote seguinte (`c8b368d`): "Destinos" em `NAV_LINKS`
+entre Viagens e Blog; rodapé herdou porque
+`FOOTER_PAGE_LINKS = [Home, ...NAV_LINKS]` (TRAP: inserir ali de novo duplica).
+Hipótese registrada: esta é a "nova página do site" que a Marcela cobrou no
+grupo em 11/09; nenhuma pendência com esse nome existia na doc.
 
-**Validação (β):** Codinho em `next dev` + Chromium (build de produção
-provado pela Vercel, `c089f84` e `c8b368d` Ready): 5 rotas 200, slug inválido
-404; por página `<title>`, description, canonical, H1, 6 `<li>` no `<main>`,
-exatamente 1 `wa.me` no `<main>` com `encodeURIComponent(whatsappMensagem)`
-(TRAP: Header, MobileMenu e Footer já têm 4 `wa.me` por página; contar só
-dentro do `<main>`), zero `DEPOIMENTO`/`R$`/`a partir de`; home com 4 links na
-ordem Itália, África do Sul, Portugal, Argentina; cliques nos cards e nos
-CTAs; header sólido `rgb(26,43,74)` nas 5 rotas após `LIGHT_ROUTES`; menu
-mobile a 375px com 5 links em linha única sem overflow. Produção, no tablet:
-seção na home, card → `/destinos/italia` → botão → WhatsApp com a mensagem
-da Itália preenchida. Sitemap provado pelo fonte (em dev ele chama a Sanity).
+**Validação (β):** Codinho em `next dev` + Chromium (build de produção provado
+pela Vercel, `c089f84` e `c8b368d` Ready): 5 rotas 200, slug inválido 404; por
+página `<title>`, description, canonical, H1, 6 `<li>` no `<main>`, exatamente 1
+`wa.me` no `<main>` com `encodeURIComponent(whatsappMensagem)` (TRAP: Header,
+MobileMenu e Footer já têm 4 `wa.me` por página; contar só dentro do `<main>`),
+zero `DEPOIMENTO`/`R$`/`a partir de`; home com 4 links na ordem Itália, África
+do Sul, Portugal, Argentina; cliques nos cards e nos CTAs; header sólido
+`rgb(26,43,74)` nas 5 rotas após `LIGHT_ROUTES`; menu mobile a 375px com 5 links
+em linha única sem overflow. Produção, no tablet: seção na home, card →
+`/destinos/italia` → botão → WhatsApp com a mensagem da Itália preenchida.
+Sitemap provado pelo fonte (em dev ele chama a Sanity).
 
 **Pendências do lote:** fotos dos 4 destinos (nomear `destino-italia`,
 `destino-africa-do-sul`, `destino-portugal`, `destino-argentina` na raiz de
-`public/`, preencher `imagem` nos quatro de uma vez; não misturar card com e
-sem foto); depoimentos reais com autorização, um por destino, preencher
-`depoimento` (seção liga sozinha); header lê transparente por até ~400ms em
-navegação client-side pra rota clara por causa do `transition-all` que já
-existia (pré-existente, igual em Sobre e Viagens; carga direta é sólida desde
-o primeiro frame); copy dos destinos no Sanity é a mesma pendência de copy
-institucional no CMS. Herdadas vivas: ver 2026-09-11.
+`public/`, preencher `imagem` nos quatro de uma vez; não misturar card com e sem
+foto); depoimentos reais com autorização, um por destino, preencher `depoimento`
+(seção liga sozinha); header lê transparente por até ~400ms em navegação
+client-side pra rota clara por causa do `transition-all` que já existia
+(pré-existente, igual em Sobre e Viagens; carga direta é sólida desde o primeiro
+frame); copy dos destinos no Sanity é a mesma pendência de copy institucional no
+CMS. Herdadas vivas: ver 2026-09-11.
 
-**Decisões relacionadas:** D102 (herda D084: dado institucional errado é
-pior que ausente, aplicado a depoimento e foto; herda D078: serviços e
-navegação enxutos, o quinto item de menu foi decisão explícita do Alan).
+**Decisões relacionadas:** D102 (herda D084: dado institucional errado é pior
+que ausente, aplicado a depoimento e foto; herda D078: serviços e navegação
+enxutos, o quinto item de menu foi decisão explícita do Alan).
 
 ---
 
@@ -80,89 +159,91 @@ navegação enxutos, o quinto item de menu foi decisão explícita do Alan).
 
 ---
 
-**SITE — GA4 gated por consentimento: banner, loader, revogação e `generate_lead` (D101):**
-tag do Google Analytics entra no site, mas só depois do Aceitar. Regra dura,
-provada no HTML servido de produção: zero `gtag`, zero `googletagmanager`, zero
-`G-EZ26PTP7P8` no HTML de `/`, `/contato` e `/politica-de-privacidade`; o script
-só existe no cliente após consentimento. Nem Consent Mode "denied", nem ping
-cookieless: com `consent !== "granted"` nenhum byte sai pro Google. Novos:
-`src/lib/consent/` (chave `spinhardi:consent:v1`, valor `{ analytics, at }`,
-validade 12 meses, versão na chave — mudou a política, troca a versão e todo
-mundo é perguntado de novo; guardas de SSR e storage bloqueado, nunca lança),
-`src/components/consent/` (`ConsentProvider` com `useSyncExternalStore` e
-sincronização entre abas via evento `storage`; `CookieBanner` `z-30` abaixo do
-BackToTop, dois botões do mesmo peso e altura, sem cookie wall; `GoogleAnalytics`
-via `next/script` `afterInteractive`, `debug_mode` quando o hostname não é
-`www.spinharditurismo.com.br`; `CookiePreferenceButton`), `src/lib/analytics/
-track.ts` (`trackEvent` no-op sem `window.gtag`, try/catch, nunca quebra o site),
-`scripts/beta-consent.ts` (16 provas em Node puro). Editados: `(public)/layout.tsx`
-(provider + loader só no público; admin sem banner e sem tag), `ContactForm.tsx`
-(2 linhas: import e `trackEvent("generate_lead", { method: "form_contato" })`
-no sucesso; `values`, `handleSubmit`, `submitContact`, honeypot e validação
-byte-idênticos), política (seção 6 reescrita pro estado real + botão "Alterar
-minha escolha de cookies"; seção 5 ganha "medir a audiência"; seção 4 deixa de
-falar em "se e quando forem ativadas"; data 11/09/2026), `.env.example`
-(`NEXT_PUBLIC_GA4_MEASUREMENT_ID=`, sem valor no repo). `lib/analytics/index.ts`
-e o stub `ga4Analytics` (leitura de métrica pro painel, Fase 4) intocados.
-Enhanced measurement cobre `page_view` em troca de rota do Next, `scroll`,
-`click` no WhatsApp e `form_start/form_submit` sem código. TRAP: o `primary`
-recebeu `border-2 border-gold` invisível pra igualar a altura do `secondary`
-(`border-2`); sem isso os botões do banner ficam desalinhados.
+**SITE — GA4 gated por consentimento: banner, loader, revogação e
+`generate_lead` (D101):** tag do Google Analytics entra no site, mas só depois
+do Aceitar. Regra dura, provada no HTML servido de produção: zero `gtag`, zero
+`googletagmanager`, zero `G-EZ26PTP7P8` no HTML de `/`, `/contato` e
+`/politica-de-privacidade`; o script só existe no cliente após consentimento.
+Nem Consent Mode "denied", nem ping cookieless: com `consent !== "granted"`
+nenhum byte sai pro Google. Novos: `src/lib/consent/` (chave
+`spinhardi:consent:v1`, valor `{ analytics, at }`, validade 12 meses, versão na
+chave — mudou a política, troca a versão e todo mundo é perguntado de novo;
+guardas de SSR e storage bloqueado, nunca lança), `src/components/consent/`
+(`ConsentProvider` com `useSyncExternalStore` e sincronização entre abas via
+evento `storage`; `CookieBanner` `z-30` abaixo do BackToTop, dois botões do
+mesmo peso e altura, sem cookie wall; `GoogleAnalytics` via `next/script`
+`afterInteractive`, `debug_mode` quando o hostname não é
+`www.spinharditurismo.com.br`; `CookiePreferenceButton`),
+`src/lib/analytics/
+track.ts` (`trackEvent` no-op sem `window.gtag`, try/catch,
+nunca quebra o site), `scripts/beta-consent.ts` (16 provas em Node puro).
+Editados: `(public)/layout.tsx` (provider + loader só no público; admin sem
+banner e sem tag), `ContactForm.tsx` (2 linhas: import e
+`trackEvent("generate_lead", { method: "form_contato" })` no sucesso; `values`,
+`handleSubmit`, `submitContact`, honeypot e validação byte-idênticos), política
+(seção 6 reescrita pro estado real + botão "Alterar minha escolha de cookies";
+seção 5 ganha "medir a audiência"; seção 4 deixa de falar em "se e quando forem
+ativadas"; data 11/09/2026), `.env.example` (`NEXT_PUBLIC_GA4_MEASUREMENT_ID=`,
+sem valor no repo). `lib/analytics/index.ts` e o stub `ga4Analytics` (leitura de
+métrica pro painel, Fase 4) intocados. Enhanced measurement cobre `page_view` em
+troca de rota do Next, `scroll`, `click` no WhatsApp e `form_start/form_submit`
+sem código. TRAP: o `primary` recebeu `border-2 border-gold` invisível pra
+igualar a altura do `secondary` (`border-2`); sem isso os botões do banner ficam
+desalinhados.
 
 **INFRA — GA4 e Vercel, fatos que a doc não tinha:** conta Google Analytics
 "Spinhardi Turismo" criada 11/09 sob `contato@spinharditurismo.com.br` (as
 sócias escolheram a caixa do domínio em vez do Gmail; Alan opera de perfil
-Chrome dedicado), propriedade "Spinhardi Turismo", fuso Brasília (veio
-Rio Branco por default, corrigido antes de salvar), moeda BRL, stream web
-"Site Spinhardi" → `https://www.spinharditurismo.com.br`, stream ID
-`15760366528`, Measurement ID `G-EZ26PTP7P8`, objetivos Generate leads +
-Understand web traffic, retenção 14/14 meses com reset, filtro "Tráfego de
-desenvolvimento" (Developer traffic, Exclude, Active) além do Internal Traffic
-em Testing. Na Vercel o projeto de produção se chama `spinhardi-preview` (nome
-torto, é o único projeto; `www.spinharditurismo.com.br` aponta pra ele); env
+Chrome dedicado), propriedade "Spinhardi Turismo", fuso Brasília (veio Rio
+Branco por default, corrigido antes de salvar), moeda BRL, stream web "Site
+Spinhardi" → `https://www.spinharditurismo.com.br`, stream ID `15760366528`,
+Measurement ID `G-EZ26PTP7P8`, objetivos Generate leads + Understand web
+traffic, retenção 14/14 meses com reset, filtro "Tráfego de desenvolvimento"
+(Developer traffic, Exclude, Active) além do Internal Traffic em Testing. Na
+Vercel o projeto de produção se chama `spinhardi-preview` (nome torto, é o único
+projeto; `www.spinharditurismo.com.br` aponta pra ele); env
 `NEXT_PUBLIC_GA4_MEASUREMENT_ID` setada em todos os ambientes. Env da Sanity
 (`NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`) escopadas só em
 Production, o que mata qualquer Preview Deployment no build
 (`Configuration must contain projectId` em `/sitemap.xml`) — corrigir do
 desktop. Fluxo remoto desta semana: Alan no tablet, Codinho no Claude Code na
 web (container na nuvem com clone do GitHub, sem `.env.local`, proxy bloqueia
-Microsoft/Sanity/Supabase/Resend; push de commit permitido, delete de ref
-remota não). Branch `feat/ga4-consentimento` usada só pra tentar preview,
-fast-forward em `main` sem PR e sem merge commit.
+Microsoft/Sanity/Supabase/Resend; push de commit permitido, delete de ref remota
+não). Branch `feat/ga4-consentimento` usada só pra tentar preview, fast-forward
+em `main` sem PR e sem merge commit.
 
-**Validação (β):** Codinho: `lint` + `tsc` limpos; `beta-consent.ts` 16/16;
-HTML servido por `next dev` com e sem env sem `gtag`/ID/banner; admin sem chunk
-de consentimento; fluxo em Chromium 18/18 (banner → Recusar persiste → revogar
+**Validação (β):** Codinho: `lint` + `tsc` limpos; `beta-consent.ts` 16/16; HTML
+servido por `next dev` com e sem env sem `gtag`/ID/banner; admin sem chunk de
+consentimento; fluxo em Chromium 18/18 (banner → Recusar persiste → revogar
 reabre → Aceitar injeta script, `dataLayer` recebe `config` com `debug_mode`,
-request pro googletagmanager só depois do Aceitar). Build de produção
-provado pela Vercel (`31b9253`, 42s, Ready). Produção, no tablet e no GA4
-Realtime: HTML exportado do Output da Vercel com 0 `gtag`/0 ID; banner na
-primeira visita; Recusar sobrevive ao reload; "Alterar minha escolha" reabre;
-Aceitar → `page_view`, `first_visit`, `session_start`; `/viagens` via troca de
-rota → `page_view` 3 com título "Viagens | Spinhardi"; WhatsApp → `click` 1;
-`scroll` 1; usuário em Araraquara no mapa. Form `TESTE GA4` enviado 14:57:
-jornada criada e boas-vindas da ClickMassa recebidas; `generate_lead` NÃO
-visto em produção (Realtime consultado fora da janela de 30 min; relatório
-processado leva 24-48h). Prova de código do evento: teste 3.3 + fluxo Chromium.
+request pro googletagmanager só depois do Aceitar). Build de produção provado
+pela Vercel (`31b9253`, 42s, Ready). Produção, no tablet e no GA4 Realtime: HTML
+exportado do Output da Vercel com 0 `gtag`/0 ID; banner na primeira visita;
+Recusar sobrevive ao reload; "Alterar minha escolha" reabre; Aceitar →
+`page_view`, `first_visit`, `session_start`; `/viagens` via troca de rota →
+`page_view` 3 com título "Viagens | Spinhardi"; WhatsApp → `click` 1; `scroll`
+1; usuário em Araraquara no mapa. Form `TESTE GA4` enviado 14:57: jornada criada
+e boas-vindas da ClickMassa recebidas; `generate_lead` NÃO visto em produção
+(Realtime consultado fora da janela de 30 min; relatório processado leva
+24-48h). Prova de código do evento: teste 3.3 + fluxo Chromium.
 
 **Pendências do lote:** confirmar `generate_lead` no relatório Events e marcar
 como Key event (base da otimização do Ads); apagar jornada `TESTE GA4` pelo
-admin; apagar no GitHub as branches sobrando `feat/ga4-consentimento`
-(idêntica à main) e `vercel/install-vercel-web-analytics-1gggyo` (criada pela
-Vercel, morta por D100); banner cobre o CTA dourado do hero em largura de
-tablet paisagem na primeira visita (ajuste de posição); env da Sanity em
-Preview; prettier sujo em 65 arquivos na `main` (lote só de formatação);
-`graphify-out` desatualizado; `sitemap.ts` e `generateStaticParams` do blog
-batem na Sanity em build sem try/catch (Sanity fora = deploy morto); Fase 4 do
-stub `ga4Analytics` (Data API + service account); Search Console (verificação
-por TXT no DNS da Vercel — a verificação "via GA" exige tag pra todo visitante
-e a nossa só carrega após consentimento); Business Profile aguarda resposta
-das sócias sobre perfil existente; revisão jurídica da política e aprovação
-da base de legítimo interesse (27/07) seguem abertas. Herdadas vivas: ver
-2026-09-08.
+admin; apagar no GitHub as branches sobrando `feat/ga4-consentimento` (idêntica
+à main) e `vercel/install-vercel-web-analytics-1gggyo` (criada pela Vercel,
+morta por D100); banner cobre o CTA dourado do hero em largura de tablet
+paisagem na primeira visita (ajuste de posição); env da Sanity em Preview;
+prettier sujo em 65 arquivos na `main` (lote só de formatação); `graphify-out`
+desatualizado; `sitemap.ts` e `generateStaticParams` do blog batem na Sanity em
+build sem try/catch (Sanity fora = deploy morto); Fase 4 do stub `ga4Analytics`
+(Data API + service account); Search Console (verificação por TXT no DNS da
+Vercel — a verificação "via GA" exige tag pra todo visitante e a nossa só
+carrega após consentimento); Business Profile aguarda resposta das sócias sobre
+perfil existente; revisão jurídica da política e aprovação da base de legítimo
+interesse (27/07) seguem abertas. Herdadas vivas: ver 2026-09-08.
 
-**Decisões relacionadas:** D101 (herda D099: a política só promete o que
-existe; herda D011/D100: stack GA4 + Search Console).
+**Decisões relacionadas:** D101 (herda D099: a política só promete o que existe;
+herda D011/D100: stack GA4 + Search Console).
 
 ---
 

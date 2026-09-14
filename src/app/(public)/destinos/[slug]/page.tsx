@@ -7,6 +7,7 @@ import Breadcrumb from "@/components/ui/Breadcrumb";
 import CTAWhatsApp from "@/components/ui/CTAWhatsApp";
 import Divider from "@/components/ui/Divider";
 import TestimonialCard from "@/components/ui/TestimonialCard";
+import DestinoGaleria from "@/components/ui/DestinoGaleria";
 import { DESTINOS, getDestino, primeiraFrase } from "@/content/destinos";
 
 type Props = {
@@ -24,10 +25,43 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!destino) return { title: "Destino não encontrado" };
 
   const canonical = `/destinos/${destino.slug}`;
+  const title = destino.nome; // vira "<nome> | Spinhardi Turismo" pelo template do layout
+  const description = primeiraFrase(destino.intro[0]);
+
+  // Destino SEM foto não declara `openGraph`: herda inteiro o do layout (og:image
+  // padrão do site). Declarar aqui só pra passar `images: []` apagaria a imagem
+  // herdada e o link sairia sem foto nenhuma — pior que o default.
+  if (destino.fotos.length === 0) {
+    return { title, description, alternates: { canonical } };
+  }
+
+  // Com foto, a CAPA (posição 0 do array, não a `-01` do nome do arquivo) vira a
+  // og:image. O caminho é relativo de propósito: o `metadataBase` do layout o
+  // resolve pra URL absoluta, que é o que o WhatsApp exige pra montar o card.
+  //
+  // O bloco `openGraph` vai completo porque o Next SUBSTITUI o objeto inteiro
+  // quando a página o redeclara — passar só `images` derrubaria siteName, locale
+  // e type herdados do layout.
+  const capa = destino.fotos[0];
   return {
-    title: destino.nome, // vira "<nome> | Spinhardi Turismo" pelo template do layout
-    description: primeiraFrase(destino.intro[0]),
+    title,
+    description,
     alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: canonical,
+      siteName: "Spinhardi Turismo",
+      locale: "pt_BR",
+      images: [{ url: capa.src, alt: capa.alt }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [capa.src],
+    },
   };
 }
 
@@ -73,6 +107,11 @@ export default async function DestinoPage({ params }: Props) {
                 {paragrafo}
               </p>
             ))}
+            {/* Galeria DENTRO do `space-y-6` da intro, como último filho: o
+                espaçamento vira o mesmo que separa os parágrafos, e destino sem
+                foto não deixa rastro. Um wrapper com margem própria aqui fora
+                somaria espaço em branco na Itália, que não renderiza galeria. */}
+            <DestinoGaleria fotos={destino.fotos} destinoNome={destino.nome} />
           </div>
         </Container>
       </Section>

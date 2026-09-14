@@ -8,13 +8,26 @@
  * Contrato de conteúdo (não é estilo): sem preço, sem "a partir de", sem
  * contagem, sem urgência, um único CTA de WhatsApp por página.
  *
- * `imagem`: nome do arquivo em `public/images/` (COM extensão, pra não adivinhar
- * formato), ou `null`. Regra do lote: só preenche se o arquivo existir, e ou os
- * quatro têm ou nenhum tem — não se mistura card com foto e card sem foto. Em
- * 12/09 `public/images/` não existe no repo, então os quatro estão `null`.
+ * `fotos`: as fotos reais do destino, em `public/` na raiz. Alimentam TANTO o
+ * carrossel do card (home e índice) QUANTO a galeria da página interna — uma
+ * fonte só pros dois lugares. Destino sem foto simplesmente não renderiza nem
+ * carrossel nem galeria; não existe placeholder (regra do D102: foto só real).
+ *
+ * O campo `imagem` (foto única do card) foi REMOVIDO na parte 2 do lote da
+ * galeria: `fotos` o substituiu nos quatro destinos e ele nunca foi preenchido.
  *
  * `depoimento`: `null` = a página não renderiza o bloco (nada de placeholder).
  */
+
+export type DestinoFoto = {
+  /**
+   * Caminho a partir de `/public`, COM extensão. Os arquivos são `.jpeg`, que
+   * é o que veio da câmera.
+   */
+  src: string;
+  /** O que a foto mostra. Vira o `alt` da miniatura e a linha sob o lightbox. */
+  alt: string;
+};
 
 export type DestinoDepoimento = {
   quote: string;
@@ -40,7 +53,17 @@ export type Destino = {
   depoimento: DestinoDepoimento | null;
   ctaLabel: string;
   whatsappMensagem: string;
-  imagem: string | null;
+  /**
+   * Fotos reais do destino, na ORDEM DE EXIBIÇÃO — que NÃO é a ordem do número
+   * no nome do arquivo. A posição 0 é a capa: é ela que vira o `og:image` da
+   * página, ou seja, a foto que aparece no card do link no WhatsApp. Portugal é
+   * o caso que obriga a distinção: a `-01` é a bandeira no Parque Eduardo VII, e
+   * bandeira não vende viagem — a capa é a `-03`, das falésias do Algarve.
+   *
+   * `[]` = destino sem foto; a galeria não renderiza nada (nem título, nem
+   * espaço, nem `<dialog>`). É o caso da Itália em 14/09/2026.
+   */
+  fotos: DestinoFoto[];
 };
 
 /** Cabeçalho da seção de destinos (home e índice). */
@@ -72,7 +95,9 @@ export const DESTINOS: Destino[] = [
     ctaLabel: "Me conta sobre a sua ideia de viagem para a Itália",
     whatsappMensagem:
       "Oi! Vi a página da Itália no site e queria conversar sobre um roteiro por lá.",
-    imagem: null,
+    // Sem foto real da Itália no repo. Vazio de propósito: o lote não aceita
+    // placeholder nem foto de banco de imagem.
+    fotos: [],
   },
   {
     slug: "africa-do-sul",
@@ -97,7 +122,20 @@ export const DESTINOS: Destino[] = [
     ctaLabel: "Me conta sobre a sua ideia de viagem para a África do Sul",
     whatsappMensagem:
       "Oi! Vi a página da África do Sul no site e queria conversar sobre um roteiro por lá.",
-    imagem: null,
+    fotos: [
+      {
+        src: "/destino-africa-do-sul-01.jpeg",
+        alt: "Balões sobre a savana ao amanhecer, em safári na África do Sul",
+      },
+      {
+        src: "/destino-africa-do-sul-02.jpeg",
+        alt: "Nascer do sol sobre a Cidade do Cabo, com a Table Mountain à direita",
+      },
+      {
+        src: "/destino-africa-do-sul-03.jpeg",
+        alt: "Camps Bay e a cadeia dos Doze Apóstolos ao entardecer, na Cidade do Cabo",
+      },
+    ],
   },
   {
     slug: "portugal",
@@ -123,7 +161,22 @@ export const DESTINOS: Destino[] = [
     ctaLabel: "Me conta sobre a sua ideia de viagem por Portugal",
     whatsappMensagem:
       "Oi! Vi a página de Portugal no site e queria conversar sobre um roteiro por lá.",
-    imagem: null,
+    // Ordem deliberada, fora da numeração dos arquivos: a capa (posição 0, que
+    // vira o og:image) é a `-03`, do Algarve. A `-01`, da bandeira, fecha.
+    fotos: [
+      {
+        src: "/destino-portugal-03.jpeg",
+        alt: "Falésias e mar transparente da Ponta da Piedade, em Lagos, no Algarve",
+      },
+      {
+        src: "/destino-portugal-02.jpeg",
+        alt: "Lisboa vista de um miradouro ao entardecer, com o Castelo de São Jorge e a Ponte 25 de Abril ao fundo",
+      },
+      {
+        src: "/destino-portugal-01.jpeg",
+        alt: "Bandeira de Portugal no Parque Eduardo VII, em Lisboa",
+      },
+    ],
   },
   {
     slug: "argentina",
@@ -149,7 +202,20 @@ export const DESTINOS: Destino[] = [
     ctaLabel: "Me conta sobre a sua ideia de viagem para a Argentina",
     whatsappMensagem:
       "Oi! Vi a página da Argentina no site e queria conversar sobre um roteiro por lá.",
-    imagem: null,
+    fotos: [
+      {
+        src: "/destino-argentina-01.jpeg",
+        alt: "Obelisco na Avenida 9 de Julio, em Buenos Aires",
+      },
+      {
+        src: "/destino-argentina-02.jpeg",
+        alt: "Fachada colorida do Caminito, no bairro da Boca, em Buenos Aires",
+      },
+      {
+        src: "/destino-argentina-03.jpeg",
+        alt: "Floralis Genérica, a flor de aço da Plaza de las Naciones Unidas, em Buenos Aires",
+      },
+    ],
   },
 ];
 
