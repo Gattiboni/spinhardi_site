@@ -136,12 +136,16 @@ async function contatoDoDestinatario(campanhaId: string, email: string): Promise
  * Só toca contato ATIVO. E nunca "melhora" um status: quem já está
  * descadastrado não vira inválido, e vice-versa — as duas transições são
  * terminais por UI (P2).
+ *
+ * ÚNICA escrita automática de `email_marketing_status` do módulo: o webhook
+ * (abaixo) e o opt-out lido antes do envio (`refletirOptOut` em `envio.ts`)
+ * passam os dois por aqui. Devolve quantos contatos mudaram de fato.
  */
-async function suprimir(
+export async function suprimir(
   alvo: { contactId: string | null; email: string | null },
   status: Extract<EmailMarketingStatus, "descadastrado" | "invalido">,
   origem: EmailMarketingOrigem,
-): Promise<void> {
+): Promise<number> {
   const sb = supabaseAdmin();
   const patch = {
     email_marketing_status: status,
@@ -157,10 +161,14 @@ async function suprimir(
 
   if (alvo.contactId) q = q.eq("id", alvo.contactId);
   else if (alvo.email) q = q.ilike("email", alvo.email);
-  else return;
+  else return 0;
 
-  const { error } = await q;
-  if (error) console.error("[campanhas.eventos] supressão falhou:", error);
+  const { data, error } = await q.select("id");
+  if (error) {
+    console.error("[campanhas.eventos] supressão falhou:", error);
+    return 0;
+  }
+  return ((data as { id: string }[]) ?? []).length;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -174,6 +182,57 @@ export type ResultadoIngestao = {
   campanhaId: string | null;
 };
 
+export type ChaveDoEvento = {
+  resendEmailId: string | null;
+  tipo: string;
+  ocorridoEm: string;
+  /** Preenchido quando a hora caiu num fallback. Vai pro log, nunca descarta. */
+  aviso: string | null;
+};
+
+/**
+ * Chave de deduplicação (V4): `(resend_email_id, tipo, ocorrido_em)`.
+ *
+ * EVENTO DE E-MAIL (`email.*`): `resend_email_id` = `data.email_id`,
+ * `ocorrido_em` = `data.created_at`, com `payload.created_at` de reserva. Sem
+ * mudança.
+ *
+ * EVENTO DE CONTATO (`contact.*`, `ContactEventData` no SDK 6.12.4): não tem
+ * `email_id`, e `resend_email_id` já era (e continua sendo) `data.id`, o id do
+ * CONTATO no Resend. O que mudou é `ocorrido_em`. Antes era `data.created_at`,
+ * a data de CRIAÇÃO do contato, que nunca muda: o segundo `contact.updated` do
+ * mesmo contato (o descadastro real, depois do update do espelhamento) batia
+ * na unique e era engolido como reentrega. Agora é `data.updated_at`.
+ *
+ * Sem `updated_at` no payload: cai em `payload.created_at` (hora do EVENTO,
+ * que difere entre eventos, então não recria a colisão) e só depois em
+ * `data.created_at`, sempre com aviso.
+ */
+export function chaveDoEvento(payload: PayloadResend): ChaveDoEvento {
+  const tipo = payload.type;
+  const data = payload.data ?? {};
+  const agora = new Date().toISOString();
+
+  if (tipo.startsWith("contact.")) {
+    const updatedAt = comoTexto(data.updated_at);
+    const resendEmailId = comoTexto(data.id);
+    if (updatedAt) return { resendEmailId, tipo, ocorridoEm: updatedAt, aviso: null };
+    return {
+      resendEmailId,
+      tipo,
+      ocorridoEm: comoTexto(payload.created_at) ?? comoTexto(data.created_at) ?? agora,
+      aviso: `${tipo} do contato ${resendEmailId ?? "(sem id)"} sem data.updated_at; usando created_at na chave de dedup.`,
+    };
+  }
+
+  return {
+    resendEmailId: comoTexto(data.email_id) ?? comoTexto(data.id),
+    tipo,
+    ocorridoEm: comoTexto(data.created_at) ?? comoTexto(payload.created_at) ?? agora,
+    aviso: null,
+  };
+}
+
 /**
  * Grava UM evento do webhook. Idempotente pela unique do banco: reentrega
  * retorna `duplicado: true` e não escreve linha nova nem re-suprime.
@@ -182,11 +241,10 @@ export async function ingerirEvento(payload: PayloadResend): Promise<ResultadoIn
   const tipo = payload.type;
   const data = payload.data ?? {};
 
-  const resendEmailId = comoTexto(data.email_id) ?? comoTexto(data.id);
+  const { resendEmailId, ocorridoEm, aviso } = chaveDoEvento(payload);
+  if (aviso) console.warn(`[campanhas.eventos] ${aviso}`);
   const broadcastId = comoTexto(data.broadcast_id);
   const email = emailDoEvento(data);
-  const ocorridoEm =
-    comoTexto(data.created_at) ?? comoTexto(payload.created_at) ?? new Date().toISOString();
 
   const { campanhaId, contactId } = await correlacionar(broadcastId, email, ocorridoEm);
 

@@ -28,6 +28,50 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-15] D104 — Base legal aprovada por escrito; primeiro disparo real só com pipeline que aguenta 205 (paginação completa, teto de falha, retry, opt-out com régua única)
+
+**Data:** 2026-09-15 · **Owner:** Alan
+
+**Contexto.** O módulo de campanhas fechou em 28/07 com fumaça de 4 endereços e
+ficou seis semanas em modo seguro esperando a base legal. A Nina disse ter
+aprovado em 06/08 por áudio, no grupo da mentoria; áudio não é registro.
+Auditoria read-only de 14/09 mostrou que o pipeline funcionava com 4 e falhava
+com 205: paginação default 20 do SDK, dedup de `contact.updated` que engolia o
+descadastro real, espelhamento sem teto de falha nem retry num único invoke, e
+dois escritores da mesma coluna com réguas diferentes.
+
+**Decisão.** (1) **Aprovação de base legal só vale por escrito, no grupo,
+respondendo a um texto fechado.** Feito em 14/09 21:20 ("Aprovado" ao texto
+registrado no CHANGELOG). Áudio, call ou "combinado na mentoria" não destravam
+envio. (2) **Modo seguro só desliga depois de fumaça pós-deploy com o código
+corrigido**, não com o β de julho. (3) **Toda listagem do Resend é completa ou é
+erro**: `listarTudo` com cursor e teto explícito; lista parcial nunca é
+devolvida. (4) **Envio aborta antes do broadcast se o espelhamento falhar acima
+do teto** (10 contatos ou 5% do público; em modo seguro, 1). Campanha "enviada"
+com metade do público é pior que campanha não enviada com auditoria dizendo por
+quê. (5) **Evento de contato é datado por `updated_at`.** A chave de dedup
+existe pra reentrega do webhook, não pra esconder o segundo evento real. (6)
+**Uma régua por coluna** (herda D094): `email_marketing_status` só é escrito por
+`suprimir`, com as guardas (só `ativo`, nunca rebaixa terminal, só contato real
+do CRM). (7) **Retry com `retry-after` e backoff em toda chamada ao Resend**,
+inclusive `broadcasts.create`, que é seguro porque leva Idempotency-Key. (8)
+**Tracking de abertura e clique é decisão separada** (pendente): ligar pixel de
+abertura sem consentimento contradiz D099/D101; a recomendação registrada é
+clique ligado, abertura desligada, tela dizendo "não medido".
+
+**Alternativas descartadas.** Aceitar a aprovação por áudio (sem registro, sem
+texto fechado); desligar o modo seguro com o β de 28/07 (não exercitava
+paginação nem teto); paginar só onde doeu (os quatro `list` têm o mesmo
+defeito); `maxDuration` em `actions.ts` (arquivo `"use server"` não exporta
+constante; vai na page, pendência); inverter create+get pra get+create (dobra
+chamadas no primeiro envio, quando todos são novos);
+`contacts.create({
+segments })` já neste lote (corta chamadas mas muda a ordem
+do pipeline; fica como lote próprio, antes do primeiro disparo real se houver
+tempo); tratar 429 de cota mensal como retry (não é transitório, não repete).
+
+---
+
 ### [2026-09-14] D103 — Fotos de destino por destino, carrossel no card com lightbox compartilhado, scroll-snap sem lib; revisa o item 5 da D102
 
 **Data:** 2026-09-14 · **Owner:** Alan

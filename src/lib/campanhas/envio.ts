@@ -18,6 +18,7 @@ import {
 } from "./conteudo";
 import { resolverPublico } from "./publico";
 import { aplicarModoSeguro, modoSeguroAtivo } from "./modo-seguro";
+import { suprimir } from "./eventos";
 import {
   cancelarBroadcast,
   criarBroadcast,
@@ -28,6 +29,7 @@ import {
   segmentoDoGrupo,
   segmentoModoSeguro,
   segmentoTodosElegiveis,
+  type FalhaNoProvedor,
 } from "./resend-cliente";
 import type { Campanha } from "./types";
 
@@ -115,6 +117,21 @@ export async function checarEnvio(
   return { ok: true };
 }
 
+/**
+ * Teto de falha no provedor. Passou de 10 contatos OU de 5% do público (o que
+ * vier primeiro), o envio aborta ANTES do broadcast. "Passar" é estritamente
+ * maior: 205 de público aguenta 10 falhas e aborta na 11ª.
+ *
+ * Em MODO SEGURO o público é a lista de teste (2 a 4 endereços), então uma
+ * falha só já passa dos 5% e aborta. É o comportamento certo pra fumaça.
+ */
+export const TETO_FALHA_ABSOLUTO = 10;
+export const TETO_FALHA_PERCENTUAL = 0.05;
+
+export function excedeTetoDeFalha(publico: number, falhas: number): boolean {
+  return falhas > TETO_FALHA_ABSOLUTO || falhas > publico * TETO_FALHA_PERCENTUAL;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Teste
 // ─────────────────────────────────────────────────────────────────
@@ -178,13 +195,20 @@ export async function enviarTesteDaCampanha(
 
 /**
  * Reflete o opt-out lido do Resend (R5) em `email_marketing_status`. Só toca
- * contato REAL do CRM: destinatário de teste chega com `contactId: null`.
+ * contato REAL do CRM: destinatário de teste chega com `contactId: null` e é
+ * filtrado aqui, antes de qualquer escrita (sem isso, `suprimir` casaria por
+ * e-mail e um endereço de teste igual ao de um contato real o descadastraria).
+ *
+ * A escrita é a de `suprimir` (eventos.ts), com origem `descadastro`, a mesma
+ * do webhook `contact.updated`: só contato `ativo`, nunca rebaixa `invalido`
+ * nem reescreve `descadastrado`, e grava `_em` e `_origem`. Uma régua só pra
+ * coluna. Devolve quantos contatos mudaram de fato.
  *
  * Em MODO SEGURO o público efetivo é a lista de teste, então esta função roda
  * (a máquina é exercitada) mas não encontra contato pra marcar — que é o
  * comportamento certo: fumaça não descadastra ninguém de verdade.
  */
-async function refletirOptOut(
+export async function refletirOptOut(
   segmentId: string,
   publico: { contactId: string | null; email: string }[],
 ): Promise<number> {
@@ -192,25 +216,56 @@ async function refletirOptOut(
   if (fora.size === 0) return 0;
 
   const alvos = publico.filter((p) => p.contactId && fora.has(p.email.trim().toLowerCase()));
-  if (alvos.length === 0) return 0;
 
-  const { error } = await supabaseAdmin()
-    .from("contacts")
-    .update({
-      email_marketing_status: "descadastrado",
-      email_marketing_status_em: new Date().toISOString(),
-      email_marketing_status_origem: "descadastro",
-    })
-    .in(
-      "id",
-      alvos.map((a) => a.contactId as string),
+  let marcados = 0;
+  for (const a of alvos) {
+    marcados += await suprimir(
+      { contactId: a.contactId, email: a.email },
+      "descadastrado",
+      "descadastro",
     );
-
-  if (error) {
-    console.error("[campanhas.refletirOptOut] erro ao marcar descadastrados:", error);
-    return 0;
   }
-  return alvos.length;
+  return marcados;
+}
+
+/**
+ * Aborta o envio por falha no provedor acima do teto. Nada foi criado no
+ * Resend além de contatos e membresia (inofensivos, a próxima tentativa
+ * reconcilia) e o estado da campanha NÃO é tocado: continua o de antes.
+ */
+async function recusarPorFalhaNoProvedor(input: {
+  campanha: Campanha;
+  operador: string;
+  etapa: "espelhamento" | "segmento";
+  publico: number;
+  falhas: FalhaNoProvedor[];
+  modoSeguro: boolean;
+}): Promise<ResultadoEnvio> {
+  const { campanha, falhas, publico } = input;
+  const motivo =
+    `${falhas.length} de ${publico} destinatário(s) não puderam ser preparados no provedor ` +
+    `(etapa: ${input.etapa}). Teto: mais de ${TETO_FALHA_ABSOLUTO} contatos ou mais de ` +
+    `${TETO_FALHA_PERCENTUAL * 100}% do público.`;
+
+  console.error(`[campanhas.dispararCampanha] envio abortado antes do broadcast: ${motivo}`);
+  await auditar(campanha.id, "envio_recusado", {
+    operador: input.operador,
+    motivo,
+    estado: campanha.estado,
+    etapa: input.etapa,
+    publico,
+    falhas: falhas.length,
+    emails_que_falharam: falhas,
+    teto: { absoluto: TETO_FALHA_ABSOLUTO, percentual: TETO_FALHA_PERCENTUAL },
+    modo_seguro: input.modoSeguro,
+  });
+
+  return {
+    ok: false,
+    erro:
+      `Nada foi enviado: ${falhas.length} de ${publico} destinatários não puderam ser ` +
+      "preparados no provedor. Tente de novo em alguns minutos. O detalhe está na auditoria.",
+  };
 }
 
 /**
@@ -220,6 +275,13 @@ async function refletirOptOut(
  * `agendada` — e em ambos os casos os destinatários já ficam congelados, porque
  * é o público resolvido NAQUELE instante que vale (E3/E4). Grupo alterado
  * depois não altera nada de campanha já disparada (G5).
+ *
+ * TETO DE FALHA (lote CAMP-fix): checado duas vezes antes do broadcast. Ao fim
+ * do espelhamento, com as falhas de create/get; e depois da reconciliação,
+ * somando quem não entrou no segmento (quem não está no segmento não recebe,
+ * então conta igual). Acima do teto, `envio_recusado` com a lista e o estado
+ * não muda. Abaixo, segue, e `auditoria.envio` diz quantos e quais ficaram de
+ * fora; esses também não entram no congelamento.
  */
 export async function dispararCampanha(
   campanhaId: string,
@@ -252,9 +314,19 @@ export async function dispararCampanha(
     const intercept = aplicarModoSeguro(publicoReal.destinatarios, campanhaId);
     const publico = intercept.publico;
 
-    // 3. Espelhar contatos no Resend.
-    const espelhadas = await espelharContatos(publico);
-    if (espelhadas.length === 0) {
+    // 3. Espelhar contatos no Resend, com teto de falha.
+    const espelhamento = await espelharContatos(publico);
+    if (excedeTetoDeFalha(publico.length, espelhamento.falhas.length)) {
+      return recusarPorFalhaNoProvedor({
+        campanha,
+        operador,
+        etapa: "espelhamento",
+        publico: publico.length,
+        falhas: espelhamento.falhas,
+        modoSeguro: intercept.ativo,
+      });
+    }
+    if (espelhamento.espelhadas.length === 0) {
       return { ok: false, erro: "Não foi possível preparar os destinatários no provedor." };
     }
 
@@ -265,7 +337,21 @@ export async function dispararCampanha(
         ? await segmentoDoGrupo(campanha.grupoId!, await nomeDoGrupo(campanha.grupoId!))
         : await segmentoTodosElegiveis();
 
-    const reconciliacao = await reconciliarSegmento(segmentId, espelhadas);
+    const reconciliacao = await reconciliarSegmento(segmentId, espelhamento.espelhadas);
+
+    const ficaramDeFora = [...espelhamento.falhas, ...reconciliacao.falhasAoAdicionar];
+    if (excedeTetoDeFalha(publico.length, ficaramDeFora.length)) {
+      return recusarPorFalhaNoProvedor({
+        campanha,
+        operador,
+        etapa: "segmento",
+        publico: publico.length,
+        falhas: ficaramDeFora,
+        modoSeguro: intercept.ativo,
+      });
+    }
+    const foraDoSegmento = new Set(reconciliacao.falhasAoAdicionar.map((f) => f.email));
+    const noSegmento = espelhamento.espelhadas.filter((p) => !foraDoSegmento.has(p.email));
 
     // 5. Opt-out lido do provedor antes do envio.
     const descadastradosAgora = await refletirOptOut(segmentId, publico);
@@ -293,7 +379,7 @@ export async function dispararCampanha(
     });
 
     // 7. Congelar, transicionar e auditar.
-    const congelados = await congelarDestinatarios(campanhaId, espelhadas);
+    const congelados = await congelarDestinatarios(campanhaId, noSegmento);
 
     const agora = new Date().toISOString();
     await atualizar(campanhaId, {
@@ -316,17 +402,23 @@ export async function dispararCampanha(
       total_grupo: publicoReal.totalGrupo,
       exclusoes: publicoReal.exclusoes,
       congelados,
-      reconciliacao,
+      reconciliacao: {
+        adicionados: reconciliacao.adicionados,
+        removidos: reconciliacao.removidos,
+        falhas_ao_remover: reconciliacao.falhasAoRemover,
+      },
+      ficaram_de_fora: ficaramDeFora.length,
+      ficaram_de_fora_detalhe: ficaramDeFora,
       descadastrados_lidos_do_provedor: descadastradosAgora,
       modo_seguro: intercept.ativo,
-      enviado_de_fato_para: intercept.ativo ? publico.map((p) => p.email) : undefined,
+      enviado_de_fato_para: intercept.ativo ? noSegmento.map((p) => p.email) : undefined,
       agendado_para: agendadoParaIso ?? null,
     });
 
     return {
       ok: true,
       broadcastId,
-      enviados: espelhadas.length,
+      enviados: noSegmento.length,
       totalReal: intercept.totalReal,
       modoSeguro: intercept.ativo,
     };

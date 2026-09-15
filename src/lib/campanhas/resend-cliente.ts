@@ -9,13 +9,15 @@ import { upsertContactExternalLink } from "@/lib/contacts/external-links";
  *
  * SUPERFÍCIE CONFERIDA no SDK instalado (resend 6.12.4, `dist/index.d.mts`),
  * não em memória de doc:
- *  • `segments.create({name})` / `.list()` / `.get(id)` — Segment { id, name }.
+ *  • `segments.create({name})` / `.list(PaginationOptions)` / `.get(id)` — Segment { id, name }.
  *  • `contacts.create({email, firstName, lastName, segments:[{id}]})`,
- *    `.list({segmentId})`, `.update({id|email, ...})`.
+ *    `.list({segmentId, limit, after})`, `.get({email}|{id})`, `.update({id|email, ...})`.
  *  • `contacts.segments.add({segmentId, contactId|email})` / `.remove(...)`.
  *  • `broadcasts.create({segmentId, from, subject, html, text, send, scheduledAt})`,
  *    `.send(id, {scheduledAt})`, `.get(id)`, `.remove(id)`.
  *  • `webhooks.verify({payload, headers, webhookSecret})` → WebhookEventPayload.
+ *  • Toda resposta é `{ data, error, headers }`; `headers` vem em minúsculas
+ *    (`Object.fromEntries(response.headers)`), então `retry-after` é legível.
  *
  * NÃO EXISTE `broadcasts.cancel` no SDK 6.12.4 — a única saída remota pra um
  * agendamento é `DELETE /broadcasts/:id`, exposto como `broadcasts.remove(id)`.
@@ -50,6 +52,151 @@ function partesDoNome(nome: string): { firstName: string; lastName: string } {
   return { firstName: primeiro || limpo, lastName: resto.join(" ") };
 }
 
+function dormir(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Rate limit e retry
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Decisões locais (lote CAMP-fix), todas ajustáveis aqui sem mexer em lógica:
+ *  • 3 tentativas POR CHAMADA à API (create, get, add, remove, página de
+ *    listagem). Um contato faz no máximo create + get, então no pior caso são
+ *    6 idas por contato, nunca um loop aberto.
+ *  • Espera = `retry-after` do Resend quando vem (segundos ou data HTTP);
+ *    senão backoff exponencial 500 ms, 1 s. Teto de 10 s por espera, pra um
+ *    header maluco não segurar a função até o `maxDuration`.
+ *  • Cota diária/mensal estourada também chega como 429, mas NÃO é repetida:
+ *    esperar não resolve, e as tentativas só gastariam tempo.
+ *  • Ritmo proativo: quando o Resend avisa `ratelimit-remaining: 0`, espera
+ *    `ratelimit-reset` antes da próxima chamada. Evita pagar um 429 por janela.
+ */
+export const TENTATIVAS_MAX = 3;
+const BACKOFF_INICIAL_MS = 500;
+const ESPERA_MAX_MS = 10_000;
+
+type RespostaSdk = {
+  error: { message: string; name?: string; statusCode?: number | null } | null;
+  headers?: Record<string, string> | null;
+};
+
+function ehRateLimit(error: RespostaSdk["error"]): boolean {
+  if (!error) return false;
+  if (error.name === "daily_quota_exceeded" || error.name === "monthly_quota_exceeded") {
+    return false;
+  }
+  return error.name === "rate_limit_exceeded" || error.statusCode === 429;
+}
+
+function segundosOuDataHttp(valor: string | undefined): number | null {
+  if (!valor) return null;
+  const s = Number(valor);
+  if (Number.isFinite(s) && s >= 0) return Math.min(s * 1000, ESPERA_MAX_MS);
+  const quando = Date.parse(valor);
+  if (!Number.isNaN(quando)) return Math.min(Math.max(0, quando - Date.now()), ESPERA_MAX_MS);
+  return null;
+}
+
+/**
+ * Executa uma chamada do SDK repetindo em rate limit. Nunca lança por conta
+ * própria: devolve a última resposta, com o `error` que o chamador já trata.
+ */
+export async function comRetry<R extends RespostaSdk>(chamada: () => Promise<R>): Promise<R> {
+  let resposta = await chamada();
+  for (let tentativa = 1; tentativa < TENTATIVAS_MAX && ehRateLimit(resposta.error); tentativa++) {
+    const espera =
+      segundosOuDataHttp(resposta.headers?.["retry-after"]) ??
+      BACKOFF_INICIAL_MS * 2 ** (tentativa - 1);
+    console.warn(
+      `[campanhas.resend] rate limit, tentativa ${tentativa + 1}/${TENTATIVAS_MAX} em ${espera} ms`,
+    );
+    await dormir(espera);
+    resposta = await chamada();
+  }
+
+  if (resposta.headers?.["ratelimit-remaining"] === "0") {
+    const reset = segundosOuDataHttp(resposta.headers["ratelimit-reset"]);
+    if (reset) await dormir(reset);
+  }
+  return resposta;
+}
+
+/**
+ * Lotes de 10, sequenciais dentro do lote, com 75 ms entre lotes (meio da
+ * faixa 50 a 100 ms). Sequencial de propósito: o limite do Resend é por
+ * segundo e por time, paralelizar só trocaria espera por 429.
+ */
+export const TAMANHO_LOTE = 10;
+const PAUSA_ENTRE_LOTES_MS = 75;
+
+async function emLotes<T>(itens: T[], passo: (item: T) => Promise<void>): Promise<void> {
+  for (let i = 0; i < itens.length; i += TAMANHO_LOTE) {
+    if (i > 0) await dormir(PAUSA_ENTRE_LOTES_MS);
+    for (const item of itens.slice(i, i + TAMANHO_LOTE)) await passo(item);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Paginação
+// ─────────────────────────────────────────────────────────────────
+
+/** 100 é o máximo que o `PaginationOptions` do SDK aceita. */
+const LIMITE_POR_PAGINA = 100;
+
+/**
+ * 50 páginas × 100 = 5.000 itens, o mesmo teto de leitura da view
+ * `contatos_elegiveis_email` (`TETO_LEITURA` em `publico.ts`). Passar disso é
+ * sinal de algo errado, e operar sobre lista incompleta é pior que parar.
+ */
+export const TETO_PAGINAS = 50;
+
+type PaginaSdk<T> = RespostaSdk & {
+  data: { data: T[]; has_more: boolean } | null;
+};
+
+/**
+ * Percorre uma listagem paginada do Resend inteira: `limit: 100` e
+ * `after` = id do último item da página anterior, até `has_more === false`.
+ *
+ * LANÇA em três casos, sempre com mensagem explícita: erro do Resend numa
+ * página (depois dos retries), estouro do teto de páginas, e `has_more` com
+ * página vazia (sem cursor pra seguir). Nos três, devolver o parcial faria a
+ * reconciliação remover ou deixar de remover gente com base em lista cortada.
+ */
+export async function listarTudo<T extends { id: string }>(
+  pagina: (opcoes: { limit: number; after?: string }) => Promise<PaginaSdk<T>>,
+  rotulo: string,
+): Promise<T[]> {
+  const todos: T[] = [];
+  let after: string | undefined;
+
+  for (let n = 1; n <= TETO_PAGINAS; n++) {
+    const r = await comRetry(() =>
+      pagina(after ? { limit: LIMITE_POR_PAGINA, after } : { limit: LIMITE_POR_PAGINA }),
+    );
+    if (r.error || !r.data) {
+      throw new Error(`Erro ao ${rotulo} no Resend: ${r.error?.message ?? "resposta vazia"}`);
+    }
+
+    const itens = r.data.data ?? [];
+    todos.push(...itens);
+    if (!r.data.has_more) return todos;
+
+    const ultimo = itens.at(-1);
+    if (!ultimo) {
+      throw new Error(`Erro ao ${rotulo} no Resend: has_more sem itens na página ${n}.`);
+    }
+    after = ultimo.id;
+  }
+
+  throw new Error(
+    `Erro ao ${rotulo} no Resend: passou de ${TETO_PAGINAS} páginas ` +
+      `(${TETO_PAGINAS * LIMITE_POR_PAGINA} itens). Listagem abortada.`,
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Contatos (espelho)
 // ─────────────────────────────────────────────────────────────────
@@ -61,37 +208,54 @@ export type PessoaEspelhada = {
   resendContactId: string;
 };
 
+export type FalhaNoProvedor = { email: string; motivo: string };
+
+export type ResultadoEspelhamento = {
+  espelhadas: PessoaEspelhada[];
+  falhas: FalhaNoProvedor[];
+};
+
 /**
  * Garante cada destinatário como Contact no Resend (correspondência por e-mail,
  * R2) e grava o vínculo em `contact_external_links` com `provider='resend'`
  * (R3) — reusando o upsert que já existe, nenhuma coluna nova em `contacts`.
  *
- * Idempotente: e-mail já existente no Resend devolve erro de duplicidade, e
- * nesse caso a gente lê o id em vez de tratar como falha.
+ * Idempotente por consequência: e-mail já existente no Resend devolve erro de
+ * duplicidade, e nesse caso a gente lê o id em vez de tratar como falha.
+ *
+ * POR QUE create + get e não get + create: o SDK 6.12.4 não tem upsert de
+ * contato, mas tem `contacts.get({email})` direto. Inverter a ordem custaria
+ * 2 chamadas por contato no PRIMEIRO envio (205 contatos novos) pra economizar
+ * no segundo. Mantido create + get: é o caminho já provado na fumaça de 28/07
+ * e o custo extra só aparece em contato que já existe.
+ *
+ * Quem não pôde ser espelhado volta em `falhas`, com o motivo. A decisão de
+ * seguir ou abortar é do chamador (teto de falha em `envio.ts`).
  */
 export async function espelharContatos(
   pessoas: { contactId: string | null; email: string; nome: string }[],
-): Promise<PessoaEspelhada[]> {
+): Promise<ResultadoEspelhamento> {
   const r = resend();
   const espelhadas: PessoaEspelhada[] = [];
+  const falhas: FalhaNoProvedor[] = [];
 
-  for (const p of pessoas) {
+  await emLotes(pessoas, async (p) => {
     const { firstName, lastName } = partesDoNome(p.nome);
     let resendContactId: string | null = null;
 
-    const criado = await r.contacts.create({ email: p.email, firstName, lastName });
+    const criado = await comRetry(() => r.contacts.create({ email: p.email, firstName, lastName }));
     if (criado.data?.id) {
       resendContactId = criado.data.id;
     } else {
       // Já existe (ou outro erro): tenta ler por e-mail antes de desistir.
-      const achado = await r.contacts.get({ email: p.email });
+      const achado = await comRetry(() => r.contacts.get({ email: p.email }));
       if (achado.data?.id) resendContactId = achado.data.id;
       else {
-        console.error(
-          `[campanhas.resend] não foi possível espelhar ${p.email}:`,
-          criado.error ?? achado.error,
-        );
-        continue;
+        const motivo =
+          criado.error?.message ?? achado.error?.message ?? "sem id na resposta do Resend";
+        console.error(`[campanhas.resend] não foi possível espelhar ${p.email}: ${motivo}`);
+        falhas.push({ email: p.email, motivo });
+        return;
       }
     }
 
@@ -111,9 +275,9 @@ export async function espelharContatos(
         console.error(`[campanhas.resend] vínculo externo de ${p.email} falhou:`, err);
       }
     }
-  }
+  });
 
-  return espelhadas;
+  return { espelhadas, falhas };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -124,11 +288,20 @@ export async function espelharContatos(
 const NOME_SEGMENTO_TODOS = "Spinhardi · todos os elegíveis";
 
 async function criarSegmento(nome: string): Promise<string> {
-  const { data, error } = await resend().segments.create({ name: nome });
+  const { data, error } = await comRetry(() => resend().segments.create({ name: nome }));
   if (error || !data?.id) {
     throw new Error(`Erro ao criar segmento no Resend: ${error?.message ?? "sem id"}`);
   }
   return data.id;
+}
+
+/**
+ * Todos os segmentos da conta. Listagem que falha LANÇA: não sabemos se o
+ * segmento já existe, e criar aqui duplicaria com base num "não achei" que na
+ * verdade é "não consegui olhar".
+ */
+function listarSegmentos() {
+  return listarTudo((o) => resend().segments.list(o), "listar segmentos");
 }
 
 /**
@@ -140,15 +313,9 @@ export async function segmentoTodosElegiveis(): Promise<string> {
   const daEnv = process.env.RESEND_SEGMENT_TODOS_ELEGIVEIS_ID?.trim();
   if (daEnv) return daEnv;
 
-  // Antes de criar, procura um com o mesmo nome — evita duplicar a cada deploy
-  // enquanto a env não estiver setada.
-  const lista = await resend().segments.list();
-  if (lista.error) {
-    // Listagem falhou = não sabemos se já existe. Criar aqui duplicaria o
-    // segmento com base num "não achei" que na verdade é "não consegui olhar".
-    throw new Error(`Erro ao listar segmentos no Resend: ${lista.error.message}`);
-  }
-  const existente = lista.data?.data?.find((s) => s.name === NOME_SEGMENTO_TODOS);
+  // Antes de criar, procura um com o mesmo nome no resultado COMPLETO — evita
+  // duplicar a cada deploy enquanto a env não estiver setada.
+  const existente = (await listarSegmentos()).find((s) => s.name === NOME_SEGMENTO_TODOS);
   if (existente) {
     console.warn(
       `[campanhas.resend] ==> SETE A ENV: RESEND_SEGMENT_TODOS_ELEGIVEIS_ID=${existente.id}`,
@@ -175,11 +342,7 @@ const NOME_SEGMENTO_MODO_SEGURO = "Spinhardi · MODO SEGURO (teste)";
  * separado mantém o teste inerte de verdade.
  */
 export async function segmentoModoSeguro(): Promise<string> {
-  const lista = await resend().segments.list();
-  if (lista.error) {
-    throw new Error(`Erro ao listar segmentos no Resend: ${lista.error.message}`);
-  }
-  const existente = lista.data?.data?.find((s) => s.name === NOME_SEGMENTO_MODO_SEGURO);
+  const existente = (await listarSegmentos()).find((s) => s.name === NOME_SEGMENTO_MODO_SEGURO);
   if (existente) return existente.id;
   return criarSegmento(NOME_SEGMENTO_MODO_SEGURO);
 }
@@ -210,46 +373,70 @@ export async function segmentoDoGrupo(grupoId: string, nomeGrupo: string): Promi
   return id;
 }
 
+/** Membresia COMPLETA de um segmento (todas as páginas). */
+function listarMembros(segmentId: string) {
+  return listarTudo(
+    (o) => resend().contacts.list({ segmentId, ...o }),
+    "listar a membresia do segmento",
+  );
+}
+
+export type ResultadoReconciliacao = {
+  adicionados: number;
+  removidos: number;
+  /** Quem devia entrar no segmento e não entrou: não recebe o broadcast. */
+  falhasAoAdicionar: FalhaNoProvedor[];
+  falhasAoRemover: number;
+};
+
 /**
  * Reconcilia a membresia do segmento (R4): adiciona quem falta e REMOVE quem
  * sobra. A nossa lista é a verdade — nada no Resend é fonte sobre dados de
  * contato. Devolve o que mudou, pra auditoria.
+ *
+ * Sem a membresia atual COMPLETA não dá pra reconciliar: `listarTudo` lança se
+ * qualquer página falhar, e o erro sobe. Uma listagem parcial faria a remoção
+ * virar no-op silencioso pra quem estivesse da página 2 em diante.
  */
 export async function reconciliarSegmento(
   segmentId: string,
   pessoas: PessoaEspelhada[],
-): Promise<{ adicionados: number; removidos: number }> {
+): Promise<ResultadoReconciliacao> {
   const r = resend();
   const desejados = new Set(pessoas.map((p) => p.resendContactId));
-
-  const atuais = new Set<string>();
-  const lista = await r.contacts.list({ segmentId });
-  if (lista.error) {
-    // Sem a membresia atual não dá pra reconciliar: o `data` vazio de uma
-    // listagem que FALHOU faria a remoção (R4) virar no-op silencioso e deixar
-    // gente de fora da nossa lista dentro do segmento — exatamente o risco que
-    // a reconciliação existe pra fechar.
-    throw new Error(`Erro ao listar a membresia do segmento: ${lista.error.message}`);
-  }
-  for (const c of lista.data?.data ?? []) atuais.add(c.id);
+  const atuais = new Set((await listarMembros(segmentId)).map((c) => c.id));
 
   let adicionados = 0;
-  for (const p of pessoas) {
-    if (atuais.has(p.resendContactId)) continue;
-    const { error } = await r.contacts.segments.add({ segmentId, contactId: p.resendContactId });
-    if (error) console.error(`[campanhas.resend] add ${p.email} no segmento:`, error);
-    else adicionados++;
-  }
+  const falhasAoAdicionar: FalhaNoProvedor[] = [];
+  await emLotes(
+    pessoas.filter((p) => !atuais.has(p.resendContactId)),
+    async (p) => {
+      const { error } = await comRetry(() =>
+        r.contacts.segments.add({ segmentId, contactId: p.resendContactId }),
+      );
+      if (error) {
+        console.error(`[campanhas.resend] add ${p.email} no segmento:`, error);
+        falhasAoAdicionar.push({ email: p.email, motivo: error.message });
+      } else adicionados++;
+    },
+  );
 
   let removidos = 0;
-  for (const id of atuais) {
-    if (desejados.has(id)) continue;
-    const { error } = await r.contacts.segments.remove({ segmentId, contactId: id });
-    if (error) console.error(`[campanhas.resend] remove ${id} do segmento:`, error);
-    else removidos++;
-  }
+  let falhasAoRemover = 0;
+  await emLotes(
+    [...atuais].filter((id) => !desejados.has(id)),
+    async (id) => {
+      const { error } = await comRetry(() =>
+        r.contacts.segments.remove({ segmentId, contactId: id }),
+      );
+      if (error) {
+        console.error(`[campanhas.resend] remove ${id} do segmento:`, error);
+        falhasAoRemover++;
+      } else removidos++;
+    },
+  );
 
-  return { adicionados, removidos };
+  return { adicionados, removidos, falhasAoAdicionar, falhasAoRemover };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -262,25 +449,20 @@ export async function reconciliarSegmento(
  *
  * SUPERFÍCIE REAL: `Contact` do SDK 6.12.4 expõe `unsubscribed: boolean`, então
  * a leitura É viável — não precisou de ponto de extensão vazio. A leitura é
- * por segmento (`contacts.list({segmentId})`), que é a única listagem
- * disponível; contato que ainda não está no segmento não é consultado aqui e
- * fica coberto pelo webhook `contact.updated`.
+ * por segmento (`contacts.list({segmentId})`, todas as páginas), que é a única
+ * listagem disponível; contato que ainda não está no segmento não é consultado
+ * aqui e fica coberto pelo webhook `contact.updated`.
  */
 export async function lerOptOut(segmentId: string): Promise<Set<string>> {
   const fora = new Set<string>();
   try {
-    const lista = await resend().contacts.list({ segmentId });
-    if (lista.error) {
-      // Aqui NÃO lança, de propósito: a decisão documentada acima é não
-      // bloquear o envio por causa do opt-out. Mas o erro para de sumir.
-      console.error("[campanhas.resend] listagem de opt-out recusada:", lista.error);
-      return fora;
-    }
-    for (const c of lista.data?.data ?? []) {
+    for (const c of await listarMembros(segmentId)) {
       if (c.unsubscribed && c.email) fora.add(c.email.trim().toLowerCase());
     }
   } catch (err) {
-    // Não bloqueia o envio: a supressão do webhook é a rede de segurança.
+    // Aqui NÃO lança, de propósito: a decisão documentada acima é não
+    // bloquear o envio por causa do opt-out. A supressão do webhook é a rede
+    // de segurança. Mas o erro não some.
     console.error("[campanhas.resend] não foi possível ler opt-out:", err);
   }
   return fora;
@@ -313,21 +495,24 @@ export type CriarBroadcastInput = {
  * `options.headers` nos headers da requisição. Então a chave vai pelo header
  * `Idempotency-Key`, que é o mecanismo documentado do Resend — sem gambiarra e
  * sem sair do SDK. Isso é a segunda trava; a primeira é o gate de estado no
- * servidor, que impede a chamada de acontecer duas vezes.
+ * servidor, que impede a chamada de acontecer duas vezes. É também o que torna
+ * seguro o retry de 429 aqui: a repetição carrega a mesma chave.
  */
 export async function criarBroadcast(input: CriarBroadcastInput): Promise<string> {
-  const { data, error } = await resend().broadcasts.create(
-    {
-      name: input.nome,
-      segmentId: input.segmentId,
-      from: remetente(),
-      subject: input.assunto,
-      html: input.html,
-      text: input.texto,
-      send: true,
-      ...(input.agendadoPara ? { scheduledAt: input.agendadoPara } : {}),
-    },
-    { headers: { "Idempotency-Key": input.chaveIdempotencia } },
+  const { data, error } = await comRetry(() =>
+    resend().broadcasts.create(
+      {
+        name: input.nome,
+        segmentId: input.segmentId,
+        from: remetente(),
+        subject: input.assunto,
+        html: input.html,
+        text: input.texto,
+        send: true,
+        ...(input.agendadoPara ? { scheduledAt: input.agendadoPara } : {}),
+      },
+      { headers: { "Idempotency-Key": input.chaveIdempotencia } },
+    ),
   );
 
   if (error || !data?.id) {
