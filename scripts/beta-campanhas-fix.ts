@@ -255,6 +255,8 @@ const rs = {
   /** create → 429 com retry-after na primeira vez, sucesso depois. */
   rateLimitUmaVez: new Set<string>(),
   chamadas: [] as string[],
+  /** Corpo de cada POST /contacts: e-mail e ids de segmento pedidos no create. */
+  creates: [] as { email: string; segments: string[] }[],
 };
 
 function zerar() {
@@ -266,6 +268,7 @@ function zerar() {
   rs.recusar.clear();
   rs.rateLimitUmaVez.clear();
   rs.chamadas.length = 0;
+  rs.creates.length = 0;
 }
 
 function paginar<T extends { id: string }>(itens: T[], url: URL): Response {
@@ -289,7 +292,13 @@ async function resendFalso(req: Request, url: URL): Promise<Response> {
   let m: RegExpMatchArray | null;
 
   if (req.method === "POST" && caminho === "/contacts") {
-    const b = (await req.json()) as { email: string; first_name?: string; last_name?: string };
+    const b = (await req.json()) as {
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      segments?: { id: string }[];
+    };
+    rs.creates.push({ email: b.email, segments: (b.segments ?? []).map((s) => s.id) });
     const email = b.email.toLowerCase();
     if (rs.rateLimitUmaVez.has(email)) {
       rs.rateLimitUmaVez.delete(email);
@@ -307,6 +316,12 @@ async function resendFalso(req: Request, url: URL): Promise<Response> {
       created_at: new Date().toISOString(),
     };
     rs.contatos.set(c.id, c);
+    // Contato NOVO criado com `segments` já nasce membro (CreateContactOptions).
+    for (const s of b.segments ?? []) {
+      const ids = rs.membros.get(s.id) ?? [];
+      if (!ids.includes(c.id)) ids.push(c.id);
+      rs.membros.set(s.id, ids);
+    }
     return json({ object: "contact", id: c.id }, 201);
   }
 
@@ -418,6 +433,9 @@ async function main() {
   const { dispararCampanha, refletirOptOut, excedeTetoDeFalha } =
     await import("@/lib/campanhas/envio");
   const { calcularConteudoHash } = await import("@/lib/campanhas/hash");
+  const { resumoModoSeguro } = await import("@/lib/campanhas/modo-seguro");
+  const { metricaMedida, taxaDe } = await import("@/lib/campanhas/metricas-shared");
+  const { RASTREIO_ABERTURA } = await import("@/lib/campanhas/config");
 
   // ── 0. Selagem ──────────────────────────────────────────────────
   console.log("\n=== 0 · Selagem ===");
@@ -651,7 +669,7 @@ async function main() {
     const [lenta] = semearCrm(1, "lenta");
     rs.rateLimitUmaVez.add(lenta.email);
     const t0 = Date.now();
-    const r = await espelharContatos([lenta]);
+    const r = await espelharContatos([lenta], "seg-lenta");
     const creates = rs.chamadas.filter((c) => c === "POST /contacts").length;
     check(
       "4.1 429 na primeira, sucesso na segunda, conta como sucesso",
@@ -853,6 +871,147 @@ async function main() {
       `status do contato real=${ch.email_marketing_status}`,
     );
   }
+
+  // ── 6. CAMP-fix-2 ──────────────────────────────────────────────
+  console.log("\n=== 6 · CAMP-fix-2 ===");
+  {
+    // `contarPublicoAction` exige sessão (requireRole) e não roda fora do Next;
+    // ela devolve `{ ...contarPublico(), ...resumoModoSeguro() }`, então o que
+    // se prova aqui é a peça que decide o que o modal recebe.
+    let ligado: ReturnType<typeof resumoModoSeguro>;
+    let desligado: ReturnType<typeof resumoModoSeguro>;
+    process.env.CAMPANHAS_EMAILS_TESTE = "Alguem@Beta.invalid";
+    try {
+      process.env.CAMPANHAS_MODO_SEGURO = "1";
+      ligado = resumoModoSeguro();
+      process.env.CAMPANHAS_MODO_SEGURO = "0";
+      desligado = resumoModoSeguro();
+    } finally {
+      process.env.CAMPANHAS_MODO_SEGURO = "1";
+      delete process.env.CAMPANHAS_EMAILS_TESTE;
+    }
+    check(
+      "6.1 recontagem do modal leva a trava e os endereços",
+      ligado.modoSeguro === true &&
+        ligado.enderecosTeste.join(",") ===
+          "delivered@resend.dev,bounced@resend.dev,alguem@beta.invalid" &&
+        desligado.modoSeguro === false &&
+        desligado.enderecosTeste.length === 0,
+      `ligado: [${ligado.enderecosTeste.join(", ")}] · desligado: ${JSON.stringify(desligado)}`,
+    );
+  }
+
+  const ehAdd = (c: string) => /^POST \/contacts\/[^/]+\/segments\/[^/]+$/.test(c);
+  const ehGetContato = (c: string) => /^GET \/contacts\/[^/?]+$/.test(c);
+
+  {
+    zerar();
+    const seg = "seg-novos";
+    const pessoas = semearCrm(205, "novo");
+    const r = await espelharContatos(pessoas, seg);
+    const comSegmento = rs.creates.filter(
+      (c) => c.segments.length === 1 && c.segments[0] === seg,
+    ).length;
+    const rec = await reconciliarSegmento(seg, r.espelhadas);
+    const adds = rs.chamadas.filter(ehAdd).length;
+    check(
+      "6.2 205 novos nascem no segmento: 205 creates com segmento, zero add",
+      r.espelhadas.length === 205 &&
+        rs.creates.length === 205 &&
+        comSegmento === 205 &&
+        adds === 0 &&
+        rec.adicionados === 0 &&
+        rs.membros.get(seg)?.length === 205,
+      `${rs.creates.length} creates (${comSegmento} com o segmento), ${adds} add, ` +
+        `reconciliação adicionou ${rec.adicionados}, membresia ${rs.membros.get(seg)?.length}`,
+    );
+  }
+
+  async function existentes(dentro: boolean) {
+    zerar();
+    const seg = dentro ? "seg-dentro" : "seg-fora";
+    const pessoas = semearCrm(100, dentro ? "dentro" : "fora");
+    const ids = pessoas.map((p) => {
+      const id = novoId();
+      rs.contatos.set(id, {
+        object: "contact",
+        id,
+        email: p.email,
+        first_name: null,
+        last_name: null,
+        unsubscribed: false,
+        created_at: "2026-01-01",
+      });
+      return id;
+    });
+    if (dentro) rs.membros.set(seg, [...ids]);
+    const r = await espelharContatos(pessoas, seg);
+    const rec = await reconciliarSegmento(seg, r.espelhadas);
+    return {
+      espelhadas: r.espelhadas.length,
+      gets: rs.chamadas.filter(ehGetContato).length,
+      adds: rs.chamadas.filter(ehAdd).length,
+      adicionados: rec.adicionados,
+      membresia: rs.membros.get(seg)?.length ?? 0,
+    };
+  }
+
+  const fora = await existentes(false);
+  check(
+    "6.3 100 já existentes FORA do segmento: 100 get + 100 add",
+    fora.espelhadas === 100 &&
+      fora.gets === 100 &&
+      fora.adds === 100 &&
+      fora.adicionados === 100 &&
+      fora.membresia === 100,
+    JSON.stringify(fora),
+  );
+
+  const dentro = await existentes(true);
+  check(
+    "6.4 100 já existentes DENTRO do segmento: 100 get + zero add",
+    dentro.espelhadas === 100 &&
+      dentro.gets === 100 &&
+      dentro.adds === 0 &&
+      dentro.adicionados === 0 &&
+      dentro.membresia === 100,
+    JSON.stringify(dentro),
+  );
+
+  {
+    // Pipeline inteiro em MODO SEGURO (fetch selado): segmento antes do create.
+    zerar();
+    semearCrm(3, "real");
+    const id = semearCampanha();
+    const r = await dispararCampanha(id, "beta");
+    const primeiroSegmento = rs.chamadas.findIndex(
+      (c) => c.startsWith("GET /segments?") || c === "POST /segments",
+    );
+    const primeiroCreate = rs.chamadas.indexOf("POST /contacts");
+    const segModo = rs.segmentos.find((s) => s.name === "Spinhardi · MODO SEGURO (teste)")?.id;
+    check(
+      "6.5 dispararCampanha resolve o segmento antes de espelhar",
+      r.ok &&
+        r.modoSeguro &&
+        primeiroSegmento >= 0 &&
+        primeiroSegmento < primeiroCreate &&
+        rs.creates.length === 2 &&
+        rs.creates.every((c) => c.segments[0] === segModo) &&
+        rs.chamadas.filter(ehAdd).length === 0,
+      `ok=${r.ok}, 1ª chamada de segmento na posição ${primeiroSegmento}, 1º create na ${primeiroCreate}, ` +
+        `creates=${rs.creates.length} no segmento do modo seguro, adds=${rs.chamadas.filter(ehAdd).length}`,
+    );
+  }
+
+  check(
+    "6.6 abertura não medida devolve null com base; clique devolve número",
+    RASTREIO_ABERTURA === false &&
+      !metricaMedida("abertura") &&
+      taxaDe("abertura", 3, 4) === null &&
+      metricaMedida("clique") &&
+      taxaDe("clique", 1, 4) === 25,
+    `abertura com 3 de 4 entregues: ${taxaDe("abertura", 3, 4)} · clique 1 de 4: ${taxaDe("clique", 1, 4)}%`,
+  );
 
   check(
     "0.2 nenhuma chamada tentou sair do processo",

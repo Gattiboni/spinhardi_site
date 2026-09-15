@@ -229,11 +229,20 @@ export type ResultadoEspelhamento = {
  * no segundo. Mantido create + get: é o caminho já provado na fumaça de 28/07
  * e o custo extra só aparece em contato que já existe.
  *
+ * SEGMENTO NO CREATE (CAMP-fix-2): contato NOVO nasce dentro de `segmentId`
+ * (`CreateContactOptions.segments: { id }[]`, repassado como `segments` no
+ * POST /contacts pelo SDK 6.12.4). Isso corta o `segments.add` de cada
+ * contato novo: no primeiro envio real são N creates, não N creates + N adds.
+ * Contato que JÁ existia cai no get e NÃO é adicionado aqui: quem decide se
+ * ele está ou não no segmento é `reconciliarSegmento`, que roda depois e lê a
+ * membresia inteira. Por isso o chamador resolve o segmento ANTES de espelhar.
+ *
  * Quem não pôde ser espelhado volta em `falhas`, com o motivo. A decisão de
  * seguir ou abortar é do chamador (teto de falha em `envio.ts`).
  */
 export async function espelharContatos(
   pessoas: { contactId: string | null; email: string; nome: string }[],
+  segmentId: string,
 ): Promise<ResultadoEspelhamento> {
   const r = resend();
   const espelhadas: PessoaEspelhada[] = [];
@@ -243,7 +252,9 @@ export async function espelharContatos(
     const { firstName, lastName } = partesDoNome(p.nome);
     let resendContactId: string | null = null;
 
-    const criado = await comRetry(() => r.contacts.create({ email: p.email, firstName, lastName }));
+    const criado = await comRetry(() =>
+      r.contacts.create({ email: p.email, firstName, lastName, segments: [{ id: segmentId }] }),
+    );
     if (criado.data?.id) {
       resendContactId = criado.data.id;
     } else {

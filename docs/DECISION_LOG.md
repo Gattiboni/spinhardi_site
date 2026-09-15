@@ -28,6 +28,40 @@ Ordem: mais recente no topo.
 
 ---
 
+### [2026-09-15] D105 — Tracking de e-mail: clique medido, abertura não; tela diz "não medido" em vez de "0%"
+
+**Data:** 2026-09-15 · **Owner:** Alan
+
+**Contexto.** O domínio no Resend nasceu com open e click tracking desligados e
+a tela de resultados mostrava "0% abriram", que lê como fracasso. Open tracking
+é um pixel: registra IP e user-agent quando o programa de e-mail carrega a
+imagem, sem nenhuma ação da pessoa, e o Gmail pré-carrega (número inflado)
+enquanto a Apple esconde (número zerado). Click tracking reescreve os links por
+um redirecionador do Resend e só registra quando a pessoa clica.
+
+**Decisão.** (1) **Clique é medido.** É a métrica que responde "o e-mail
+funcionou?" e nasce de uma ação da pessoa; subdomínio
+`links.spinhardi
+turismo.com.br` no Registro.br. (2) **Abertura não é medida.**
+Pixel sem ação contradiz D099/D101 (GA4 só com consentimento) e o número seria
+errado de qualquer jeito. (3) **"Não medido" é estado de produto, não zero:**
+constante `RASTREIO_ABERTURA = false` em `lib/campanhas/config.ts`, muda com
+commit e decisão nova, nunca com env; `taxaDe` devolve `null` e as três telas
+(KPI, linha de resumo, selo da ficha) tratam `null` como "Não medido", distinto
+de "—" (sem base). (4) **Política de privacidade ganha uma frase** na seção 3:
+"Nos e-mails que enviamos, registramos os cliques nos links para saber o que
+interessa a quem recebe." (lote do site). (5) O `email.opened` continua ingerido
+pelo webhook, inofensivo: se um dia a decisão mudar, a métrica volta sem
+migration.
+
+**Alternativas descartadas.** Ligar os dois "porque é o padrão do mercado"
+(número de abertura é errado e a coleta é sem ação); deixar "0%" (mente);
+esconder a coluna (esconde a decisão); guardar a decisão numa env (decisão de
+produto não é configuração de ambiente); remover `email.opened` do webhook
+(fecha porta sem ganho).
+
+---
+
 ### [2026-09-15] D104 — Base legal aprovada por escrito; primeiro disparo real só com pipeline que aguenta 205 (paginação completa, teto de falha, retry, opt-out com régua única)
 
 **Data:** 2026-09-15 · **Owner:** Alan

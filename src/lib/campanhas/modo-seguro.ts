@@ -36,6 +36,16 @@ export function emailsDeTeste(): string[] {
   return [...new Set(todos)];
 }
 
+/**
+ * O que a TELA precisa saber da trava, lido das mesmas funções que o pipeline
+ * usa (`modoSeguroAtivo` e `emailsDeTeste`). Nenhum outro lugar lê a env.
+ * Desligada: lista vazia, porque nenhum endereço de teste vai receber nada.
+ */
+export function resumoModoSeguro(): { modoSeguro: boolean; enderecosTeste: string[] } {
+  const ativo = modoSeguroAtivo();
+  return { modoSeguro: ativo, enderecosTeste: ativo ? emailsDeTeste() : [] };
+}
+
 /** Nome legível pro destinatário de teste (o snapshot exige `nome` não nulo). */
 function nomeDeTeste(email: string): string {
   if (email === "delivered@resend.dev") return "Teste — entrega";

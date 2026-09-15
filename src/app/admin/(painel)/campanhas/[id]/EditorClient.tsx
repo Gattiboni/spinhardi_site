@@ -60,6 +60,27 @@ const botao =
 const botaoPrimario =
   "h-9.5 px-5 rounded-md bg-navy text-white font-body text-sm font-semibold hover:bg-primary-hover focus-ring transition-colors duration-short disabled:bg-surface-selected disabled:text-text-disabled disabled:cursor-not-allowed";
 
+/** Recontagem do público como `contarPublicoAction` devolve, com a trava junto. */
+type Contagem = {
+  total: number;
+  exclusoes: Exclusoes;
+  totalGrupo: number | null;
+  modoSeguro: boolean;
+  enderecosTeste: string[];
+};
+
+/**
+ * Frase ÚNICA do modo seguro: a mesma no passo 3 e no modal "Enviar agora?".
+ * Com a trava ligada, prometer "N pessoas vão receber" é mentir pra operadora.
+ */
+function fraseModoSeguro(c: Contagem): string {
+  const m = c.enderecosTeste.length;
+  return (
+    `Modo de segurança ligado: o público real tem ${c.total} ${c.total === 1 ? "pessoa" : "pessoas"}, ` +
+    `mas este envio vai só pros ${m} ${m === 1 ? "endereço" : "endereços"} de teste.`
+  );
+}
+
 export default function EditorClient({
   campanha,
   imagemUrl,
@@ -90,11 +111,7 @@ export default function EditorClient({
   // ── Passo 2 ─────────────────────────────────────────────────────
   const [publicoTipo, setPublicoTipo] = useState<PublicoTipo>(campanha.publicoTipo);
   const [grupoId, setGrupoId] = useState<string | null>(campanha.grupoId);
-  const [contagem, setContagem] = useState<{
-    total: number;
-    exclusoes: Exclusoes;
-    totalGrupo: number | null;
-  } | null>(null);
+  const [contagem, setContagem] = useState<Contagem | null>(null);
 
   // ── Passo 3 ─────────────────────────────────────────────────────
   const [destinos, setDestinos] = useState<string[]>(destinosTeste.slice(0, 1));
@@ -103,7 +120,7 @@ export default function EditorClient({
   const [dataAgenda, setDataAgenda] = useState("");
   const [horaAgenda, setHoraAgenda] = useState("");
   const [confirmando, setConfirmando] = useState(false);
-  const [contagemFinal, setContagemFinal] = useState<number | null>(null);
+  const [contagemFinal, setContagemFinal] = useState<Contagem | null>(null);
   const [verEmail, setVerEmail] = useState(false);
 
   const setCampo = <K extends keyof CampanhaConteudo>(k: K, v: CampanhaConteudo[K]) =>
@@ -233,7 +250,7 @@ export default function EditorClient({
     // Reconta AGORA (E3): o número da confirmação é o do instante do envio,
     // não o da hora em que a operadora escolheu o público.
     const r = await contarPublicoAction(publicoTipo, grupoId);
-    setContagemFinal(r?.total ?? null);
+    setContagemFinal(r);
     setConfirmando(true);
   };
 
@@ -727,6 +744,22 @@ export default function EditorClient({
             )}
           </section>
 
+          {/* Modo seguro: só aparece com a trava ligada, acima do bloco Envio */}
+          {contagem?.modoSeguro && (
+            <div
+              role="status"
+              className="rounded-modal border border-accent-soft bg-attention-bg p-5"
+              data-testid="aviso-modo-seguro"
+            >
+              <p className="font-body text-sm text-navy font-semibold">
+                {fraseModoSeguro(contagem)}
+              </p>
+              <p className="font-body text-sm text-dark mt-2 break-all">
+                {contagem.enderecosTeste.join(", ")}
+              </p>
+            </div>
+          )}
+
           {/* Envio */}
           <section className="bg-white border border-border-soft rounded-modal p-6 space-y-4">
             <h2 className="font-display text-xl text-navy">Envio</h2>
@@ -812,14 +845,26 @@ export default function EditorClient({
         descricao={
           contagemFinal === null
             ? "Não consegui recontar quem recebe. Tente de novo."
-            : `Recontando agora: ${contagemFinal} ${
-                contagemFinal === 1 ? "pessoa vai receber" : "pessoas vão receber"
-              }. Depois de sair, não tem como voltar atrás.`
+            : contagemFinal.modoSeguro
+              ? fraseModoSeguro(contagemFinal)
+              : `Recontando agora: ${contagemFinal.total} ${
+                  contagemFinal.total === 1 ? "pessoa vai receber" : "pessoas vão receber"
+                }. Depois de sair, não tem como voltar atrás.`
         }
         primarioLabel={quando === "agendar" ? "Agendar" : "Enviar"}
         onConfirmar={disparar}
         data-testid="modal-confirmar-envio"
-      />
+      >
+        {contagemFinal?.modoSeguro && (
+          <ul className="font-body text-sm text-dark space-y-1" data-testid="modal-enderecos-teste">
+            {contagemFinal.enderecosTeste.map((e) => (
+              <li key={e} className="break-all">
+                {e}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
 
       {/* ── Ver o e-mail (variante de conteúdo grande) ──────────── */}
       <Modal

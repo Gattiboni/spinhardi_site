@@ -11,10 +11,6 @@ Ordem: mais recente no topo.
 
 ---
 
-## 2026
-
----
-
 ## 2026-09-15
 
 ---
@@ -26,24 +22,32 @@ respondeu "Aprovado" ao texto "A Spinhardi autoriza o envio de e-mails de
 novidades e conteúdos de viagem para a base de clientes e contatos antigos da
 agência, com descadastro em um clique em toda mensagem." A aprovação anterior
 que a Nina cita (06/08, grupo da mentoria) era por áudio e indistinguível; o
-registro que vale é o escrito. `CAMPANHAS_MODO_SEGURO` continua ligado até a
-fumaça pós-deploy passar.
+registro que vale é o escrito.
+
+**DECISÃO — Tracking de e-mail: clique sim, abertura não (D105):** click
+tracking ligado no domínio do Resend via subdomínio
+`links.spinharditurismo.
+com.br` (CNAME → `links2.resend-dns.com`, criado hoje
+no Registro.br); open tracking desligado (pixel coleta IP e user-agent sem ação
+da pessoa, contra a postura D099/D101). Consequência de produto: "Abriram" deixa
+de existir como métrica; a tela diz "Não medido", não "0%". Frase na política de
+privacidade (seção 3) entra no próximo lote do site.
 
 **SITE — Pipeline de campanhas pronto pra público real (lote CAMP-fix, D104):**
-auditoria read-only de 14/09 achou três defeitos que só aparecem com os 205
-elegíveis, nunca com os 4 endereços de teste; todos consertados em
-`src/lib/campanhas/`. (1) `resend-cliente.ts`: o SDK 6.12.4 pagina com default
-20 e os 4 `list` (segmentos e membresia, linhas 145/178/226/272) eram chamados
-sem cursor — reconciliação enxergava 20 de 205 e o opt-out lido do provedor
+auditoria read-only de 14/09 achou defeitos que só aparecem com o público real
+(307 elegíveis hoje; 205 em julho), nunca com os 4 endereços de teste; todos
+consertados em `src/lib/campanhas/`. (1) `resend-cliente.ts`: o SDK 6.12.4
+pagina com default 20 e os 4 `list` (segmentos e membresia) eram chamados sem
+cursor, então a reconciliação enxergava 20 de 205 e o opt-out lido do provedor
 também; novo `listarTudo` (limit 100 + `after`, teto de 50 páginas com erro
 explícito, erro numa página lança sem devolver parcial). Retry 3x em toda
 chamada (create, get, add, remove, listagem, `broadcasts.create` com o mesmo
 Idempotency-Key): espera `retry-after` quando vem, senão 500 ms → 1 s, nunca
 mais de 10 s; espera proativa quando `ratelimit-remaining: 0`. Espelhamento em
 lotes de 10 com 75 ms. (2) `eventos.ts`: `contact.updated` gravava `ocorrido_em`
-com `created_at` do contato, chave de dedup ficava constante e o segundo evento
-(o descadastro real) era engolido como duplicado; agora `chaveDoEvento` usa
-`updated_at` (fallback `created_at` do payload, com aviso, nunca descarta);
+com `created_at` do contato, a chave de dedup ficava constante e o segundo
+evento (o descadastro real) era engolido como duplicado; agora `chaveDoEvento`
+usa `updated_at` (fallback `created_at` do payload, com aviso, nunca descarta);
 `suprimir` exportada e devolve quantos mudou. (3) `envio.ts`: teto de falha no
 espelhamento (aborta ANTES do broadcast se falhas > 10 ou > 5% do público; em
 modo seguro uma falha já aborta), `auditoria.envio_recusado` lista emails e
@@ -51,50 +55,114 @@ motivos, campanha volta ao estado anterior; segunda checagem depois da
 reconciliação (quem não entrou no segmento conta como falha e fica fora do
 congelamento). (4) `refletirOptOut` era o terceiro escritor de
 `email_marketing_status` sem guardas; passa a chamar
-`suprimir("descadastrado",
-"descadastro")` (origem já no CHECK do banco;
-`descadastro_provedor` não existe) e só marca contato real do CRM: endereço de
-teste não descadastra contato real de mesmo email. `.env.example`: comentário da
-chave deixa de afirmar "produção é sending-only". TRAPS: `maxDuration` não entra
-em arquivo `"use
-server"` (só exporta função async; build quebra), vai na page;
-Pro com fluid compute já dá 300 s por default; `contacts.get({email})` existe no
-SDK mas upsert não; par create+get mantido porque no primeiro envio os 205 são
-novos.
+`suprimir("descadastrado", "descadastro")` (origem já no CHECK;
+`descadastro_provedor` não existe) e só marca contato real do CRM.
+`.env.example`: comentário da chave deixa de afirmar "produção é sending-only".
+Atribuição de `contact.updated` a campanha já existia e é por e-mail
+(`eventos.ts:97-113`): última linha de `campanha_destinatarios` com o mesmo
+e-mail nos últimos 30 dias herda o `campanha_id`. TRAPS: `maxDuration` não entra
+em arquivo `"use server"` (só exporta função async; build quebra), vai na page;
+`contacts.get({email})` existe no SDK mas upsert não.
 
-**Validação (β):** `scripts/beta-campanhas-fix.ts` 21/21 com `fetch`
-interceptado em memória e o código real ponta a ponta (rede real bloqueada e
-provada bloqueada): 250 itens em 3 páginas na ordem; teto de 50 páginas;
-segmento achado na página 2 sem criar novo; 205 membros + 3 sobrando remove
-exatamente 3; dois `contact.updated` geram chaves distintas e o segundo marca
-`descadastrado` com `_em`/`_origem`; reentrega deduplica; 429 → sucesso conta
-como sucesso (esperou 1019 ms); 205 com 4 falhas envia e congela 201; 205 com 11
-falhas: zero broadcast, estado volta a `testada`, `envio_recusado` com os 11;
-`invalido` intacto; endereço de teste não descadastra contato real.
-`npm run build`, `tsc`, `eslint`, `prettier` limpos. **Fumaça em produção NÃO
-executada** (código não estava publicado no fechamento do lote): campanha nos 3
-passos com modo seguro, 4 entregas, descadastro de um endereço de teste →
-`contact.updated` → `descadastrado`, expurgo. Registrar aqui quando rodar.
+**SITE — Lote CAMP-fix-2: modal ciente do modo seguro, contato criado já no
+segmento, `maxDuration` explícito, abertura "não medida" (D105):**
+`contarPublicoAction` (que serve passos 2 e 3 e o modal) passa a devolver
+`modoSeguro` e `enderecosTeste` via `resumoModoSeguro()` em `modo-seguro.ts`, a
+MESMA leitura do pipeline; frase única no `EditorClient` (passo 3 e modal
+"Enviar agora?"): "o público real tem N pessoas, mas este envio vai só pros M
+endereços de teste" + lista, com singular tratado. Pipeline reordenado em
+`envio.ts`: segmento resolvido ANTES de espelhar, e
+`espelharContatos(…,
+segmentId)` cria contato novo já dentro do segmento
+(`contacts.create` com o segmento no payload); `segments.add` só acontece em
+`reconciliarSegmento`, pra quem já existia e está fora; corta ~metade das
+chamadas do primeiro envio real (306 creates, zero adds). Custo aceito: se o
+teto abortar, o segmento já existe e é reaproveitado. Contrato v1 não descreve
+ordem (R1 "todo público existe como Segment antes do envio" continua cumprida);
+só o docblock mudou. `config.ts` novo em `lib/campanhas/` com
+`RASTREIO_ABERTURA = false` (decisão de produto, muda com commit, não com env;
+mesmo padrão de `lib/consent/
+config.ts`); `metricas-shared.ts` ganha
+`metricaMedida` e `taxaDe` (distingue "Não medido" de "—" sem base);
+`ResultadosClient` KPI "Não medido", `CampanhasClient` "abertura não medida" na
+linha de resumo, ficha `index.ts` passa `abriu = RASTREIO_ABERTURA && …` e o
+selo some sozinho (`EmailMarketingCard.tsx` intocado).
+`campanhas/[id]/page.tsx`: `export
+const maxDuration = 300` (nível de página,
+doc do Next 16).
 
-**Pendências do lote:** fumaça pós-deploy (acima); primeiro envio real pode
-levar ~210 s com 205 creates + 205 adds se o limite do Resend for 2 req/s, perto
-dos 300 s (saída: `contacts.create({ segments })` cria já dentro do segmento e
-corta metade das chamadas; muda a ordem do pipeline, lote próprio antes do
-primeiro disparo real se der tempo, senão monitorar o log da Vercel no primeiro
-envio); `maxDuration = 300` explícito em `campanhas/[id]/page.tsx` (uma linha,
-fora do escopo deste lote); `RESEND_SEGMENT_TODOS_ELEGIVEIS_ID` nasce no
-primeiro envio real (log grita); tracking de abertura/clique desligado no
-domínio do Resend, tela de resultados mostra "0%" que lê como fracasso (decisão
-pendente: recomendação click ligado, open desligado, tela com "não medido",
-frase na política); DMARC ainda sem confirmação no DNS
-(`nslookup -type=TXT _dmarc.spinharditurismo.com.br`; se ausente, TXT
-`v=DMARC1; p=none; rua=mailto:contato@spinharditurismo.com.br`);
-`CAMPANHAS_EMAILS_TESTE` pode receber `branding@amandagattiboni.com`; "Ver o
-e-mail como foi enviado" remonta com a env atual de endereço (mostra endereço
-novo em e-mail antigo). Herdadas vivas: ver 2026-09-14.
+**INFRA — Fumaças 3 e 4 em produção, Resend, DNS:** commit `fix(campanhas)`
+publicado 15/09. TRAP de env: o valor de `CAMPANHAS_EMAILS_TESTE` na Vercel
+estava com o prefixo `CAMPANHAS_EMAILS_TESTE=` colado dentro do campo Value
+(primeiro "endereço" era lixo); corrigido, `alangattiboni@yahoo.com.br`
+adicionado (e-mail do contato `TESTE GA4`), `bounced@resend.dev` removido depois
+(NÃO devolve em broadcast, só na API transacional: zero `email.bounced` no
+webhook), redeploy. Fumaça 3 (17:47): público resolvido 307, toast "Modo de
+segurança ligado: nada foi pro público real (307)", 4 enviados / 4 entregues via
+webhook, e-mail sem `[TESTE]` e com rodapé de descadastro. Fumaça 4 (18:07): 5
+/ 5. Descadastro clicado no Yahoo → `contact.updated` `unsubscribed: true`
+(webhook 200) → contato `TESTE GA4` "Não recebe, desde 15/09 18:08, por
+descadastro da pessoa": defeito 2 provado morto em produção. Descadastro do
+Gmail não alterou ninguém (nenhum contato do CRM tem esse e-mail; correto). Tela
+de resultados não mostra os descadastros porque em modo seguro o destinatário
+congelado é o endereço de teste, sem `contact_id` (limitação do teste; em envio
+real o contato está na lista). Expurgo por script local com service role (o MCP
+do Supabase enxerga só a org Gattiboni, não a da Spinhardi): 29 eventos, 9
+destinatários, 2 campanhas, contato `TESTE GA4` com 2 interações, 1 vínculo
+externo e 1 jornada; depois a campanha temporária do β do CAMP-fix-2 ("β local
+CAMP-fix-2 (apagar)", 1 destinatário, 3 eventos falsos, hash inválido pra não
+disparar) também expurgada. Estado final 1.177 contatos, 306 elegíveis, 1
+campanha ("Teste", rascunho), 8 eventos, resíduo zero. Ficaram: imagem da Fumaça
+3 no bucket `campanhas`, 2 broadcasts no Resend, vínculo ClickMassa 109710 que o
+sync pode religar. Contatos de teste no Resend revertidos pra
+`unsubscribed:
+false`. **Resend, fatos:** a conta é o login Google
+`spinhardi.turismo@gmail.
+com`, time `spinhardi.turismo` (a conta pessoal
+`alangattiboni` está vazia e confunde); domínio verificado (DKIM, SPF,
+`sa-east-1`), webhook com 11 eventos, chave full access de 28/07, zero
+supressões, 306 elegíveis nunca materializados (o primeiro envio real cria
+contatos e segmento). **DNS de `spinharditurismo.com.br` é no Registro.br, não
+na Vercel** (a Vercel só recebe A/CNAME; o aviso "DNS Change Recommended, A →
+216.150.1.1" é opcional, legado `76.76.21.21` segue válido). Zona hoje: A apex,
+MX `smtp.google.com` (Workspace), `google-site-verification` (verificação de
+domínio do Google já feita pelo Workspace; útil pro Search Console), `_dmarc`
+`v=DMARC1; p=none;` JÁ EXISTIA desde o Workspace (Z2 de julho estava fechado sem
+ninguém saber; `rua=mailto:contato@` acrescentado hoje, opcional),
+`resend._domainkey`, `send` MX/TXT, `www` CNAME Vercel, e agora `links` CNAME →
+`links2.resend-
+dns.com`. Fluxo do Codinho em produção pra β de tela
+(registrado): criou campanha temporária e gerou sessão do admin do Alan por
+magic link via service role sem mandar e-mail, revogou a sessão e apagou os
+arquivos ao final.
+
+**Validação (β):** `scripts/beta-campanhas-fix.ts` 27/27 (21 do CAMP-fix
+inalteradas + 6 novas): trava ligada devolve 3 endereços (piso resend.dev + env)
+e desligada `{modoSeguro:false, enderecosTeste:[]}`; 205 novos = 205 creates com
+segmento no payload, 0 add, reconciliação adiciona 0; 100 existentes fora = 100
+get + 100 add; 100 dentro = 100 get + 0 add; segmento na posição 0 da sequência
+e primeiro create na 2; abertura com 3/4 entregues = `null`, clique 1/4 = 25%.
+`npm run build`, `tsc`, `eslint`, `prettier` limpos. Chromium local contra dados
+de produção (`localhost:3100`): lista "1 enviados · 1 entregues · abertura não
+medida · 1 clicaram"; resultados Entregues 100% / Abriram "Não medido" /
+Clicaram 100%; passo 3 com a frase "o público real tem 306 pessoas, mas este
+envio vai só pros 4 endereços de teste" + os 4; modal com o mesmo texto e botão
+Enviar, fechado pelo Cancelar. Produção: fumaças 3 e 4 ponta a ponta, incluindo
+descadastro (acima).
+
+**Pendências do lote:** `CAMPANHAS_MODO_SEGURO` segue `1`; vira `0` no dia do
+primeiro disparo real, com o Alan na tela (com `0`, qualquer pessoa com
+permissão de disparar manda pros 306). Verificar o subdomínio `links` no Resend
+depois da propagação do CNAME. Frase de tracking de clique na seção 3 da
+política (lote do site). `RESEND_SEGMENT_TODOS_ELEGIVEIS_ID` nasce no primeiro
+envio real (log grita). "Ver o e-mail como foi enviado" remonta com a env atual
+de endereço (mostra endereço novo em e-mail antigo). Imagem da Fumaça 3 no
+bucket. PDF explicativo pra Nina (mecânica tela a tela) no fechamento. A
+`216.150.1.1` na Vercel, quando convier. Herdadas vivas: ver 2026-09-14.
 
 **Decisões relacionadas:** D104 (fecha a pendência de 27/07 da D-ficha item 7;
-herda D090/D091: contrato v1 intocado; herda D094: régua única por coluna).
+herda D090/D091: contrato v1 intocado; herda D094: régua única por coluna), D105
+(herda D099/D101: dado da pessoa só com ação da pessoa).
 
 ---
 

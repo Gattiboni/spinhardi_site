@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { calcularConteudoHash } from "./hash";
+import { RASTREIO_ABERTURA } from "./config";
 import {
   rowToCampanha,
   rowToDestinatario,
@@ -135,7 +136,8 @@ export async function getHistoricoEmailDoContato(contactId: string): Promise<
     campanhaNome: l.campanhas?.nome_interno ?? "(campanha removida)",
     enviadoEm: l.enviado_em,
     recebeu: tem(l.campanha_id, "email.delivered"),
-    abriu: tem(l.campanha_id, "email.opened"),
+    // Abertura não medida (D105): sem selo "abriu", nunca um "não abriu" falso.
+    abriu: RASTREIO_ABERTURA && tem(l.campanha_id, "email.opened"),
     clicou: tem(l.campanha_id, "email.clicked"),
   }));
 }

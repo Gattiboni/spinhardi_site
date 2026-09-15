@@ -7,6 +7,7 @@ import DataTable, { type Column } from "@/components/ui/primitives/DataTable";
 import Modal from "@/components/ui/primitives/Modal";
 import { useToast } from "@/components/ui/primitives/Toast";
 import { formatDateTimeShort } from "@/lib/utils/date";
+import { metricaMedida } from "@/lib/campanhas/metricas-shared";
 import {
   ESTADO_BADGE,
   TIPO_LABELS,
@@ -113,8 +114,9 @@ export default function CampanhasClient({
         if (!m) return <span className="text-icon-muted">—</span>;
         return (
           <span className="text-text-muted tabular-nums text-xs">
-            {m.destinatarios} enviados · {m.entregues} entregues · {m.abertos} abriram · {m.cliques}{" "}
-            clicaram · {m.reclamacoes + m.bouncesHard} problemas
+            {m.destinatarios} enviados · {m.entregues} entregues ·{" "}
+            {metricaMedida("abertura") ? `${m.abertos} abriram` : "abertura não medida"} ·{" "}
+            {m.cliques} clicaram · {m.reclamacoes + m.bouncesHard} problemas
           </span>
         );
       },

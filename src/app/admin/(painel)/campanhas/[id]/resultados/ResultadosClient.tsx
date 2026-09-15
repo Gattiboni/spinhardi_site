@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Modal from "@/components/ui/primitives/Modal";
 import { formatDateTimeShort } from "@/lib/utils/date";
-import { taxa } from "@/lib/campanhas/metricas-shared";
+import { metricaMedida, taxaDe, type MetricaTaxa } from "@/lib/campanhas/metricas-shared";
 import {
   ESTADO_BADGE,
   TIPO_LABELS,
@@ -34,21 +34,32 @@ export default function ResultadosClient({
   const [verEmail, setVerEmail] = useState(false);
   const badge = ESTADO_BADGE[campanha.estado];
 
-  const kpis = [
+  // Abertura pode ser NÃO MEDIDA (D105, `lib/campanhas/config.ts`): aí o KPI
+  // diz "Não medido" em vez de "0%", e não mostra "0 de N", que também mente.
+  const kpis: {
+    titulo: string;
+    metrica: MetricaTaxa;
+    valor: number;
+    de: number;
+    deTexto: string;
+  }[] = [
     {
       titulo: "Entregues",
+      metrica: "entrega",
       valor: metricas.entregues,
       de: metricas.destinatarios,
       deTexto: "dos enviados",
     },
     {
       titulo: "Abriram",
+      metrica: "abertura",
       valor: metricas.abertos,
       de: metricas.entregues,
       deTexto: "dos entregues",
     },
     {
       titulo: "Clicaram",
+      metrica: "clique",
       valor: metricas.cliques,
       de: metricas.entregues,
       deTexto: "dos entregues",
@@ -110,15 +121,26 @@ export default function ResultadosClient({
       {/* ── KPIs ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-testid="kpis">
         {kpis.map((k) => {
-          const pct = taxa(k.valor, k.de);
+          const medida = metricaMedida(k.metrica);
+          const pct = taxaDe(k.metrica, k.valor, k.de);
           return (
-            <div key={k.titulo} className="bg-white border border-border-soft rounded-modal p-6">
+            <div
+              key={k.titulo}
+              className="bg-white border border-border-soft rounded-modal p-6"
+              data-testid={`kpi-${k.metrica}`}
+            >
               <p className="font-body text-sm text-text-muted mb-2">{k.titulo}</p>
-              <p className="font-display text-4xl text-navy tabular-nums">
-                {pct === null ? "—" : `${pct.toFixed(0)}%`}
-              </p>
+              {medida ? (
+                <p className="font-display text-4xl text-navy tabular-nums">
+                  {pct === null ? "—" : `${pct.toFixed(0)}%`}
+                </p>
+              ) : (
+                <p className="font-display text-2xl text-text-muted">Não medido</p>
+              )}
               <p className="font-body text-sm text-text-muted mt-2 tabular-nums">
-                {k.valor} de {k.de} {k.deTexto}
+                {medida
+                  ? `${k.valor} de ${k.de} ${k.deTexto}`
+                  : "O rastreio de abertura está desligado."}
               </p>
             </div>
           );

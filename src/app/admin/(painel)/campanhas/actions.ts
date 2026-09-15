@@ -22,7 +22,7 @@ import {
 } from "@/lib/campanhas/envio";
 import { contarPublico } from "@/lib/campanhas/publico";
 import { conteudoDe, montarEmailHtml, preflight } from "@/lib/campanhas/conteudo";
-import { modoSeguroAtivo } from "@/lib/campanhas/modo-seguro";
+import { modoSeguroAtivo, resumoModoSeguro } from "@/lib/campanhas/modo-seguro";
 import type { CampanhaConteudo, CampanhaTipo, Exclusoes, PublicoTipo } from "@/lib/campanhas/types";
 
 /**
@@ -156,13 +156,24 @@ export async function uploadImagemAction(
 // Passo 2 — contagem ao vivo
 // ─────────────────────────────────────────────────────────────────
 
+/**
+ * Recontagem ao vivo (passo 2, passo 3 e modal de confirmação). Leva junto o
+ * estado do MODO SEGURO pra tela não prometer "307 pessoas vão receber" com a
+ * trava ligada. A trava vem de `resumoModoSeguro`, a mesma leitura do pipeline.
+ */
 export async function contarPublicoAction(
   publicoTipo: PublicoTipo,
   grupoId: string | null,
-): Promise<{ total: number; exclusoes: Exclusoes; totalGrupo: number | null } | null> {
+): Promise<{
+  total: number;
+  exclusoes: Exclusoes;
+  totalGrupo: number | null;
+  modoSeguro: boolean;
+  enderecosTeste: string[];
+} | null> {
   try {
     await requireRole("admin");
-    return await contarPublico(publicoTipo, grupoId);
+    return { ...(await contarPublico(publicoTipo, grupoId)), ...resumoModoSeguro() };
   } catch (err) {
     console.error("[contarPublicoAction] erro:", err);
     return null;

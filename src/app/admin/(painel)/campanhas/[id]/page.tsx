@@ -7,6 +7,8 @@ import { destinosDeTesteAction } from "../actions";
 import EditorClient from "./EditorClient";
 
 export const dynamic = "force-dynamic";
+// Disparo e teste são server actions desta página; espelhar ~306 contatos pede folga (CHANGELOG 2026-09-15).
+export const maxDuration = 300;
 
 type Props = { params: Promise<{ id: string }> };
 

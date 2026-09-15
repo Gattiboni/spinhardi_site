@@ -38,8 +38,10 @@ import type { Campanha } from "./types";
  *
  *  1. resolver público AGORA (E3) contra a view de elegibilidade;
  *  2. MODO SEGURO: ponto único de interceptação (nada real recebe);
- *  3. espelhar cada destinatário como Contact no Resend + vínculo (R2/R3);
- *  4. materializar o Segment e RECONCILIAR a membresia (R1/R4);
+ *  3. materializar o Segment (R1). ANTES do espelhamento desde o CAMP-fix-2
+ *     (16/09/2026): contato novo é criado já dentro dele, sem add separado;
+ *  4. espelhar cada destinatário como Contact no Resend + vínculo (R2/R3), e
+ *     RECONCILIAR a membresia (R4), que continua sendo a fonte de verdade;
  *  5. ler opt-out do Resend e refletir em `email_marketing_status` (R5);
  *  6. criar o broadcast (enviar agora ou agendar);
  *  7. congelar destinatários, transicionar estado e auditar (E4/E6).
@@ -276,6 +278,14 @@ async function recusarPorFalhaNoProvedor(input: {
  * é o público resolvido NAQUELE instante que vale (E3/E4). Grupo alterado
  * depois não altera nada de campanha já disparada (G5).
  *
+ * ORDEM (CAMP-fix-2): o segmento é resolvido ANTES do espelhamento, invertendo
+ * a ordem original. Motivo: `contacts.create` recebe o segmento no mesmo
+ * payload e o contato novo já nasce membro, sem `segments.add` separado (no
+ * primeiro envio real, ~306 chamadas a menos). A reconciliação continua
+ * depois e continua sendo a fonte de verdade da membresia. Custo aceito: se o
+ * espelhamento abortar pelo teto, o segmento já pode ter sido criado; ele é
+ * reutilizado na próxima tentativa.
+ *
  * TETO DE FALHA (lote CAMP-fix): checado duas vezes antes do broadcast. Ao fim
  * do espelhamento, com as falhas de create/get; e depois da reconciliação,
  * somando quem não entrou no segmento (quem não está no segmento não recebe,
@@ -314,8 +324,16 @@ export async function dispararCampanha(
     const intercept = aplicarModoSeguro(publicoReal.destinatarios, campanhaId);
     const publico = intercept.publico;
 
-    // 3. Espelhar contatos no Resend, com teto de falha.
-    const espelhamento = await espelharContatos(publico);
+    // 3. Materializar o segmento ANTES de espelhar (CAMP-fix-2): contato novo
+    // nasce dentro dele no próprio `contacts.create`.
+    const segmentId = intercept.ativo
+      ? await segmentoModoSeguro()
+      : campanha.publicoTipo === "grupo"
+        ? await segmentoDoGrupo(campanha.grupoId!, await nomeDoGrupo(campanha.grupoId!))
+        : await segmentoTodosElegiveis();
+
+    // 4. Espelhar contatos no Resend, com teto de falha.
+    const espelhamento = await espelharContatos(publico, segmentId);
     if (excedeTetoDeFalha(publico.length, espelhamento.falhas.length)) {
       return recusarPorFalhaNoProvedor({
         campanha,
@@ -330,13 +348,8 @@ export async function dispararCampanha(
       return { ok: false, erro: "Não foi possível preparar os destinatários no provedor." };
     }
 
-    // 4. Materializar o segmento.
-    const segmentId = intercept.ativo
-      ? await segmentoModoSeguro()
-      : campanha.publicoTipo === "grupo"
-        ? await segmentoDoGrupo(campanha.grupoId!, await nomeDoGrupo(campanha.grupoId!))
-        : await segmentoTodosElegiveis();
-
+    // 4b. Reconciliar (R4, fonte de verdade da membresia): contato novo já
+    // entrou no create; aqui só entra quem já existia fora, e sai quem sobra.
     const reconciliacao = await reconciliarSegmento(segmentId, espelhamento.espelhadas);
 
     const ficaramDeFora = [...espelhamento.falhas, ...reconciliacao.falhasAoAdicionar];
