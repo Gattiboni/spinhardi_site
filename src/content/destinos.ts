@@ -61,7 +61,10 @@ export type Destino = {
    * bandeira não vende viagem — a capa é a `-03`, das falésias do Algarve.
    *
    * `[]` = destino sem foto; a galeria não renderiza nada (nem título, nem
-   * espaço, nem `<dialog>`). É o caso da Itália em 14/09/2026.
+   * espaço, nem `<dialog>`). Era o caso da Itália até 16/09/2026, quando as
+   * sócias mandaram as três fotos; hoje os quatro destinos têm foto e nenhum
+   * `fotos` está vazio — o caminho do vazio continua valendo para o próximo
+   * destino que entrar antes das fotos.
    */
   fotos: DestinoFoto[];
 };
@@ -95,9 +98,22 @@ export const DESTINOS: Destino[] = [
     ctaLabel: "Me conta sobre a sua ideia de viagem para a Itália",
     whatsappMensagem:
       "Oi! Vi a página da Itália no site e queria conversar sobre um roteiro por lá.",
-    // Sem foto real da Itália no repo. Vazio de propósito: o lote não aceita
-    // placeholder nem foto de banco de imagem.
-    fotos: [],
+    // Ordem de exibição = ordem do número do arquivo: o Batistério é a capa
+    // (og:image), a nave da catedral vem no meio e a ponte romana fecha.
+    fotos: [
+      {
+        src: "/destino-italia-01.jpeg",
+        alt: "Batistério de Parma, em mármore rosa, com a torre do Duomo ao lado",
+      },
+      {
+        src: "/destino-italia-02.jpeg",
+        alt: "Nave da Catedral de Parma, com os afrescos do teto",
+      },
+      {
+        src: "/destino-italia-03.jpeg",
+        alt: "Ponte romana de arco único em Pont-Saint-Martin, no Vale de Aosta",
+      },
+    ],
   },
   {
     slug: "africa-do-sul",

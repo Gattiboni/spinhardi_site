@@ -11,6 +11,52 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-16
+
+---
+
+**SITE — Itália com fotos: os quatro destinos fecham com carrossel (D103):** as
+três fotos da Nina entraram em `public/destino-italia-01/02/03.jpeg` (renomeadas
+de `.jpg`, padrão dos outros nove), otimizadas pelo mesmo pipeline de 14/09
+(2000px no lado maior, q82, `.rotate()` antes do resize, escrita atômica):
+11.013 KB → 1.299 KB, maior arquivo 538 KB (a 02 caiu pra q78 porque q82 passou
+de 600 KB). Os três chegaram já retrato nos pixels com `orientation: 1`; a
+armadilha de EXIF de 14/09 não se repetiu. `destinos.ts`: `fotos` da Itália na
+ordem 01 Batistério de Parma (capa e og:image), 02 nave da Catedral de Parma, 03
+ponte romana de Pont-Saint- Martin (Vale de Aosta); correspondência foto/alt
+conferida uma a uma, sem troca de `src` desta vez; comentário do tipo que dizia
+"é o caso da Itália em 14/09" corrigido. Zero componente, zero página tocada:
+card, índice, página interna, galeria e og:image ligaram sozinhos, como a D103
+previa. A assimetria "três com foto, Itália sem" durou de 14/09 a 16/09.
+Divergência registrada: `scripts/otimizar-fotos-destinos.ts` tem
+`SLUGS = ["argentina",
+"africa-do-sul", "portugal"]` hardcoded (a Itália não
+existia em 14/09); rodar o script do repo não tocaria nos arquivos novos, então
+a otimização rodou numa cópia no scratchpad com `SLUGS = ["italia"]` e pipeline
+idêntico. O script do repo segue sem a Itália (pendência de uma linha).
+
+**Validação (β):** build, lint e prettier limpos (prettier só no arquivo do
+lote). HTML servido da home e de `/destinos`: 4 `<article>`, 3 `<img>` cada,
+ordem Itália → África do Sul → Portugal → Argentina, primeiro slide da Itália
+`/destino-italia-01.jpeg`; altura dos 4 cards em 1440px: 439,75px, delta 0 nas
+duas rotas. `/destinos/italia`: 3 miniaturas, lightbox na 2ª com "Nave da
+Catedral de Parma, com os afrescos do teto · 2 / 3", na 3ª "· 3 / 3"; `og:image`
+absoluto no Batistério com `og:image:alt` e `twitter:image`. Regressão zero nos
+outros três (alts intactos, 1 `<dialog>` cada, og:image África 01, Argentina 01,
+Portugal 03). Observado, não deste lote: em 390px os cards empilham com alturas
+405,5 / 382,75 / 435,5 / 435,5 (delta 52,75px) por comprimento de copy; a Itália
+cai no meio, comportamento pré-existente.
+
+**Pendências do lote:** `"italia"` em `SLUGS` do script de otimização (uma
+linha); depoimentos reais por destino seguem abertos (seção não renderiza sem
+eles, por desenho); alturas dos cards em mobile divergem por copy (cosmético).
+Herdadas vivas: ver 2026-09-15.
+
+**Decisões relacionadas:** D103 (item 1, "foto entra por destino", cumprido; a
+regra "quatro ou nenhum" da D102 volta a ser verdade por consequência).
+
+---
+
 ## 2026-09-15
 
 ---
