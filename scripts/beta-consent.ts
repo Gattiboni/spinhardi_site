@@ -13,6 +13,11 @@
  *   2. Ambiente — sem `window`, e com `localStorage` que lança no acesso.
  *   3. trackEvent — sem `window.gtag` e sem `window`: não lança; com `gtag`
  *      presente: repassa nome e parâmetros sem inventar nada.
+ *   4. Snippet de init do GA4 — o script inline REAL (`ga4InitSnippet`) roda
+ *      num contexto `vm` com `window.location.hostname` simulado; o `config`
+ *      que chega ao `dataLayer` não tem `debug_mode` em produção e tem
+ *      `debug_mode: true` em localhost e `*.vercel.app` (`false` não desliga
+ *      o debug no GA4; só a ausência da chave desliga).
  *
  * Uso:
  *   npx tsx scripts/beta-consent.ts
@@ -29,6 +34,9 @@ import {
   writeConsent,
 } from "@/lib/consent";
 import { trackEvent } from "@/lib/analytics/track";
+import { PRODUCTION_HOSTNAME } from "@/lib/consent/config";
+import { ga4InitSnippet } from "@/components/consent/GoogleAnalytics";
+import vm from "node:vm";
 
 const resultados: { n: string; ok: boolean; nota: string }[] = [];
 
@@ -271,6 +279,49 @@ check("1.1 ausente → null", readConsent(AGORA) === null, "nunca respondeu");
 }
 
 semWindow();
+
+// ─────────────────────────────────────────────────────────────────
+// 4. Snippet de init do GA4
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Executa o snippet REAL como o navegador faria (`window` === global) e
+ * devolve o objeto de config serializado que chegou ao `dataLayer`.
+ */
+function configGerado(hostname: string): string {
+  const ctx: Record<string, unknown> = { location: { hostname } };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(ga4InitSnippet("G-TESTE"), ctx);
+  const dataLayer = ctx.dataLayer as ArrayLike<unknown>[];
+  const config = dataLayer.map((a) => Array.from(a)).find((a) => a[0] === "config");
+  return config && config[1] === "G-TESTE" ? JSON.stringify(config[2]) : "sem config";
+}
+
+{
+  const prod = configGerado(PRODUCTION_HOSTNAME);
+  check(
+    "4.1 produção → config SEM debug_mode",
+    prod === "{}" && !prod.includes("debug_mode"),
+    `${PRODUCTION_HOSTNAME} → ${prod}`,
+  );
+}
+
+{
+  const local = configGerado("localhost");
+  const preview = configGerado("spinhardi-site-git-main-gattiboni.vercel.app");
+  check(
+    "4.2 localhost e *.vercel.app → debug_mode:true",
+    local === '{"debug_mode":true}' && preview === '{"debug_mode":true}',
+    `localhost → ${local}; *.vercel.app → ${preview}`,
+  );
+}
+
+{
+  // Domínio sem www não é o domínio público: continua debug (comparação exata).
+  const semWww = configGerado(PRODUCTION_HOSTNAME.replace(/^www\./, ""));
+  check("4.3 hostname sem www → debug_mode:true", semWww === '{"debug_mode":true}', semWww);
+}
 
 // ─────────────────────────────────────────────────────────────────
 

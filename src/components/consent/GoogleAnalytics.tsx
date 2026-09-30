@@ -21,6 +21,10 @@ import { useConsent } from "./ConsentProvider";
  * Preview `*.vercel.app`): os hits vão pro DebugView e o filtro "Developer
  * traffic" do GA4 (tarefa do usuário, na UI do GA4) os tira dos relatórios.
  * A comparação é feita no snippet, no navegador — nada de `window` no render.
+ * Em produção a chave é OMITIDA, nunca `debug_mode: false`: pela doc do Google
+ * (support.google.com/analytics/answer/7201382) `false` NÃO desliga o modo
+ * debug, só a ausência do parâmetro desliga. Com `false`, todo o tráfego real
+ * saía marcado debug e o filtro o descartava dos relatórios.
  *
  * Sem `send_page_view: false` (o Enhanced measurement cuida de page_view,
  * scroll, outbound click e form_*), sem `anonymize_ip` (GA4 não guarda IP),
@@ -35,6 +39,21 @@ import { useConsent } from "./ConsentProvider";
  * página remonta o `<Script>`; o `next/script` deduplica por `id` e não
  * reexecuta, o que está certo: o `gtag` já está lá.
  */
+
+/**
+ * Script inline de init do gtag. Exportado pra prova β (`scripts/beta-consent.ts`),
+ * que o executa com `window.location.hostname` simulado.
+ */
+export function ga4InitSnippet(measurementId: string): string {
+  return `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+gtag('js', new Date());
+var ga4Config = {};
+if (window.location.hostname !== ${JSON.stringify(PRODUCTION_HOSTNAME)}) ga4Config.debug_mode = true;
+gtag('config', ${JSON.stringify(measurementId)}, ga4Config);`;
+}
+
 export default function GoogleAnalytics() {
   const { consent } = useConsent();
 
@@ -48,11 +67,7 @@ export default function GoogleAnalytics() {
         strategy="afterInteractive"
       />
       <Script id="ga4-gtag-init" strategy="afterInteractive">
-        {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-window.gtag = gtag;
-gtag('js', new Date());
-gtag('config', ${JSON.stringify(GA4_MEASUREMENT_ID)}, { debug_mode: window.location.hostname !== ${JSON.stringify(PRODUCTION_HOSTNAME)} });`}
+        {ga4InitSnippet(GA4_MEASUREMENT_ID)}
       </Script>
     </>
   );
