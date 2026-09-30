@@ -11,6 +11,90 @@ Ordem: mais recente no topo.
 
 ---
 
+## 2026-09-30
+
+---
+
+**SITE — GA4 gravava zero há 19 dias: `debug_mode: false` não desliga o debug
+(fix `62e0e1c`):** relatórios do GA4 zerados desde 11/09 com "nenhum dado
+recebido do seu site ainda", enquanto Realtime e DebugView mostravam tráfego
+normalmente. Causa: o snippet mandava
+`gtag('config', ID, { debug_mode:
+<hostname !== produção> })`, ou seja
+`debug_mode: false` em produção. Pela doc do Google
+(support.google.com/analytics/answer/7201382): "setting the parameter to false
+doesn't disable debug mode"; só a AUSÊNCIA do parâmetro desliga. Todo visitante
+real chegava marcado como tráfego de desenvolvedor, e o filtro "Tráfego de
+desenvolvimento" (Developer traffic, Exclude, Active, criado em 11/09 justamente
+pra jogar fora localhost e Preview) descartava 100% da produção dos relatórios.
+Realtime e DebugView ignoram o filtro, por isso os smokes de 11/09 e de hoje
+"passaram". Prova hoje: DebugView de produção com os `page_view` do Alan em
+`www.spinharditurismo.com.br` (20:11). A instrução de 11/09 especificou
+literalmente `debug_mode: <bool>`; o Codinho implementou o que foi pedido. Erro
+de instrução, não de execução. Correção em `GoogleAnalytics.tsx`:
+`var ga4Config = {}; if (hostname !==
+PRODUCTION_HOSTNAME) ga4Config.debug_mode = true; gtag('config', ID,
+ga4Config)`;
+em produção a chave não existe. Snippet extraído pra função exportada
+`ga4InitSnippet(id)` pra ser testável; comentário no arquivo cita a doc.
+`beta-consent.ts` ganha bloco 4 rodando o snippet real em `node:vm` com hostname
+simulado e lendo a config que chega ao `dataLayer`: produção → `{}`; `localhost`
+e `*.vercel.app` → `{debug_mode:true}`; apex sem `www` → `{debug_mode:true}`
+(comparação exata, documentada). Com o snippet antigo a 4.1 falha. **Os 19 dias
+descartados (11 a 30/09) não voltam**: dado excluído por filtro não é
+armazenado. Relatórios contam a partir de 30/09 à noite. TRAP pra sempre: em
+GA4, parâmetro booleano presente = ligado; o valor é ignorado. Vale pra
+`debug_mode`; tratar qualquer flag do gtag com a mesma desconfiança.
+
+**DOC — Manual "Como escrever um post do blog com o Claude" (29/09):** PDF de 14
+páginas pra Nina e Marcela + `prompt_blog_spinhardi.txt` (instruções fixas de um
+Projeto no Claude delas) + `briefing_modelo.txt`. O prompt espelha o formulário
+"Novo post" campo a campo (TÍTULO, CATEGORIA, RESUMO, CONTEÚDO, SEO TÍTULO, SEO
+DESCRIÇÃO, IMAGEM DE CAPA, CHECAGEM) com os limites que o painel NÃO impõe
+(auditoria read-only do Codinho: zero `maxLength` em título, resumo, SEO título
+e SEO descrição; o parser `mdLightToPortableText` só entende `#`, `##` e
+parágrafo por linha em branco; negrito, lista, link, citação e imagem viram
+texto cru com asterisco e colchete na tela; quebra de linha simples vira
+espaço). Categorias exatas: Destinos, Bastidores, Dicas de Viagem, História da
+Agência (referência por título literal; renomear no Studio quebra o save do
+admin). Slug fixado no primeiro save e sem redirect se mudar. Publicar exige
+capa com alt; rascunho não. Exemplo real rodado no Projeto (briefing "quando ir
+pra Toscana"): saída no formato, 13 itens na CHECAGEM. Duas armadilhas viraram
+caixa de alerta no manual: Enter envia (usar Shift+Enter ou colar tudo) e copiar
+pelo botão "Copiar" da resposta, porque selecionar na tela perde os `#` dos
+subtítulos. Projeto "Blog Spinhardi" existe na conta do Alan como espelho.
+Riscos registrados, sem ação: post enriquecido no Studio e depois salvo pelo
+admin perde marcas e links (`portableTextToMdLight` descarta); `bodySizeLimit`
+de 3 MB é do payload inteiro (capa perto de 3 MB + post longo cai em "Algo deu
+errado" sem dizer o motivo).
+
+**INFRA — GA4, estado em 30/09:** propriedade no
+`contato@spinharditurismo.
+com.br` (o `spinhardi.turismo@gmail.com` mostra o
+onboarding "Comece a medir", que cria conta nova se clicado; NÃO clicar);
+`generate_lead` a cadastrar como evento principal pelo nome (nunca chegou aos
+relatórios); Search Console ainda não conectado (verificação por TXT novo no
+Registro.br; "via GA" não funciona porque a tag só carrega após consentimento e
+o robô não consente); Business Profile aguarda sócias.
+
+**Validação (β):** `beta-consent.ts` 19/19 (16 de 11/09 + 3 novas); build, lint
+e prettier limpos; bundle com `ga4Config.debug_mode` e sem a forma antiga.
+Produção, depois do deploy: janela anônima nova, Aceitar, 7 páginas; DebugView 0
+dispositivos e nenhum evento novo; Realtime com 2 usuários (Alan
+
+- 1 visitante real), 9 `page_view`, `first_visit` e `session_start`.
+
+**Pendências do lote:** `generate_lead` como evento principal (2 min); Search
+Console (lote próprio); hook post-commit do graphify sem Python no PATH, grafo
+desatualizado desde 11/09; aviso "nenhum dado recebido" da Home some em 24-48 h.
+Processo: a instrução deste fix mandou "commit direto na main" e pulou a revisão
+do Alan; não repetir. Herdadas vivas: ver 2026-09-16 e 2026-09-15.
+
+**Decisões relacionadas:** D101 intacta (a regra "debug_mode por hostname"
+estava certa; a forma de expressar no gtag estava errada). D105 sem mudança.
+
+---
+
 ## 2026-09-16
 
 ---
