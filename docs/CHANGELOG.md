@@ -11,6 +11,49 @@ Ordem: mais recente no topo.
 
 ---
 
+**INFRA — Google, estado em 30/09 à noite:** propriedade GA4 no
+`contato@spinharditurismo.com.br` (TRAP: o `spinhardi.turismo@gmail.com` abre o
+onboarding "Comece a medir", que cria uma segunda conta se clicado; não é a
+conta). `generate_lead` cadastrado como evento principal pelo caminho Eventos →
+Criar evento → "Criar com código" (nome idêntico ao do `trackEvent`, sem valor
+monetário padrão, uma vez por evento); nunca chegou aos relatórios porque foi
+filtrado como tudo, então a estrela não existia pra marcar. Os três eventos
+principais que o Google criou sozinho ao escolher "Gerar leads"
+(`close_convert_lead`, `qualify_lead`, `purchase`) nunca disparam no site;
+deixados. Search Console: propriedade de DOMÍNIO `spinharditurismo.com.br`
+criada no `contato@`, verificada por TXT novo
+`google-site-verification=UfSo3te…` no Registro.br (o TXT antigo `P4zSVGkZa…` é
+do Workspace, de outra conta; os dois convivem, não remover nenhum); verificação
+"via Google Analytics" descartada porque a tag só carrega após consentimento e o
+robô não consente. Sitemap `https://www.spinharditurismo.com.br/sitemap.xml`
+enviado: primeiro status "Não foi possível buscar o sitemap" (0 páginas), que
+virou "Processado, 30 páginas encontradas" em poucos minutos; é o comportamento
+normal de propriedade recém-verificada, não defeito. As 30: 13 estáticas
+(institucionais, 5 de destinos, contato, blog, política) + 17 posts com
+`lastmod`. O `<script id="datalayer-checker-script">` que aparece ao abrir o XML
+no navegador do Alan é injeção de extensão do Chrome, não vem do servidor (o
+Google processou o XML sem erro).
+
+**Validação (β):** `beta-consent.ts` 19/19 (16 de 11/09 + 3 novas); build, lint
+e prettier limpos; bundle com `ga4Config.debug_mode` e sem a forma antiga.
+Produção, depois do deploy: janela anônima nova, Aceitar, 7 páginas; DebugView 0
+dispositivos e nenhum evento novo; Realtime com 2 usuários (Alan mais 1
+visitante real), 9 `page_view`, `first_visit` e `session_start`. `generate_lead`
+com estrela na lista de eventos principais. Search Console "Propriedade
+verificada", método "Provedor do nome de domínio".; Sitemap "Processado", 30
+URLs, mesma noite.
+
+**Pendências do lote:** primeira leitura real de Acquisition e Events só faz
+sentido depois de uma semana de dado limpo (a partir de 07/10). Processo: a
+instrução do fix mandou "commit direto na main" e pulou a revisão do Alan; não
+repetir. Herdadas vivas: ver 2026-09-16 e 2026-09-15.
+
+**Decisões relacionadas:** D101 intacta (a regra "debug_mode por hostname"
+estava certa; a forma de expressar no gtag estava errada). D105 sem mudança.
+D011 cumprida por inteiro pela primeira vez: GA4 + Search Console no ar.
+
+---
+
 ## 2026-09-30
 
 ---
